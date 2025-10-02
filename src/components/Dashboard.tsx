@@ -11,11 +11,13 @@ import { BotSettings } from "./BotSettings";
 export const Dashboard = () => {
   const [botRunning, setBotRunning] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [tradingMode, setTradingMode] = useState<"test" | "real">("test");
 
   const stats = {
     totalTrades: 127,
     profitableTrades: 89,
     totalProfit: 1247.89,
+    initialCapital: 10000.00,
     activePositions: 3,
   };
 
@@ -35,6 +37,24 @@ export const Dashboard = () => {
             </p>
           </div>
           <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 border border-border rounded-lg p-1">
+              <Button
+                variant={tradingMode === "test" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setTradingMode("test")}
+                className="gap-2"
+              >
+                Modo Teste
+              </Button>
+              <Button
+                variant={tradingMode === "real" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setTradingMode("real")}
+                className="gap-2"
+              >
+                Modo Real
+              </Button>
+            </div>
             <Badge variant={botRunning ? "default" : "secondary"} className="text-sm px-4 py-2">
               <Activity className="w-4 h-4 mr-2" />
               {botRunning ? "Ativo" : "Pausado"}
@@ -74,7 +94,18 @@ export const Dashboard = () => {
         )}
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <StatsCard
+            title="Capital Inicial"
+            value={`$${stats.initialCapital.toFixed(2)}`}
+            icon={<Activity className="w-5 h-5" />}
+          />
+          <StatsCard
+            title="Lucro Total"
+            value={`$${stats.totalProfit.toFixed(2)}`}
+            icon={<TrendingUp className="w-5 h-5 text-success" />}
+            trend="up"
+          />
           <StatsCard
             title="Total de Trades"
             value={stats.totalTrades.toString()}
@@ -83,12 +114,6 @@ export const Dashboard = () => {
           <StatsCard
             title="Taxa de Sucesso"
             value={`${profitPercentage}%`}
-            icon={<TrendingUp className="w-5 h-5 text-success" />}
-            trend="up"
-          />
-          <StatsCard
-            title="Lucro Total"
-            value={`$${stats.totalProfit.toFixed(2)}`}
             icon={<TrendingUp className="w-5 h-5 text-success" />}
             trend="up"
           />
