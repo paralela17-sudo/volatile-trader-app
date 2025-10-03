@@ -7,7 +7,6 @@ import { StatsCard } from "./StatsCard";
 import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
 import { BotSettings } from "./BotSettings";
-import { Sidebar } from "./Sidebar";
 
 export const Dashboard = () => {
   const [botRunning, setBotRunning] = useState(false);
@@ -26,10 +25,8 @@ export const Dashboard = () => {
   const profitPercentage = ((stats.profitableTrades / stats.totalTrades) * 100).toFixed(1);
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-      
-      <main className="flex-1 p-8">
+    <div className="min-h-screen bg-background">
+      <main className="w-full p-8">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
           <div className="flex items-center justify-between">
