@@ -101,7 +101,7 @@ export const Dashboard = () => {
             {/* Users Card */}
             <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground font-medium">Users</p>
+                <p className="text-sm text-muted-foreground font-medium">Capital Inicial</p>
                 <div className="flex items-end gap-3">
                   <p className="text-5xl font-bold text-primary tracking-tight">32.5k</p>
                   <ArrowUpRight className="w-6 h-6 text-success mb-2" />
@@ -116,7 +116,7 @@ export const Dashboard = () => {
             {/* Conversion Card */}
             <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground font-medium">Conversion</p>
+                <p className="text-sm text-muted-foreground font-medium">Taxa de Sucesso</p>
                 <div className="flex items-end gap-3">
                   <p className="text-5xl font-bold text-primary tracking-tight">{stats.conversionRate}%</p>
                   <ArrowDownRight className="w-6 h-6 text-danger mb-2" />
@@ -132,7 +132,7 @@ export const Dashboard = () => {
             <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground font-medium">Chat</p>
+                  <p className="text-sm text-muted-foreground font-medium">Total de Trades</p>
                   <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
                     View All
                   </Button>
