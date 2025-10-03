@@ -97,8 +97,8 @@ export const Dashboard = () => {
           )}
 
           {/* Top Metrics Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Users Card */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Capital Inicial Card */}
             <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground font-medium">Capital Inicial</p>
@@ -113,7 +113,7 @@ export const Dashboard = () => {
               </div>
             </Card>
 
-            {/* Conversion Card */}
+            {/* Taxa de Sucesso Card */}
             <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground font-medium">Taxa de Sucesso</p>
@@ -128,22 +128,22 @@ export const Dashboard = () => {
               </div>
             </Card>
 
-            {/* Chat Preview Card */}
+            {/* Total de Trades Card */}
             <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground font-medium">Total de Trades</p>
-                  <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                    View All
-                  </Button>
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground font-medium">Total de Trades</p>
+                <div className="flex items-end gap-3">
+                  <p className="text-5xl font-bold text-primary tracking-tight">{stats.totalTrades}</p>
                 </div>
-                <div className="space-y-2">
-                  <div className="bg-secondary/50 px-4 py-2 rounded-lg text-sm text-foreground">
-                    Hello
-                  </div>
-                  <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm ml-auto max-w-fit">
-                    Hey there!
-                  </div>
+              </div>
+            </Card>
+
+            {/* Posições Ativas Card */}
+            <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground font-medium">Posições Ativas</p>
+                <div className="flex items-end gap-3">
+                  <p className="text-5xl font-bold text-primary tracking-tight">{stats.activePositions}</p>
                 </div>
               </div>
             </Card>
