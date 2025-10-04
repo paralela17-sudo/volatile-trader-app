@@ -7,6 +7,7 @@ import { StatsCard } from "./StatsCard";
 import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
 import { BotSettings } from "./BotSettings";
+import evolonLogo from "@/assets/evolon-bot-logo.jpg";
 
 export const Dashboard = () => {
   const [botRunning, setBotRunning] = useState(false);
@@ -31,6 +32,7 @@ export const Dashboard = () => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              <img src={evolonLogo} alt="Evolón Bot" className="h-12 w-auto" />
               <div className="flex items-center gap-2 bg-secondary/50 border border-border rounded-lg p-1">
                 <Button
                   variant={tradingMode === "test" ? "default" : "ghost"}
