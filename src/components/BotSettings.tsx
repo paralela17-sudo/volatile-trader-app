@@ -83,6 +83,7 @@ export const BotSettings = () => {
               value={settings.pairWith}
               onChange={(e) => setSettings({ ...settings, pairWith: e.target.value })}
               placeholder="USDT"
+              disabled
             />
           </div>
 
@@ -101,6 +102,7 @@ export const BotSettings = () => {
               type="number"
               value={settings.timeDifference}
               onChange={(e) => setSettings({ ...settings, timeDifference: Number(e.target.value) })}
+              disabled
             />
           </div>
 
@@ -112,6 +114,7 @@ export const BotSettings = () => {
                 value={settings.changeInPrice}
                 onChange={(e) => setSettings({ ...settings, changeInPrice: Number(e.target.value) })}
                 className="text-center"
+                disabled
               />
             </div>
 
@@ -122,6 +125,7 @@ export const BotSettings = () => {
                 value={settings.stopLoss}
                 onChange={(e) => setSettings({ ...settings, stopLoss: Number(e.target.value) })}
                 className="text-center"
+                disabled
               />
             </div>
 
@@ -132,6 +136,7 @@ export const BotSettings = () => {
                 value={settings.takeProfit}
                 onChange={(e) => setSettings({ ...settings, takeProfit: Number(e.target.value) })}
                 className="text-center"
+                disabled
               />
             </div>
           </div>
