@@ -172,31 +172,6 @@ export const Dashboard = () => {
             </div>
           </Card>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatsCard
-              title="Capital Inicial"
-              value={`$${stats.initialCapital.toFixed(2)}`}
-              icon={<Activity className="w-5 h-5" />}
-            />
-            <StatsCard
-              title="Total de Trades"
-              value={stats.totalTrades.toString()}
-              icon={<Activity className="w-5 h-5" />}
-            />
-            <StatsCard
-              title="Taxa de Sucesso"
-              value={`${profitPercentage}%`}
-              icon={<TrendingUp className="w-5 h-5 text-success" />}
-              trend="up"
-            />
-            <StatsCard
-              title="Posições Ativas"
-              value={stats.activePositions.toString()}
-              icon={<TrendingDown className="w-5 h-5 text-primary" />}
-            />
-          </div>
-
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2 p-6 bg-gradient-card border-border">
