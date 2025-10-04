@@ -32,7 +32,7 @@ export const Dashboard = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-6">
-              <img src={evolonLogo} alt="Evolón Bot" className="h-16 w-auto" />
+              <img src={evolonLogo} alt="Evolón Bot" className="h-24 w-auto" />
               <div className="flex items-center gap-2 bg-secondary/50 border border-border rounded-lg p-1">
                 <Button
                   variant={tradingMode === "test" ? "default" : "ghost"}
