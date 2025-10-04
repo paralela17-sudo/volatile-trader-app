@@ -155,10 +155,10 @@ export const Dashboard = () => {
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground font-medium uppercase tracking-wide">Profit</p>
                   <div className="flex items-end gap-3">
-                    <p className="text-5xl font-bold text-primary tracking-tight">
+                    <p className="text-3xl font-bold text-primary tracking-tight">
                       ${(stats.totalProfit / 1000).toFixed(1)}k
                     </p>
-                    <ArrowUpRight className="w-7 h-7 text-success mb-2" />
+                    <ArrowUpRight className="w-5 h-5 text-success mb-1" />
                   </div>
                   <div className="flex items-center gap-1 text-success text-sm">
                     <ArrowUpRight className="w-4 h-4" />
