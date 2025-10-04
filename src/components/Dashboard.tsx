@@ -30,9 +30,9 @@ export const Dashboard = () => {
       <main className="w-full p-8">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src={evolonLogo} alt="Evolón Bot" className="h-12 w-auto" />
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-6">
+              <img src={evolonLogo} alt="Evolón Bot" className="h-16 w-auto" />
               <div className="flex items-center gap-2 bg-secondary/50 border border-border rounded-lg p-1">
                 <Button
                   variant={tradingMode === "test" ? "default" : "ghost"}
@@ -98,70 +98,70 @@ export const Dashboard = () => {
           {/* Top Metrics Row */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {/* Capital Inicial Card */}
-            <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground font-medium">Capital Inicial</p>
-                <div className="flex items-end gap-3">
-                  <p className="text-5xl font-bold text-primary tracking-tight">32.5k</p>
-                  <ArrowUpRight className="w-6 h-6 text-success mb-2" />
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Capital Inicial</p>
+                <div className="flex items-end gap-2">
+                  <p className="text-3xl font-bold text-primary tracking-tight">32.5k</p>
+                  <ArrowUpRight className="w-5 h-5 text-success mb-1" />
                 </div>
-                <div className="flex items-center gap-1 text-success text-sm">
-                  <ArrowUpRight className="w-4 h-4" />
+                <div className="flex items-center gap-1 text-success text-xs">
+                  <ArrowUpRight className="w-3 h-3" />
                   <span>3.7%</span>
                 </div>
               </div>
             </Card>
 
             {/* Taxa de Sucesso Card */}
-            <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground font-medium">Taxa de Sucesso</p>
-                <div className="flex items-end gap-3">
-                  <p className="text-5xl font-bold text-primary tracking-tight">{stats.conversionRate}%</p>
-                  <ArrowDownRight className="w-6 h-6 text-danger mb-2" />
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Taxa de Sucesso</p>
+                <div className="flex items-end gap-2">
+                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.conversionRate}%</p>
+                  <ArrowDownRight className="w-5 h-5 text-danger mb-1" />
                 </div>
-                <div className="flex items-center gap-1 text-danger text-sm">
-                  <ArrowDownRight className="w-4 h-4" />
+                <div className="flex items-center gap-1 text-danger text-xs">
+                  <ArrowDownRight className="w-3 h-3" />
                   <span>1.6%</span>
                 </div>
               </div>
             </Card>
 
             {/* Total de Trades Card */}
-            <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground font-medium">Total de Trades</p>
-                <div className="flex items-end gap-3">
-                  <p className="text-5xl font-bold text-primary tracking-tight">{stats.totalTrades}</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total de Trades</p>
+                <div className="flex items-end gap-2">
+                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.totalTrades}</p>
                 </div>
               </div>
             </Card>
 
             {/* Posições Ativas Card */}
-            <Card className="p-6 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground font-medium">Posições Ativas</p>
-                <div className="flex items-end gap-3">
-                  <p className="text-5xl font-bold text-primary tracking-tight">{stats.activePositions}</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Posições Ativas</p>
+                <div className="flex items-end gap-2">
+                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.activePositions}</p>
                 </div>
               </div>
             </Card>
           </div>
 
           {/* Profit Section */}
-          <Card className="p-8 bg-gradient-card border-border">
-            <div className="space-y-6">
+          <Card className="p-6 bg-gradient-card border-border">
+            <div className="space-y-5">
               <div className="flex items-start justify-between">
-                <div className="space-y-3">
-                  <p className="text-lg text-muted-foreground font-medium">Profit</p>
-                  <div className="flex items-end gap-4">
-                    <p className="text-6xl font-bold text-primary tracking-tight">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground font-medium uppercase tracking-wide">Profit</p>
+                  <div className="flex items-end gap-3">
+                    <p className="text-5xl font-bold text-primary tracking-tight">
                       ${(stats.totalProfit / 1000).toFixed(1)}k
                     </p>
-                    <ArrowUpRight className="w-8 h-8 text-success mb-3" />
+                    <ArrowUpRight className="w-7 h-7 text-success mb-2" />
                   </div>
-                  <div className="flex items-center gap-2 text-success text-base">
-                    <ArrowUpRight className="w-5 h-5" />
+                  <div className="flex items-center gap-1 text-success text-sm">
+                    <ArrowUpRight className="w-4 h-4" />
                     <span>1.8%</span>
                   </div>
                 </div>
