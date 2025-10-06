@@ -101,10 +101,10 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
-            <img src={evolonLogo} alt="Evolon Logo" className="h-32 w-auto object-contain mix-blend-lighten" />
+            <img src={evolonLogo} alt="Evolón Logo" className="h-32 w-auto object-contain mix-blend-lighten" />
           </div>
           <div className="space-y-2 text-center">
-            <CardTitle className="text-2xl">Evolon Trading Bot</CardTitle>
+            <CardTitle className="text-2xl">Evolón Trading Bot</CardTitle>
             <CardDescription>
               Acesse sua conta ou crie uma nova para começar
             </CardDescription>
