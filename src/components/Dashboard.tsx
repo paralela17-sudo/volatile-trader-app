@@ -54,7 +54,10 @@ export const Dashboard = () => {
                 <Button
                   variant={tradingMode === "test" ? "default" : "ghost"}
                   size="sm"
-                  onClick={() => setTradingMode("test")}
+                  onClick={() => {
+                    setTradingMode("test");
+                    setSettings({ ...settings, testMode: true });
+                  }}
                   className="gap-2"
                 >
                   Modo Teste
@@ -62,7 +65,10 @@ export const Dashboard = () => {
                 <Button
                   variant={tradingMode === "real" ? "default" : "ghost"}
                   size="sm"
-                  onClick={() => setTradingMode("real")}
+                  onClick={() => {
+                    setTradingMode("real");
+                    setSettings({ ...settings, testMode: false });
+                  }}
                   className="gap-2"
                 >
                   Modo Real
@@ -102,8 +108,8 @@ export const Dashboard = () => {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">Configurações do Bot</h2>
-                <Badge variant={settings.testMode ? "secondary" : "destructive"}>
-                  {settings.testMode ? "Modo Teste" : "Modo Real"}
+                <Badge variant={tradingMode === "real" ? "destructive" : "secondary"} className="text-base px-4 py-2">
+                  {tradingMode === "real" ? "🔴 MODO REAL ATIVO" : "Modo Teste"}
                 </Badge>
               </div>
 
