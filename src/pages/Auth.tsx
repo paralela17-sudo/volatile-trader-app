@@ -101,7 +101,7 @@ const Auth = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
-            <img src={evolonLogo} alt="Evolon Logo" className="h-16 w-auto" />
+            <img src={evolonLogo} alt="Evolon Logo" className="h-32 w-auto" />
           </div>
           <div className="space-y-2 text-center">
             <CardTitle className="text-2xl">Evolon Trading Bot</CardTitle>
