@@ -2,17 +2,30 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, Settings, TrendingUp, TrendingDown, Activity, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Play, Pause, Activity, ArrowUpRight, ArrowDownRight, Save, Key } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
-import { BotSettings } from "./BotSettings";
+import { toast } from "sonner";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
 
 export const Dashboard = () => {
   const [botRunning, setBotRunning] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [tradingMode, setTradingMode] = useState<"test" | "real">("test");
+  const [settings, setSettings] = useState({
+    apiKey: "",
+    apiSecret: "",
+    testMode: true,
+    pairWith: "USDT",
+    quantity: 100,
+    timeDifference: 5,
+    changeInPrice: 3,
+    stopLoss: 3,
+    takeProfit: 6,
+  });
 
   const stats = {
     totalTrades: 127,
@@ -24,6 +37,10 @@ export const Dashboard = () => {
   };
 
   const profitPercentage = ((stats.profitableTrades / stats.totalTrades) * 100).toFixed(1);
+
+  const handleSaveSettings = () => {
+    toast.success("Configurações salvas com sucesso!");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,14 +78,6 @@ export const Dashboard = () => {
             </div>
             <div className="flex items-center gap-3">
               <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowSettings(!showSettings)}
-                className="border-border hover:border-primary"
-              >
-                <Settings className="w-5 h-5" />
-              </Button>
-              <Button
                 variant={botRunning ? "destructive" : "default"}
                 onClick={() => setBotRunning(!botRunning)}
                 className="gap-2 shadow-glow-primary"
@@ -88,12 +97,134 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          {/* Settings Panel */}
-          {showSettings && (
-            <Card className="p-6 bg-gradient-card border-border animate-fade-in">
-              <BotSettings />
-            </Card>
-          )}
+          {/* Bot Settings */}
+          <Card className="p-6 bg-gradient-card border-border">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Configurações do Bot</h2>
+                <Badge variant={settings.testMode ? "secondary" : "destructive"}>
+                  {settings.testMode ? "Modo Teste" : "Modo Real"}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* API Configuration */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Key className="w-4 h-4" />
+                      Binance API Key
+                    </Label>
+                    <Input
+                      type="password"
+                      placeholder="Sua API Key da Binance"
+                      value={settings.apiKey}
+                      onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })}
+                      className="font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Binance API Secret</Label>
+                    <Input
+                      type="password"
+                      placeholder="Sua API Secret da Binance"
+                      value={settings.apiSecret}
+                      onChange={(e) => setSettings({ ...settings, apiSecret: e.target.value })}
+                      className="font-mono"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-secondary/20">
+                    <div className="space-y-1">
+                      <Label>Modo de Teste</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Ativar para simular trades sem usar dinheiro real
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.testMode}
+                      onCheckedChange={(checked) => setSettings({ ...settings, testMode: checked })}
+                    />
+                  </div>
+                </div>
+
+                {/* Trading Parameters */}
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Par de Negociação</Label>
+                    <Input
+                      value={settings.pairWith}
+                      onChange={(e) => setSettings({ ...settings, pairWith: e.target.value })}
+                      placeholder="USDT"
+                      disabled
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Quantidade por Trade (USDT)</Label>
+                    <Input
+                      type="number"
+                      value={settings.quantity}
+                      onChange={(e) => setSettings({ ...settings, quantity: Number(e.target.value) })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Intervalo de Tempo (minutos)</Label>
+                    <Input
+                      type="number"
+                      value={settings.timeDifference}
+                      onChange={(e) => setSettings({ ...settings, timeDifference: Number(e.target.value) })}
+                      disabled
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Variação %</Label>
+                      <Input
+                        type="number"
+                        value={settings.changeInPrice}
+                        onChange={(e) => setSettings({ ...settings, changeInPrice: Number(e.target.value) })}
+                        className="text-center"
+                        disabled
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs text-danger">Stop Loss %</Label>
+                      <Input
+                        type="number"
+                        value={settings.stopLoss}
+                        onChange={(e) => setSettings({ ...settings, stopLoss: Number(e.target.value) })}
+                        className="text-center"
+                        disabled
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs text-success">Take Profit %</Label>
+                      <Input
+                        type="number"
+                        value={settings.takeProfit}
+                        onChange={(e) => setSettings({ ...settings, takeProfit: Number(e.target.value) })}
+                        className="text-center"
+                        disabled
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={handleSaveSettings} className="gap-2">
+                  <Save className="w-4 h-4" />
+                  Salvar Configurações
+                </Button>
+              </div>
+            </div>
+          </Card>
 
           {/* Top Metrics Row */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
