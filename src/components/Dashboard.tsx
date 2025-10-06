@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Play, Pause, Activity, ArrowUpRight, ArrowDownRight, Save, Key } from "lucide-react";
+import { Play, Pause, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
@@ -15,6 +15,9 @@ import evolonLogo from "@/assets/evolon-bot-logo.jpg";
 export const Dashboard = () => {
   const [botRunning, setBotRunning] = useState(false);
   const [tradingMode, setTradingMode] = useState<"test" | "real">("test");
+  const [botPoweredOff, setBotPoweredOff] = useState(false);
+  const [dailyProfitPercent, setDailyProfitPercent] = useState(0);
+  const [pausedUntilMidnight, setPausedUntilMidnight] = useState(false);
   const [settings, setSettings] = useState({
     apiKey: "",
     apiSecret: "",
@@ -38,8 +41,52 @@ export const Dashboard = () => {
 
   const profitPercentage = ((stats.profitableTrades / stats.totalTrades) * 100).toFixed(1);
 
+  // Checar metas diárias e controlar o bot
+  useEffect(() => {
+    if (botPoweredOff) return;
+
+    // Checar se atingiu take profit ou stop loss
+    if (botRunning && (dailyProfitPercent >= 6 || dailyProfitPercent <= -3)) {
+      setBotRunning(false);
+      setPausedUntilMidnight(true);
+      toast.warning(
+        dailyProfitPercent >= 6 
+          ? "Meta de Take Profit (6%) atingida! Bot pausado até meia-noite." 
+          : "Stop Loss (3%) atingido! Bot pausado até meia-noite."
+      );
+    }
+
+    // Checar se é meia-noite para resetar
+    const checkMidnight = setInterval(() => {
+      const now = new Date();
+      if (now.getHours() === 0 && now.getMinutes() === 0 && pausedUntilMidnight) {
+        setDailyProfitPercent(0);
+        setPausedUntilMidnight(false);
+        if (tradingMode === "real" && !botPoweredOff) {
+          setBotRunning(true);
+          toast.success("Meia-noite! Bot retomado automaticamente no modo real.");
+        }
+      }
+    }, 60000); // Checar a cada minuto
+
+    return () => clearInterval(checkMidnight);
+  }, [botRunning, dailyProfitPercent, pausedUntilMidnight, tradingMode, botPoweredOff]);
+
   const handleSaveSettings = () => {
     toast.success("Configurações salvas com sucesso!");
+  };
+
+  const handlePowerToggle = () => {
+    const newState = !botPoweredOff;
+    setBotPoweredOff(newState);
+    if (newState) {
+      setBotRunning(false);
+      toast.error("Bot desligado! Não realizará operações até ser ligado novamente.");
+    } else {
+      setPausedUntilMidnight(false);
+      setDailyProfitPercent(0);
+      toast.success("Bot ligado! Pronto para operar.");
+    }
   };
 
   return (
@@ -59,6 +106,7 @@ export const Dashboard = () => {
                     setSettings({ ...settings, testMode: true });
                   }}
                   className="gap-2"
+                  disabled={botPoweredOff}
                 >
                   Modo Teste
                 </Button>
@@ -70,23 +118,52 @@ export const Dashboard = () => {
                     setSettings({ ...settings, testMode: false });
                   }}
                   className="gap-2"
+                  disabled={botPoweredOff}
                 >
                   Modo Real
                 </Button>
               </div>
               <Badge 
-                variant={botRunning ? "default" : "secondary"} 
-                className="text-sm px-4 py-2 bg-primary/10 text-primary border-primary/20"
+                variant={botPoweredOff ? "destructive" : (botRunning ? "default" : "secondary")} 
+                className={`text-sm px-4 py-2 ${
+                  botPoweredOff 
+                    ? "bg-destructive/20 text-destructive border-destructive/50" 
+                    : "bg-primary/10 text-primary border-primary/20"
+                }`}
               >
                 <Activity className="w-4 h-4 mr-2" />
-                {botRunning ? "Ativo" : "Pausado"}
+                {botPoweredOff ? "🔴 DESLIGADO" : (botRunning ? "Ativo" : "Pausado")}
               </Badge>
+              {pausedUntilMidnight && !botPoweredOff && (
+                <Badge variant="secondary" className="text-sm px-4 py-2 bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+                  ⏸️ Meta Diária Atingida - Retoma à 00:00
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <Button
+                variant={botPoweredOff ? "default" : "destructive"}
+                onClick={handlePowerToggle}
+                className="gap-2"
+              >
+                <Power className="w-5 h-5" />
+                {botPoweredOff ? "Ligar Bot" : "Desligar Bot"}
+              </Button>
+              <Button
                 variant={botRunning ? "destructive" : "default"}
-                onClick={() => setBotRunning(!botRunning)}
+                onClick={() => {
+                  if (botPoweredOff) {
+                    toast.error("Bot está desligado! Ligue-o primeiro.");
+                    return;
+                  }
+                  if (pausedUntilMidnight) {
+                    toast.warning("Bot pausado até meia-noite por atingir meta diária.");
+                    return;
+                  }
+                  setBotRunning(!botRunning);
+                }}
                 className="gap-2 shadow-glow-primary"
+                disabled={botPoweredOff || pausedUntilMidnight}
               >
                 {botRunning ? (
                   <>
@@ -108,9 +185,17 @@ export const Dashboard = () => {
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">Configurações do Bot</h2>
-                <Badge variant={tradingMode === "real" ? "destructive" : "secondary"} className="text-base px-4 py-2">
-                  {tradingMode === "real" ? "🔴 MODO REAL ATIVO" : "Modo Teste"}
-                </Badge>
+                <div className="flex items-center gap-3">
+                  <Badge variant={tradingMode === "real" ? "destructive" : "secondary"} className="text-base px-4 py-2">
+                    {tradingMode === "real" ? "🔴 MODO REAL ATIVO" : "Modo Teste"}
+                  </Badge>
+                  <Badge 
+                    variant={dailyProfitPercent >= 6 ? "default" : (dailyProfitPercent <= -3 ? "destructive" : "secondary")} 
+                    className="text-base px-4 py-2"
+                  >
+                    Profit Diário: {dailyProfitPercent > 0 ? "+" : ""}{dailyProfitPercent.toFixed(2)}%
+                  </Badge>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
