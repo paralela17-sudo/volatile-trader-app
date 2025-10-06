@@ -1,18 +1,36 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Play, Pause, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power } from "lucide-react";
+import { Play, Pause, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
 
+// Validation schema
+const botConfigSchema = z.object({
+  apiKey: z.string().min(1, "API Key é obrigatória"),
+  apiSecret: z.string().min(1, "API Secret é obrigatória"),
+  testMode: z.boolean(),
+  quantity: z.number().min(0.001, "Quantidade mínima é 0.001").max(100000, "Quantidade muito alta"),
+  takeProfit: z.number().min(0.1, "Take Profit mínimo é 0.1%").max(100, "Take Profit máximo é 100%"),
+  stopLoss: z.number().min(0.1, "Stop Loss mínimo é 0.1%").max(100, "Stop Loss máximo é 100%"),
+  dailyProfitGoal: z.number().min(1, "Meta diária mínima é 1").max(10000, "Meta muito alta"),
+  testBalance: z.number().min(0, "Saldo não pode ser negativo").max(1000000, "Saldo muito alto"),
+});
+
 export const Dashboard = () => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [configId, setConfigId] = useState<string | null>(null);
   const [botRunning, setBotRunning] = useState(false);
   const [tradingMode, setTradingMode] = useState<"test" | "real">("test");
   const [botPoweredOff, setBotPoweredOff] = useState(false);
@@ -29,6 +47,7 @@ export const Dashboard = () => {
     stopLoss: 3,
     takeProfit: 6,
     testBalance: 1000,
+    dailyProfitGoal: 50,
   });
 
   const stats = {
@@ -42,22 +61,70 @@ export const Dashboard = () => {
 
   const profitPercentage = ((stats.profitableTrades / stats.totalTrades) * 100).toFixed(1);
 
+  // Load configuration from database
+  useEffect(() => {
+    loadBotConfiguration();
+  }, []);
+
+  const loadBotConfiguration = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("bot_configurations")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        setConfigId(data.id);
+        setSettings({
+          apiKey: "", // Don't load actual keys for security
+          apiSecret: "",
+          testMode: data.test_mode,
+          pairWith: data.trading_pair || "USDT",
+          quantity: Number(data.quantity) || 100,
+          timeDifference: 5,
+          changeInPrice: 3,
+          stopLoss: Number(data.stop_loss_percent) || 3,
+          takeProfit: Number(data.take_profit_percent) || 6,
+          testBalance: Number(data.test_balance) || 1000,
+          dailyProfitGoal: Number(data.daily_profit_goal) || 50,
+        });
+        setTradingMode(data.test_mode ? "test" : "real");
+        setBotRunning(data.is_running || false);
+        setBotPoweredOff(!data.is_powered_on);
+      }
+    } catch (error: any) {
+      console.error("Error loading configuration:", error);
+      toast.error("Erro ao carregar configurações");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Checar metas diárias e controlar o bot
   useEffect(() => {
     if (botPoweredOff) return;
 
-    // Checar se atingiu take profit ou stop loss
-    if (botRunning && (dailyProfitPercent >= 6 || dailyProfitPercent <= -3)) {
+    if (botRunning && (dailyProfitPercent >= settings.takeProfit || dailyProfitPercent <= -settings.stopLoss)) {
       setBotRunning(false);
       setPausedUntilMidnight(true);
+      saveBotState(false, botPoweredOff);
       toast.warning(
-        dailyProfitPercent >= 6 
-          ? "Meta de Take Profit (6%) atingida! Bot pausado até meia-noite." 
-          : "Stop Loss (3%) atingido! Bot pausado até meia-noite."
+        dailyProfitPercent >= settings.takeProfit
+          ? `Meta de Take Profit (${settings.takeProfit}%) atingida! Bot pausado até meia-noite.`
+          : `Stop Loss (${settings.stopLoss}%) atingido! Bot pausado até meia-noite.`
       );
     }
 
-    // Checar se é meia-noite para resetar
     const checkMidnight = setInterval(() => {
       const now = new Date();
       if (now.getHours() === 0 && now.getMinutes() === 0 && pausedUntilMidnight) {
@@ -65,16 +132,100 @@ export const Dashboard = () => {
         setPausedUntilMidnight(false);
         if (tradingMode === "real" && !botPoweredOff) {
           setBotRunning(true);
+          saveBotState(true, false);
           toast.success("Meia-noite! Bot retomado automaticamente no modo real.");
         }
       }
-    }, 60000); // Checar a cada minuto
+    }, 60000);
 
     return () => clearInterval(checkMidnight);
-  }, [botRunning, dailyProfitPercent, pausedUntilMidnight, tradingMode, botPoweredOff]);
+  }, [botRunning, dailyProfitPercent, pausedUntilMidnight, tradingMode, botPoweredOff, settings.takeProfit, settings.stopLoss]);
 
-  const handleSaveSettings = () => {
-    toast.success("Configurações salvas com sucesso!");
+  const saveBotState = async (isRunning: boolean, isPoweredOff: boolean) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if (configId) {
+        await supabase
+          .from("bot_configurations")
+          .update({
+            is_running: isRunning,
+            is_powered_on: !isPoweredOff,
+          })
+          .eq("id", configId);
+      }
+    } catch (error) {
+      console.error("Error saving bot state:", error);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      // Validate inputs
+      botConfigSchema.parse({
+        apiKey: settings.apiKey || "placeholder", // Allow empty if not changed
+        apiSecret: settings.apiSecret || "placeholder",
+        testMode: settings.testMode,
+        quantity: settings.quantity,
+        takeProfit: settings.takeProfit,
+        stopLoss: settings.stopLoss,
+        dailyProfitGoal: settings.dailyProfitGoal,
+        testBalance: settings.testBalance,
+      });
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
+
+      const configData = {
+        user_id: user.id,
+        test_mode: settings.testMode,
+        test_balance: settings.testBalance,
+        trading_pair: settings.pairWith,
+        quantity: settings.quantity,
+        take_profit_percent: settings.takeProfit,
+        stop_loss_percent: settings.stopLoss,
+        daily_profit_goal: settings.dailyProfitGoal,
+        is_running: botRunning,
+        is_powered_on: !botPoweredOff,
+        // Only update API credentials if they were entered
+        ...(settings.apiKey && { api_key_encrypted: settings.apiKey }),
+        ...(settings.apiSecret && { api_secret_encrypted: settings.apiSecret }),
+      };
+
+      if (configId) {
+        const { error } = await supabase
+          .from("bot_configurations")
+          .update(configData)
+          .eq("id", configId);
+
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("bot_configurations")
+          .insert([configData])
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) setConfigId(data.id);
+      }
+
+      // Clear API key fields after saving
+      setSettings({ ...settings, apiKey: "", apiSecret: "" });
+      toast.success("Configurações salvas com sucesso!");
+    } catch (error: any) {
+      if (error instanceof z.ZodError) {
+        const firstError = error.issues[0];
+        toast.error(firstError.message);
+      } else {
+        console.error("Error saving settings:", error);
+        toast.error("Erro ao salvar configurações");
+      }
+    }
   };
 
   const handlePowerToggle = () => {
@@ -82,13 +233,29 @@ export const Dashboard = () => {
     setBotPoweredOff(newState);
     if (newState) {
       setBotRunning(false);
+      saveBotState(false, true);
       toast.error("Bot desligado! Não realizará operações até ser ligado novamente.");
     } else {
       setPausedUntilMidnight(false);
       setDailyProfitPercent(0);
+      saveBotState(false, false);
       toast.success("Bot ligado! Pronto para operar.");
     }
   };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+    toast.success("Logout realizado com sucesso!");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Carregando configurações...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -143,6 +310,14 @@ export const Dashboard = () => {
             </div>
             <div className="flex items-center gap-3">
               <Button
+                variant="ghost"
+                onClick={handleLogout}
+                className="gap-2"
+              >
+                <LogOut className="w-5 h-5" />
+                Sair
+              </Button>
+              <Button
                 variant={botPoweredOff ? "default" : "destructive"}
                 onClick={handlePowerToggle}
                 className="gap-2"
@@ -161,7 +336,9 @@ export const Dashboard = () => {
                     toast.warning("Bot pausado até meia-noite por atingir meta diária.");
                     return;
                   }
-                  setBotRunning(!botRunning);
+                  const newState = !botRunning;
+                  setBotRunning(newState);
+                  saveBotState(newState, botPoweredOff);
                 }}
                 className="gap-2 shadow-glow-primary"
                 disabled={botPoweredOff || pausedUntilMidnight}
@@ -191,7 +368,7 @@ export const Dashboard = () => {
                     {tradingMode === "real" ? "🔴 MODO REAL ATIVO" : "Modo Teste"}
                   </Badge>
                   <Badge 
-                    variant={dailyProfitPercent >= 6 ? "default" : (dailyProfitPercent <= -3 ? "destructive" : "secondary")} 
+                    variant={dailyProfitPercent >= settings.takeProfit ? "default" : (dailyProfitPercent <= -settings.stopLoss ? "destructive" : "secondary")} 
                     className="text-base px-4 py-2"
                   >
                     Profit Diário: {dailyProfitPercent > 0 ? "+" : ""}{dailyProfitPercent.toFixed(2)}%
@@ -209,22 +386,28 @@ export const Dashboard = () => {
                     </Label>
                     <Input
                       type="password"
-                      placeholder="Sua API Key da Binance"
+                      placeholder="Digite para atualizar a API Key"
                       value={settings.apiKey}
                       onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })}
                       className="font-mono"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      {configId ? "Deixe em branco para manter a chave atual" : "Obrigatório para operar"}
+                    </p>
                   </div>
 
                   <div className="space-y-2">
                     <Label>Binance API Secret</Label>
                     <Input
                       type="password"
-                      placeholder="Sua API Secret da Binance"
+                      placeholder="Digite para atualizar a API Secret"
                       value={settings.apiSecret}
                       onChange={(e) => setSettings({ ...settings, apiSecret: e.target.value })}
                       className="font-mono"
                     />
+                    <p className="text-xs text-muted-foreground">
+                      {configId ? "Deixe em branco para manter a secret atual" : "Obrigatório para operar"}
+                    </p>
                   </div>
 
                   <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-secondary/20">
@@ -259,6 +442,9 @@ export const Dashboard = () => {
                       type="number"
                       value={settings.quantity}
                       onChange={(e) => setSettings({ ...settings, quantity: Number(e.target.value) })}
+                      min="0.001"
+                      max="100000"
+                      step="0.001"
                     />
                   </div>
 
@@ -291,6 +477,9 @@ export const Dashboard = () => {
                         value={settings.stopLoss}
                         onChange={(e) => setSettings({ ...settings, stopLoss: Number(e.target.value) })}
                         className="text-center"
+                        min="0.1"
+                        max="100"
+                        step="0.1"
                         disabled
                       />
                     </div>
@@ -302,6 +491,9 @@ export const Dashboard = () => {
                         value={settings.takeProfit}
                         onChange={(e) => setSettings({ ...settings, takeProfit: Number(e.target.value) })}
                         className="text-center"
+                        min="0.1"
+                        max="100"
+                        step="0.1"
                         disabled
                       />
                     </div>
@@ -317,6 +509,7 @@ export const Dashboard = () => {
                         placeholder="1000"
                         step="100"
                         min="0"
+                        max="1000000"
                       />
                       <p className="text-xs text-muted-foreground">
                         Valor inicial para simulação de trades no modo teste
@@ -337,7 +530,6 @@ export const Dashboard = () => {
 
           {/* Top Metrics Row */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Capital Inicial Card */}
             <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Capital Inicial</p>
@@ -352,7 +544,6 @@ export const Dashboard = () => {
               </div>
             </Card>
 
-            {/* Taxa de Sucesso Card */}
             <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Taxa de Sucesso</p>
@@ -367,7 +558,6 @@ export const Dashboard = () => {
               </div>
             </Card>
 
-            {/* Total de Trades Card */}
             <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total de Trades</p>
@@ -377,7 +567,6 @@ export const Dashboard = () => {
               </div>
             </Card>
 
-            {/* Posições Ativas Card */}
             <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Posições Ativas</p>
@@ -407,7 +596,6 @@ export const Dashboard = () => {
                 </div>
               </div>
               
-              {/* Placeholder for chart */}
               <div className="h-64 bg-secondary/30 rounded-lg flex items-center justify-center border border-border">
                 <p className="text-muted-foreground">Gráfico de Lucro (Em breve)</p>
               </div>
