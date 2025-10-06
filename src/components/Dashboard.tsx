@@ -28,6 +28,7 @@ export const Dashboard = () => {
     changeInPrice: 3,
     stopLoss: 3,
     takeProfit: 6,
+    testBalance: 1000,
   });
 
   const stats = {
@@ -305,6 +306,23 @@ export const Dashboard = () => {
                       />
                     </div>
                   </div>
+
+                  {settings.testMode && (
+                    <div className="space-y-2 pt-2">
+                      <Label>Saldo Fictício (USDT)</Label>
+                      <Input
+                        type="number"
+                        value={settings.testBalance}
+                        onChange={(e) => setSettings({ ...settings, testBalance: Number(e.target.value) })}
+                        placeholder="1000"
+                        step="100"
+                        min="0"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Valor inicial para simulação de trades no modo teste
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
