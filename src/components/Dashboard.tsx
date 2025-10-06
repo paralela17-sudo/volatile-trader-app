@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Play, Pause, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut } from "lucide-react";
+import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
@@ -326,7 +326,7 @@ export const Dashboard = () => {
                 {botPoweredOff ? "Ligar Bot" : "Desligar Bot"}
               </Button>
               <Button
-                variant={botRunning ? "default" : "outline"}
+                variant={botRunning ? "destructive" : "default"}
                 onClick={() => {
                   if (botPoweredOff) {
                     toast.error("Bot está desligado! Ligue-o primeiro.");
@@ -340,18 +340,18 @@ export const Dashboard = () => {
                   setBotRunning(newState);
                   saveBotState(newState, botPoweredOff);
                 }}
-                className={`gap-2 ${botRunning ? 'shadow-glow-primary' : 'border-warning text-warning hover:bg-warning/10 bg-warning/5'}`}
+                className="gap-2 shadow-glow-primary"
                 disabled={botPoweredOff || pausedUntilMidnight}
               >
                 {botRunning ? (
                   <>
-                    <Pause className="w-5 h-5" />
-                    Pausar Bot
+                    <Activity className="w-5 h-5" />
+                    Parar Bot
                   </>
                 ) : (
                   <>
-                    <Pause className="w-5 h-5" />
-                    ⏸️ PAUSADO
+                    <Play className="w-5 h-5" />
+                    Iniciar Bot
                   </>
                 )}
               </Button>
