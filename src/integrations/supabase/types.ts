@@ -14,7 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bot_configurations: {
+        Row: {
+          api_key_encrypted: string | null
+          api_secret_encrypted: string | null
+          created_at: string | null
+          daily_profit_goal: number | null
+          id: string
+          is_powered_on: boolean | null
+          is_running: boolean | null
+          quantity: number | null
+          stop_loss_percent: number | null
+          take_profit_percent: number | null
+          test_balance: number | null
+          test_mode: boolean | null
+          trading_pair: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          api_secret_encrypted?: string | null
+          created_at?: string | null
+          daily_profit_goal?: number | null
+          id?: string
+          is_powered_on?: boolean | null
+          is_running?: boolean | null
+          quantity?: number | null
+          stop_loss_percent?: number | null
+          take_profit_percent?: number | null
+          test_balance?: number | null
+          test_mode?: boolean | null
+          trading_pair?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          api_secret_encrypted?: string | null
+          created_at?: string | null
+          daily_profit_goal?: number | null
+          id?: string
+          is_powered_on?: boolean | null
+          is_running?: boolean | null
+          quantity?: number | null
+          stop_loss_percent?: number | null
+          take_profit_percent?: number | null
+          test_balance?: number | null
+          test_mode?: boolean | null
+          trading_pair?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
