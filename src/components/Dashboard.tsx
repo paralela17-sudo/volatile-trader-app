@@ -309,7 +309,7 @@ export const Dashboard = () => {
 
                   {settings.testMode && (
                     <div className="space-y-2 pt-2">
-                      <Label>Saldo Fictício (USDT)</Label>
+                      <Label>Saldo de Demonstração (USDT)</Label>
                       <Input
                         type="number"
                         value={settings.testBalance}
