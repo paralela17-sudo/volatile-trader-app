@@ -326,7 +326,7 @@ export const Dashboard = () => {
                 {botPoweredOff ? "Ligar Bot" : "Desligar Bot"}
               </Button>
               <Button
-                variant={botRunning ? "default" : "secondary"}
+                variant={botRunning ? "default" : "outline"}
                 onClick={() => {
                   if (botPoweredOff) {
                     toast.error("Bot está desligado! Ligue-o primeiro.");
@@ -340,7 +340,7 @@ export const Dashboard = () => {
                   setBotRunning(newState);
                   saveBotState(newState, botPoweredOff);
                 }}
-                className={`gap-2 ${botRunning ? 'shadow-glow-primary' : 'bg-secondary/50 hover:bg-secondary/70'}`}
+                className={`gap-2 ${botRunning ? 'shadow-glow-primary' : 'border-warning text-warning hover:bg-warning/10 bg-warning/5'}`}
                 disabled={botPoweredOff || pausedUntilMidnight}
               >
                 {botRunning ? (
@@ -350,8 +350,8 @@ export const Dashboard = () => {
                   </>
                 ) : (
                   <>
-                    <Play className="w-5 h-5" />
-                    Iniciar Bot
+                    <Pause className="w-5 h-5" />
+                    ⏸️ PAUSADO
                   </>
                 )}
               </Button>
