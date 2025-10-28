@@ -350,40 +350,40 @@ export const Dashboard = () => {
                 Sair
               </Button>
               <Button
-                variant={botPoweredOff ? "default" : "destructive"}
-                onClick={handlePowerToggle}
-                className="gap-2"
-              >
-                <Power className="w-5 h-5" />
-                {botPoweredOff ? "Ligar Bot" : "Desligar Bot"}
-              </Button>
-              <Button
                 variant={botRunning ? "destructive" : "default"}
                 onClick={() => {
-                  if (botPoweredOff) {
-                    toast.error("Bot está desligado! Ligue-o primeiro.");
-                    return;
+                  if (botRunning) {
+                    // Desligar bot
+                    setBotRunning(false);
+                    setBotPoweredOff(true);
+                    saveBotState(false, true);
+                    toast.error("Bot desligado!");
+                  } else {
+                    // Ligar bot
+                    if (pausedUntilMidnight) {
+                      toast.warning("Bot pausado até meia-noite por atingir meta diária.");
+                      return;
+                    }
+                    setBotPoweredOff(false);
+                    setBotRunning(true);
+                    setPausedUntilMidnight(false);
+                    setDailyProfitPercent(0);
+                    saveBotState(true, false);
+                    toast.success("Bot ligado e iniciado!");
                   }
-                  if (pausedUntilMidnight) {
-                    toast.warning("Bot pausado até meia-noite por atingir meta diária.");
-                    return;
-                  }
-                  const newState = !botRunning;
-                  setBotRunning(newState);
-                  saveBotState(newState, botPoweredOff);
                 }}
                 className="gap-2 shadow-glow-primary"
-                disabled={botPoweredOff || pausedUntilMidnight}
+                disabled={pausedUntilMidnight && !botRunning}
               >
                 {botRunning ? (
                   <>
-                    <Activity className="w-5 h-5" />
-                    Parar Bot
+                    <Power className="w-5 h-5" />
+                    Desligar Bot
                   </>
                 ) : (
                   <>
                     <Play className="w-5 h-5" />
-                    Iniciar Bot
+                    Ligar Bot
                   </>
                 )}
               </Button>
