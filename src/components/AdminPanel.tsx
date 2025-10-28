@@ -7,13 +7,17 @@ import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, XCircle, AlertCircle, ExternalLink, Key, Database, Settings, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { botConfigService } from "@/services/botService";
+import { statusService } from "@/services/statusService";
 
 export const AdminPanel = () => {
   const [apiKeysConfigured, setApiKeysConfigured] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [binanceConnected, setBinanceConnected] = useState(false);
+  const [loadingConnection, setLoadingConnection] = useState(true);
 
   useEffect(() => {
     checkApiKeysStatus();
+    testBinanceConnection();
   }, []);
 
   const checkApiKeysStatus = async () => {
@@ -29,6 +33,21 @@ export const AdminPanel = () => {
       console.error("Erro ao verificar status das chaves API:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const testBinanceConnection = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setLoadingConnection(true);
+      const result = await statusService.checkBinanceConnectivity(user.id);
+      setBinanceConnected(result.ok);
+    } catch (error) {
+      console.error("Erro ao testar conexão com a Binance:", error);
+      setBinanceConnected(false);
+    } finally {
+      setLoadingConnection(false);
     }
   };
 
@@ -66,7 +85,7 @@ export const AdminPanel = () => {
       id: 4,
       title: "Testar Conexão com Binance",
       description: "Teste a conexão e busca de preços",
-      status: "pending" as const,
+      status: loadingConnection ? "pending" : (binanceConnected ? "complete" : "pending"),
       icon: Settings,
       instructions: [
         "1. Certifique-se de que as credenciais foram salvas",
