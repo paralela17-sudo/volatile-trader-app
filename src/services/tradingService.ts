@@ -31,8 +31,8 @@ class TradingService {
   private readonly PRICE_CHECK_INTERVAL = 5000; // 5 seconds
   private readonly POSITION_CHECK_INTERVAL = 3000; // 3 seconds
   private readonly PRICE_HISTORY_LENGTH = 20; // Keep last 20 prices
-  private readonly BUY_THRESHOLD = -2; // Buy when price drops 2%
-  private readonly MIN_VOLATILITY = 0.5; // Minimum volatility to trade
+  private readonly BUY_THRESHOLD = -0.5; // Buy when price drops 0.5%
+  private readonly MIN_VOLATILITY = 0.1; // Minimum volatility to trade
 
   async start(config: TradingConfig): Promise<void> {
     if (this.isRunning) {
