@@ -1,7 +1,7 @@
 project_id = "rzkazstofvdrccvqgfvt"
 
 [functions.binance-get-price]
-verify_jwt = false
+verify_jwt = true
 
 [functions.binance-execute-trade]
 verify_jwt = true
