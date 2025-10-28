@@ -14,6 +14,7 @@ import { AdminPanel } from "./AdminPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { pairSelectionService } from "@/services/pairSelectionService";
+import { statsService, type AccountStats } from "@/services/statsService";
 import { z } from "zod";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
 import {
@@ -46,6 +47,12 @@ export const Dashboard = () => {
   const [botPoweredOff, setBotPoweredOff] = useState(false);
   const [dailyProfitPercent, setDailyProfitPercent] = useState(0);
   const [pausedUntilMidnight, setPausedUntilMidnight] = useState(false);
+  const [accountStats, setAccountStats] = useState<AccountStats>({
+    initialCapital: 0,
+    successRate: 0,
+    totalTrades: 0,
+    activePositions: 0
+  });
   const [settings, setSettings] = useState({
     apiKey: "",
     apiSecret: "",
@@ -74,7 +81,39 @@ export const Dashboard = () => {
   // Load configuration from database
   useEffect(() => {
     loadBotConfiguration();
+    loadAccountStats();
+    
+    // Auto-refresh stats every 30 seconds
+    const statsInterval = setInterval(() => {
+      loadAccountStats();
+    }, 30000);
+    
+    return () => clearInterval(statsInterval);
   }, []);
+
+  const loadAccountStats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: config } = await supabase
+        .from("bot_configurations")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!config) return;
+
+      const stats = await statsService.getAccountStats(
+        user.id,
+        config.test_mode,
+        config.test_balance
+      );
+      setAccountStats(stats);
+    } catch (error) {
+      console.error("Error loading account stats:", error);
+    }
+  };
 
   const loadBotConfiguration = async () => {
     try {
@@ -229,6 +268,9 @@ export const Dashboard = () => {
       // Clear API key fields after saving
       setSettings({ ...settings, apiKey: "", apiSecret: "" });
       toast.success("Configurações salvas com sucesso!");
+      
+      // Reload account stats after saving
+      loadAccountStats();
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const firstError = error.issues[0];
@@ -396,12 +438,9 @@ export const Dashboard = () => {
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Capital Inicial</p>
                 <div className="flex items-end gap-2">
-                  <p className="text-3xl font-bold text-primary tracking-tight">32.5k</p>
-                  <ArrowUpRight className="w-5 h-5 text-success mb-1" />
-                </div>
-                <div className="flex items-center gap-1 text-success text-xs">
-                  <ArrowUpRight className="w-3 h-3" />
-                  <span>3.7%</span>
+                  <p className="text-3xl font-bold text-primary tracking-tight">
+                    ${accountStats.initialCapital.toFixed(2)}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -410,12 +449,9 @@ export const Dashboard = () => {
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Taxa de Sucesso</p>
                 <div className="flex items-end gap-2">
-                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.conversionRate}%</p>
-                  <ArrowDownRight className="w-5 h-5 text-danger mb-1" />
-                </div>
-                <div className="flex items-center gap-1 text-danger text-xs">
-                  <ArrowDownRight className="w-3 h-3" />
-                  <span>1.6%</span>
+                  <p className="text-3xl font-bold text-primary tracking-tight">
+                    {accountStats.successRate.toFixed(1)}%
+                  </p>
                 </div>
               </div>
             </Card>
@@ -424,7 +460,9 @@ export const Dashboard = () => {
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total de Trades</p>
                 <div className="flex items-end gap-2">
-                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.totalTrades}</p>
+                  <p className="text-3xl font-bold text-primary tracking-tight">
+                    {accountStats.totalTrades}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -433,7 +471,9 @@ export const Dashboard = () => {
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Posições Ativas</p>
                 <div className="flex items-end gap-2">
-                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.activePositions}</p>
+                  <p className="text-3xl font-bold text-primary tracking-tight">
+                    {accountStats.activePositions}
+                  </p>
                 </div>
               </div>
             </Card>
