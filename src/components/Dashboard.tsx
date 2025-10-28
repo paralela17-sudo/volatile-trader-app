@@ -390,6 +390,80 @@ export const Dashboard = () => {
             </div>
           </div>
 
+          {/* Top Metrics Row */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Capital Inicial</p>
+                <div className="flex items-end gap-2">
+                  <p className="text-3xl font-bold text-primary tracking-tight">32.5k</p>
+                  <ArrowUpRight className="w-5 h-5 text-success mb-1" />
+                </div>
+                <div className="flex items-center gap-1 text-success text-xs">
+                  <ArrowUpRight className="w-3 h-3" />
+                  <span>3.7%</span>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Taxa de Sucesso</p>
+                <div className="flex items-end gap-2">
+                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.conversionRate}%</p>
+                  <ArrowDownRight className="w-5 h-5 text-danger mb-1" />
+                </div>
+                <div className="flex items-center gap-1 text-danger text-xs">
+                  <ArrowDownRight className="w-3 h-3" />
+                  <span>1.6%</span>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total de Trades</p>
+                <div className="flex items-end gap-2">
+                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.totalTrades}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Posições Ativas</p>
+                <div className="flex items-end gap-2">
+                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.activePositions}</p>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Profit Section */}
+          <Card className="p-6 bg-gradient-card border-border">
+            <div className="space-y-5">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground font-medium uppercase tracking-wide">Profit</p>
+                  <div className="flex items-end gap-3">
+                    <p className="text-3xl font-bold text-primary tracking-tight">
+                      ${(stats.totalProfit / 1000).toFixed(1)}k
+                    </p>
+                    <ArrowUpRight className="w-5 h-5 text-success mb-1" />
+                  </div>
+                  <div className="flex items-center gap-1 text-success text-sm">
+                    <ArrowUpRight className="w-4 h-4" />
+                    <span>1.8%</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="h-64 bg-secondary/30 rounded-lg flex items-center justify-center border border-border">
+                <p className="text-muted-foreground">Gráfico de Lucro (Em breve)</p>
+              </div>
+            </div>
+          </Card>
+
           {/* Bot Settings */}
           <Card className="p-6 bg-gradient-card border-border">
             <div className="space-y-6">
@@ -552,80 +626,6 @@ export const Dashboard = () => {
                   <Save className="w-4 h-4" />
                   Salvar Configurações
                 </Button>
-              </div>
-            </div>
-          </Card>
-
-          {/* Top Metrics Row */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Capital Inicial</p>
-                <div className="flex items-end gap-2">
-                  <p className="text-3xl font-bold text-primary tracking-tight">32.5k</p>
-                  <ArrowUpRight className="w-5 h-5 text-success mb-1" />
-                </div>
-                <div className="flex items-center gap-1 text-success text-xs">
-                  <ArrowUpRight className="w-3 h-3" />
-                  <span>3.7%</span>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Taxa de Sucesso</p>
-                <div className="flex items-end gap-2">
-                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.conversionRate}%</p>
-                  <ArrowDownRight className="w-5 h-5 text-danger mb-1" />
-                </div>
-                <div className="flex items-center gap-1 text-danger text-xs">
-                  <ArrowDownRight className="w-3 h-3" />
-                  <span>1.6%</span>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total de Trades</p>
-                <div className="flex items-end gap-2">
-                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.totalTrades}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Posições Ativas</p>
-                <div className="flex items-end gap-2">
-                  <p className="text-3xl font-bold text-primary tracking-tight">{stats.activePositions}</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Profit Section */}
-          <Card className="p-6 bg-gradient-card border-border">
-            <div className="space-y-5">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground font-medium uppercase tracking-wide">Profit</p>
-                  <div className="flex items-end gap-3">
-                    <p className="text-3xl font-bold text-primary tracking-tight">
-                      ${(stats.totalProfit / 1000).toFixed(1)}k
-                    </p>
-                    <ArrowUpRight className="w-5 h-5 text-success mb-1" />
-                  </div>
-                  <div className="flex items-center gap-1 text-success text-sm">
-                    <ArrowUpRight className="w-4 h-4" />
-                    <span>1.8%</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="h-64 bg-secondary/30 rounded-lg flex items-center justify-center border border-border">
-                <p className="text-muted-foreground">Gráfico de Lucro (Em breve)</p>
               </div>
             </div>
           </Card>
