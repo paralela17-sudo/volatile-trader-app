@@ -13,6 +13,7 @@ import { TradeHistory } from "./TradeHistory";
 import { AdminPanel } from "./AdminPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { pairSelectionService } from "@/services/pairSelectionService";
 import { z } from "zod";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
 import {
@@ -189,11 +190,13 @@ export const Dashboard = () => {
         return;
       }
 
+      const optimalPair = await pairSelectionService.selectOptimalPair();
+
       const configData = {
         user_id: user.id,
         test_mode: settings.testMode,
         test_balance: settings.testBalance,
-        trading_pair: settings.pairWith,
+        trading_pair: optimalPair,
         quantity: settings.quantity,
         take_profit_percent: settings.takeProfit,
         stop_loss_percent: settings.stopLoss,
@@ -455,14 +458,10 @@ export const Dashboard = () => {
 
                 {/* Trading Parameters */}
                 <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Par de Negociação</Label>
-                    <Input
-                      value={settings.pairWith}
-                      onChange={(e) => setSettings({ ...settings, pairWith: e.target.value })}
-                      placeholder="USDT"
-                      disabled
-                    />
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-semibold text-primary">🎯 Seleção Automática:</span> O bot escolhe automaticamente o par de negociação mais volátil e adequado para a estratégia.
+                    </p>
                   </div>
 
                   <div className="space-y-2">
