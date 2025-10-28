@@ -8,13 +8,13 @@ import { Save, Key } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { botConfigService } from "@/services/botService";
+import { pairSelectionService } from "@/services/pairSelectionService";
 
 export const BotSettings = () => {
   const [settings, setSettings] = useState({
     apiKey: "",
     apiSecret: "",
     testMode: true,
-    pairWith: "USDT",
     quantity: 100,
     timeDifference: 5,
     changeInPrice: 3,
@@ -44,7 +44,6 @@ export const BotSettings = () => {
           apiKey: "",
           apiSecret: "",
           testMode: config.test_mode,
-          pairWith: config.trading_pair,
           quantity: Number(config.quantity),
           timeDifference: 5,
           changeInPrice: 3,
@@ -71,12 +70,15 @@ export const BotSettings = () => {
 
     setLoading(true);
     try {
+      // Selecionar par ótimo baseado em volatilidade
+      const optimalPair = await pairSelectionService.selectOptimalPair();
+      
       const config = await botConfigService.getConfig(userId);
       
       if (config) {
         const success = await botConfigService.updateConfig(userId, {
           test_mode: settings.testMode,
-          trading_pair: settings.pairWith,
+          trading_pair: optimalPair,
           quantity: settings.quantity,
           stop_loss_percent: settings.stopLoss,
           take_profit_percent: settings.takeProfit,
@@ -87,7 +89,7 @@ export const BotSettings = () => {
         }
 
         if (success) {
-          toast.success("Configurações salvas com sucesso!");
+          toast.success(`Configurações salvas! Par selecionado: ${optimalPair}`);
           setSettings(prev => ({ ...prev, apiKey: "", apiSecret: "" }));
         } else {
           toast.error("Erro ao salvar configurações");
@@ -99,7 +101,7 @@ export const BotSettings = () => {
             user_id: userId,
             test_mode: settings.testMode,
             test_balance: 1000,
-            trading_pair: settings.pairWith,
+            trading_pair: optimalPair,
             quantity: settings.quantity,
             take_profit_percent: settings.takeProfit,
             stop_loss_percent: settings.stopLoss,
@@ -110,7 +112,7 @@ export const BotSettings = () => {
 
         if (!error && settings.apiKey && settings.apiSecret) {
           await botConfigService.saveApiCredentials(userId, settings.apiKey, settings.apiSecret);
-          toast.success("Configurações criadas com sucesso!");
+          toast.success(`Configurações criadas! Par selecionado: ${optimalPair}`);
           setSettings(prev => ({ ...prev, apiKey: "", apiSecret: "" }));
         } else {
           toast.error("Erro ao criar configurações");
@@ -177,16 +179,6 @@ export const BotSettings = () => {
 
         {/* Trading Parameters */}
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label>Par de Negociação</Label>
-            <Input
-              value={settings.pairWith}
-              onChange={(e) => setSettings({ ...settings, pairWith: e.target.value })}
-              placeholder="USDT"
-              disabled
-            />
-          </div>
-
           <div className="space-y-2">
             <Label>Quantidade por Trade (USDT)</Label>
             <Input
