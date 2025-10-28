@@ -63,7 +63,8 @@ export const statsService = {
       }
 
       // Calcular capital alocado em posições abertas
-      const openPositions = allTrades.filter((t: any) => t.status === 'PENDING' && t.side === 'BUY');
+      // Posições abertas: BUY ainda sem lucro (não fechadas)
+      const openPositions = allTrades.filter((t: any) => t.side === 'BUY' && (t.profit_loss === null || typeof t.profit_loss === 'undefined'));
       const allocatedCapital = openPositions.reduce((sum: number, t: any) => {
         return sum + (Number(t.price) * Number(t.quantity));
       }, 0);

@@ -105,6 +105,7 @@ serve(async (req) => {
     const body = await req.json();
     const validatedData = TradeRequestSchema.parse(body);
     const { symbol, side, quantity, type, testMode } = validatedData;
+    const status = side === 'BUY' ? 'PENDING' : 'EXECUTED';
 
     console.log(`Executing trade request`);
 
@@ -141,8 +142,8 @@ serve(async (req) => {
           type,
           quantity,
           price: currentPrice,
-          status: 'EXECUTED',
-          executed_at: new Date().toISOString()
+          status: status,
+          executed_at: status === 'EXECUTED' ? new Date().toISOString() : null
         })
         .select()
         .single();
@@ -225,9 +226,9 @@ serve(async (req) => {
         type,
         quantity,
         price: parseFloat(binanceData.price || 0),
-        status: 'EXECUTED',
+        status: status,
         binance_order_id: binanceData.orderId?.toString(),
-        executed_at: new Date().toISOString()
+        executed_at: status === 'EXECUTED' ? new Date().toISOString() : null
       })
       .select()
       .single();
