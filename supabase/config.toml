@@ -5,3 +5,9 @@ verify_jwt = true
 
 [functions.binance-execute-trade]
 verify_jwt = true
+
+[functions.binance-get-balance]
+verify_jwt = true
+
+[functions.store-api-credentials]
+verify_jwt = true

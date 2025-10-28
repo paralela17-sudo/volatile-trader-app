@@ -69,38 +69,29 @@ export const botConfigService = {
   },
 
   async saveApiCredentials(userId: string, apiKey: string, apiSecret: string): Promise<boolean> {
-    // Encryption key from environment
-    const encryptionKey = import.meta.env.VITE_BINANCE_ENCRYPTION_KEY || 'default-key';
-    
-    // Simple XOR encryption (em produção usar crypto.subtle)
-    const encrypt = (text: string): string => {
-      const textBytes = new TextEncoder().encode(text);
-      const keyBytes = new TextEncoder().encode(encryptionKey);
-      const encrypted = new Uint8Array(textBytes.length);
+    // Call server-side edge function to handle encryption securely
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
       
-      for (let i = 0; i < textBytes.length; i++) {
-        encrypted[i] = textBytes[i] ^ keyBytes[i % keyBytes.length];
+      if (!session) {
+        console.error('User not authenticated');
+        return false;
       }
-      
-      return Array.from(encrypted)
-        .map(byte => byte.toString(16).padStart(2, '0'))
-        .join('');
-    };
 
-    const { error } = await supabase
-      .from('bot_configurations')
-      .update({
-        api_key_encrypted: encrypt(apiKey),
-        api_secret_encrypted: encrypt(apiSecret)
-      })
-      .eq('user_id', userId);
+      const { data, error } = await supabase.functions.invoke('store-api-credentials', {
+        body: { apiKey, apiSecret }
+      });
 
-    if (error) {
-      console.error('Error saving API credentials:', error);
+      if (error) {
+        console.error('Error saving API credentials:', error);
+        return false;
+      }
+
+      return data?.success === true;
+    } catch (error) {
+      console.error('Error calling store-api-credentials function:', error);
       return false;
     }
-
-    return true;
   }
 };
 

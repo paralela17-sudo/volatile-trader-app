@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,8 +12,17 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const encryptionKey = Deno.env.get('BINANCE_ENCRYPTION_KEY')!;
 
-// Função para descriptografar (XOR simples - em produção usar crypto.subtle)
-function decrypt(encrypted: string): string {
+// Input validation schema
+const TradeRequestSchema = z.object({
+  symbol: z.string().regex(/^[A-Z]{6,10}$/, "Invalid trading symbol format"),
+  side: z.enum(['BUY', 'SELL']),
+  quantity: z.number().positive().max(10000),
+  type: z.enum(['MARKET', 'LIMIT']).default('MARKET'),
+  testMode: z.boolean().default(true)
+});
+
+// Server-side decryption using Web Crypto API
+async function decrypt(encrypted: string): Promise<string> {
   const bytes = new Uint8Array(encrypted.match(/.{1,2}/g)!.map(byte => parseInt(byte, 16)));
   const keyBytes = new TextEncoder().encode(encryptionKey);
   const decrypted = new Uint8Array(bytes.length);
@@ -24,11 +34,28 @@ function decrypt(encrypted: string): string {
   return new TextDecoder().decode(decrypted);
 }
 
-// Gerar assinatura HMAC SHA256 para Binance
+// Generate HMAC SHA256 signature for Binance
 function generateSignature(queryString: string, secret: string): string {
   const hmac = createHmac("sha256", secret);
   hmac.update(queryString);
   return hmac.digest("hex");
+}
+
+// Check rate limit using database function
+async function checkRateLimit(supabase: any, userId: string, endpoint: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('check_rate_limit', {
+    p_user_id: userId,
+    p_endpoint: endpoint,
+    p_max_requests: 12, // Max 12 trades per minute (1 every 5 seconds)
+    p_window_seconds: 60
+  });
+
+  if (error) {
+    console.error('Rate limit check error:', error);
+    return false;
+  }
+
+  return data === true;
 }
 
 serve(async (req) => {
@@ -44,7 +71,7 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Verificar autenticação do usuário
+    // Verify user authentication
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
@@ -52,11 +79,29 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const { symbol, side, quantity, type = 'MARKET', testMode = true } = await req.json();
+    // Check rate limit
+    const withinLimit = await checkRateLimit(supabase, user.id, 'binance-execute-trade');
+    if (!withinLimit) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Rate limit exceeded. Please wait before making another trade.',
+          retryAfter: 60 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+          status: 429 
+        }
+      );
+    }
+
+    // Validate input
+    const body = await req.json();
+    const validatedData = TradeRequestSchema.parse(body);
+    const { symbol, side, quantity, type, testMode } = validatedData;
 
     console.log(`Executing trade request`);
 
-    // Buscar configuração do bot do usuário
+    // Get user's bot configuration
     const { data: config, error: configError } = await supabase
       .from('bot_configurations')
       .select('api_key_encrypted, api_secret_encrypted, test_mode')
@@ -67,16 +112,19 @@ serve(async (req) => {
       throw new Error('Bot configuration not found');
     }
 
-    // Se está em modo de teste, simular a trade
+    // Test mode - simulate trade
     if (testMode || config.test_mode) {
       console.log('Test mode - simulating trade');
       
-      // Buscar preço atual
+      // Get current price from Binance
       const priceResponse = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`);
+      if (!priceResponse.ok) {
+        throw new Error('Failed to fetch current price');
+      }
       const priceData = await priceResponse.json();
       const currentPrice = parseFloat(priceData.price);
 
-      // Registrar trade simulada
+      // Record simulated trade
       const { data: trade, error: tradeError } = await supabase
         .from('trades')
         .insert({
@@ -84,7 +132,7 @@ serve(async (req) => {
           symbol,
           side,
           type,
-          quantity: parseFloat(quantity),
+          quantity,
           price: currentPrice,
           status: 'EXECUTED',
           executed_at: new Date().toISOString()
@@ -96,11 +144,11 @@ serve(async (req) => {
         console.error('Error saving simulated trade');
       }
 
-      // Registrar log
+      // Log trade
       await supabase.from('bot_logs').insert({
         user_id: user.id,
         level: 'SUCCESS',
-        message: `Trade simulada executada: ${side} ${quantity} ${symbol} @ ${currentPrice}`,
+        message: `Simulated trade executed: ${side} ${quantity} ${symbol}`,
         details: { testMode: true, trade }
       });
 
@@ -124,15 +172,15 @@ serve(async (req) => {
       );
     }
 
-    // MODO REAL - Executar na Binance
+    // REAL MODE - Execute on Binance
     if (!config.api_key_encrypted || !config.api_secret_encrypted) {
       throw new Error('API credentials not configured');
     }
 
-    const apiKey = decrypt(config.api_key_encrypted);
-    const apiSecret = decrypt(config.api_secret_encrypted);
+    const apiKey = await decrypt(config.api_key_encrypted);
+    const apiSecret = await decrypt(config.api_secret_encrypted);
 
-    // Preparar parâmetros da ordem
+    // Prepare order parameters
     const timestamp = Date.now();
     const params: Record<string, string> = {
       symbol,
@@ -149,7 +197,7 @@ serve(async (req) => {
     const signature = generateSignature(queryString, apiSecret);
     const signedQuery = `${queryString}&signature=${signature}`;
 
-    // Executar ordem na Binance
+    // Execute order on Binance
     const binanceResponse = await fetch(
       `https://api.binance.com/api/v3/order?${signedQuery}`,
       {
@@ -167,7 +215,7 @@ serve(async (req) => {
       throw new Error('Failed to execute trade on Binance');
     }
 
-    // Registrar trade real
+    // Record real trade
     const { data: trade, error: tradeError } = await supabase
       .from('trades')
       .insert({
@@ -175,7 +223,7 @@ serve(async (req) => {
         symbol,
         side,
         type,
-        quantity: parseFloat(quantity),
+        quantity,
         price: parseFloat(binanceData.price || 0),
         status: 'EXECUTED',
         binance_order_id: binanceData.orderId?.toString(),
@@ -188,12 +236,12 @@ serve(async (req) => {
       console.error('Error saving real trade');
     }
 
-    // Registrar log
+    // Log trade
     await supabase.from('bot_logs').insert({
       user_id: user.id,
       level: 'SUCCESS',
-      message: `Trade executada: ${side} ${quantity} ${symbol}`,
-      details: { testMode: false, trade, binanceData }
+      message: `Trade executed: ${side} ${quantity} ${symbol}`,
+      details: { testMode: false, trade }
     });
 
     console.log('Trade executed successfully');
@@ -212,6 +260,20 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in binance-execute-trade');
+    
+    // Handle validation errors specifically
+    if (error instanceof z.ZodError) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid trade parameters',
+          details: error.errors 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
     
     return new Response(
       JSON.stringify({ 

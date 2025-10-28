@@ -6,6 +6,40 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const encryptionKey = Deno.env.get('BINANCE_ENCRYPTION_KEY') || 'default-key';
+
+// Server-side decryption
+function decrypt(encrypted: string): string {
+  const encryptedBytes = new Uint8Array(
+    encrypted.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
+  );
+  const keyBytes = new TextEncoder().encode(encryptionKey);
+  const decrypted = new Uint8Array(encryptedBytes.length);
+
+  for (let i = 0; i < encryptedBytes.length; i++) {
+    decrypted[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
+  }
+
+  return new TextDecoder().decode(decrypted);
+}
+
+// Check rate limit using database function
+async function checkRateLimit(supabase: any, userId: string, endpoint: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('check_rate_limit', {
+    p_user_id: userId,
+    p_endpoint: endpoint,
+    p_max_requests: 10, // Max 10 balance queries per minute
+    p_window_seconds: 60
+  });
+
+  if (error) {
+    console.error('Rate limit check error:', error);
+    return false;
+  }
+
+  return data === true;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -14,7 +48,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       {
         global: {
           headers: { Authorization: req.headers.get("Authorization")! },
@@ -31,6 +65,21 @@ serve(async (req) => {
       throw new Error("User not authenticated");
     }
 
+    // Check rate limit
+    const withinLimit = await checkRateLimit(supabaseClient, user.id, 'binance-get-balance');
+    if (!withinLimit) {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Rate limit exceeded. Please wait before checking balance again.',
+          retryAfter: 60 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '60' },
+          status: 429 
+        }
+      );
+    }
+
     // Get user's bot configuration with API credentials
     const { data: config, error: configError } = await supabaseClient
       .from("bot_configurations")
@@ -45,23 +94,6 @@ serve(async (req) => {
     if (!config.api_key_encrypted || !config.api_secret_encrypted) {
       throw new Error("API credentials not configured");
     }
-
-    // Decrypt credentials (simple XOR - same as in frontend)
-    const encryptionKey = Deno.env.get("BINANCE_ENCRYPTION_KEY") || "default-key";
-    
-    const decrypt = (encrypted: string): string => {
-      const encryptedBytes = new Uint8Array(
-        encrypted.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
-      );
-      const keyBytes = new TextEncoder().encode(encryptionKey);
-      const decrypted = new Uint8Array(encryptedBytes.length);
-
-      for (let i = 0; i < encryptedBytes.length; i++) {
-        decrypted[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
-      }
-
-      return new TextDecoder().decode(decrypted);
-    };
 
     const apiKey = decrypt(config.api_key_encrypted);
     const apiSecret = decrypt(config.api_secret_encrypted);
