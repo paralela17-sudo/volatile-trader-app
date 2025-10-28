@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { botConfigService } from "@/services/botService";
 import { pairSelectionService } from "@/services/pairSelectionService";
+import { RISK_SETTINGS } from "@/services/riskService";
 
 export const BotSettings = () => {
   const [settings, setSettings] = useState({
@@ -80,8 +81,8 @@ export const BotSettings = () => {
           test_mode: settings.testMode,
           trading_pair: optimalPair,
           quantity: settings.quantity,
-          stop_loss_percent: settings.stopLoss,
-          take_profit_percent: settings.takeProfit,
+          stop_loss_percent: RISK_SETTINGS.STOP_LOSS_PERCENT,
+          take_profit_percent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
         });
 
         if (success && settings.apiKey && settings.apiSecret) {
@@ -103,8 +104,8 @@ export const BotSettings = () => {
             test_balance: 1000,
             trading_pair: optimalPair,
             quantity: settings.quantity,
-            take_profit_percent: settings.takeProfit,
-            stop_loss_percent: settings.stopLoss,
+            take_profit_percent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+            stop_loss_percent: RISK_SETTINGS.STOP_LOSS_PERCENT,
             daily_profit_goal: 50,
             is_running: false,
             is_powered_on: true,

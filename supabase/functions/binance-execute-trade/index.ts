@@ -156,14 +156,7 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           testMode: true,
-          trade: {
-            orderId: `TEST_${Date.now()}`,
-            symbol,
-            side,
-            quantity,
-            price: currentPrice,
-            status: 'EXECUTED'
-          }
+          trade // return the DB trade record including id
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -250,7 +243,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         testMode: false,
-        trade: binanceData
+        trade // return the DB trade record including id
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

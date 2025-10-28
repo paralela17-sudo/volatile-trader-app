@@ -19,6 +19,7 @@ import { tradingService } from "@/services/tradingService";
 import { z } from "zod";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
+import { RISK_SETTINGS, computeDailyProfitPercent } from "@/services/riskService";
 import {
   Dialog,
   DialogContent,
@@ -114,6 +115,11 @@ export const Dashboard = () => {
         config.test_balance
       );
       setAccountStats(stats);
+
+      // Atualiza o Profit Diário com base no capital inicial do dia
+      const today = new Date().toLocaleDateString('pt-BR');
+      const todayProfit = stats.profitHistory.find((p) => p.date === today)?.profit || 0;
+      setDailyProfitPercent(computeDailyProfitPercent(stats.initialCapital, todayProfit));
     } catch (error) {
       console.error("Error loading account stats:", error);
     }
@@ -241,8 +247,8 @@ export const Dashboard = () => {
         test_balance: settings.testBalance,
         trading_pair: optimalPair,
         quantity: settings.quantity,
-        take_profit_percent: settings.takeProfit,
-        stop_loss_percent: settings.stopLoss,
+        take_profit_percent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+        stop_loss_percent: RISK_SETTINGS.STOP_LOSS_PERCENT,
         daily_profit_goal: settings.dailyProfitGoal,
         is_running: botRunning,
         is_powered_on: !botPoweredOff,
