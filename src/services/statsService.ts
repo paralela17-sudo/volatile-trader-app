@@ -55,20 +55,34 @@ export const statsService = {
 
       const allTrades = trades || [];
 
-      // Capital inicial
-      let initialCapital = testBalance;
+      // Capital base (saldo inicial)
+      let baseCapital = testBalance;
       if (!testMode) {
         const realBalance = await this.getRealBalance();
-        initialCapital = realBalance || 0;
+        baseCapital = realBalance || 0;
       }
+
+      // Calcular capital alocado em posições abertas
+      const openPositions = allTrades.filter((t: any) => t.status === 'PENDING' && t.side === 'BUY');
+      const allocatedCapital = openPositions.reduce((sum: number, t: any) => {
+        return sum + (Number(t.price) * Number(t.quantity));
+      }, 0);
+
+      // Calcular lucro/perda total realizado
+      const executedTrades = allTrades.filter((t: any) => 
+        t.status === 'EXECUTED' && t.profit_loss !== null
+      );
+      const totalProfit = executedTrades.reduce((sum: number, t: any) => 
+        sum + (t.profit_loss || 0), 0
+      );
+
+      // Capital atual disponível = capital base + lucro total - capital alocado
+      const initialCapital = baseCapital + totalProfit - allocatedCapital;
 
       // Total de trades
       const totalTrades = allTrades.length;
 
       // Taxa de sucesso (trades com lucro / total de trades executadas)
-      const executedTrades = allTrades.filter((t: any) => 
-        t.status === 'EXECUTED' && t.profit_loss !== null
-      );
       const profitableTrades = executedTrades.filter((t: any) => 
         (t.profit_loss || 0) > 0
       );
@@ -77,14 +91,7 @@ export const statsService = {
         : 0;
 
       // Posições ativas (trades pendentes)
-      const activePositions = allTrades.filter((t: any) => 
-        t.status === 'PENDING'
-      ).length;
-
-      // Lucro total (soma dos profit_loss das trades executadas)
-      const totalProfit = executedTrades.reduce((sum: number, t: any) => 
-        sum + (t.profit_loss || 0), 0
-      );
+      const activePositions = openPositions.length;
 
       // Histórico de lucro (agregado por dia)
       const profitByDate = executedTrades.reduce((acc: any, t: any) => {
