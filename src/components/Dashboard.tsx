@@ -66,8 +66,8 @@ export const Dashboard = () => {
     quantity: 100,
     timeDifference: 5,
     changeInPrice: 3,
-    stopLoss: 3,
-    takeProfit: 6,
+    stopLoss: RISK_SETTINGS.STOP_LOSS_PERCENT,
+    takeProfit: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
     testBalance: 1000,
     dailyProfitGoal: 50,
   });
@@ -152,8 +152,8 @@ export const Dashboard = () => {
           quantity: Number(data.quantity) || 100,
           timeDifference: 5,
           changeInPrice: 3,
-          stopLoss: Number(data.stop_loss_percent) || 3,
-          takeProfit: Number(data.take_profit_percent) || 6,
+          stopLoss: RISK_SETTINGS.STOP_LOSS_PERCENT,
+          takeProfit: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
           testBalance: Number(data.test_balance) || 1000,
           dailyProfitGoal: Number(data.daily_profit_goal) || 50,
         });
@@ -668,44 +668,24 @@ export const Dashboard = () => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-2">
-                      <Label className="text-xs">Variação %</Label>
-                      <Input
-                        type="number"
-                        value={settings.changeInPrice}
-                        onChange={(e) => setSettings({ ...settings, changeInPrice: Number(e.target.value) })}
-                        className="text-center"
-                        disabled
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs text-danger">Stop Loss %</Label>
-                      <Input
-                        type="number"
-                        value={settings.stopLoss}
-                        onChange={(e) => setSettings({ ...settings, stopLoss: Number(e.target.value) })}
-                        className="text-center"
-                        min="0.1"
-                        max="100"
-                        step="0.1"
-                        disabled
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs text-success">Take Profit %</Label>
-                      <Input
-                        type="number"
-                        value={settings.takeProfit}
-                        onChange={(e) => setSettings({ ...settings, takeProfit: Number(e.target.value) })}
-                        className="text-center"
-                        min="0.1"
-                        max="100"
-                        step="0.1"
-                        disabled
-                      />
+                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                    <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-2">
+                      🔒 Configurações Fixas de Risco
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Stop Loss e Take Profit são calculados sobre o <strong>capital inicial do dia</strong> e não podem ser alterados:
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                        <Label className="text-xs text-red-600 dark:text-red-400 font-semibold">Stop Loss</Label>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">3%</p>
+                        <p className="text-xs text-muted-foreground mt-1">do capital inicial</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                        <Label className="text-xs text-green-600 dark:text-green-400 font-semibold">Take Profit</Label>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">6%</p>
+                        <p className="text-xs text-muted-foreground mt-1">do capital inicial</p>
+                      </div>
                     </div>
                   </div>
 
