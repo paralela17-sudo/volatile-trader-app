@@ -6,6 +6,8 @@ export interface AccountStats {
   successRate: number;
   totalTrades: number;
   activePositions: number;
+  totalProfit: number;
+  profitHistory: { date: string; profit: number }[];
 }
 
 export const statsService = {
@@ -45,7 +47,9 @@ export const statsService = {
           initialCapital: testMode ? testBalance : 0,
           successRate: 0,
           totalTrades: 0,
-          activePositions: 0
+          activePositions: 0,
+          totalProfit: 0,
+          profitHistory: []
         };
       }
 
@@ -77,11 +81,31 @@ export const statsService = {
         t.status === 'PENDING'
       ).length;
 
+      // Lucro total (soma dos profit_loss das trades executadas)
+      const totalProfit = executedTrades.reduce((sum: number, t: any) => 
+        sum + (t.profit_loss || 0), 0
+      );
+
+      // Histórico de lucro (agregado por dia)
+      const profitByDate = executedTrades.reduce((acc: any, t: any) => {
+        const date = new Date(t.created_at).toLocaleDateString('pt-BR');
+        if (!acc[date]) acc[date] = 0;
+        acc[date] += t.profit_loss || 0;
+        return acc;
+      }, {});
+
+      const profitHistory = Object.entries(profitByDate).map(([date, profit]) => ({
+        date,
+        profit: profit as number
+      }));
+
       return {
         initialCapital,
         successRate,
         totalTrades,
-        activePositions
+        activePositions,
+        totalProfit,
+        profitHistory
       };
     } catch (error) {
       console.error('Exception in getAccountStats:', error);
@@ -89,7 +113,9 @@ export const statsService = {
         initialCapital: testMode ? testBalance : 0,
         successRate: 0,
         totalTrades: 0,
-        activePositions: 0
+        activePositions: 0,
+        totalProfit: 0,
+        profitHistory: []
       };
     }
   }

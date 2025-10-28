@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { pairSelectionService } from "@/services/pairSelectionService";
 import { statsService, type AccountStats } from "@/services/statsService";
 import { z } from "zod";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
 import {
   Dialog,
@@ -51,7 +52,9 @@ export const Dashboard = () => {
     initialCapital: 0,
     successRate: 0,
     totalTrades: 0,
-    activePositions: 0
+    activePositions: 0,
+    totalProfit: 0,
+    profitHistory: []
   });
   const [settings, setSettings] = useState({
     apiKey: "",
@@ -487,19 +490,55 @@ export const Dashboard = () => {
                   <p className="text-sm text-muted-foreground font-medium uppercase tracking-wide">Profit</p>
                   <div className="flex items-end gap-3">
                     <p className="text-3xl font-bold text-primary tracking-tight">
-                      ${(stats.totalProfit / 1000).toFixed(1)}k
+                      ${accountStats.totalProfit.toFixed(2)}
                     </p>
-                    <ArrowUpRight className="w-5 h-5 text-success mb-1" />
+                    {accountStats.totalProfit > 0 && <ArrowUpRight className="w-5 h-5 text-success mb-1" />}
+                    {accountStats.totalProfit < 0 && <ArrowDownRight className="w-5 h-5 text-destructive mb-1" />}
                   </div>
-                  <div className="flex items-center gap-1 text-success text-sm">
-                    <ArrowUpRight className="w-4 h-4" />
-                    <span>1.8%</span>
+                  <div className={`flex items-center gap-1 text-sm ${accountStats.totalProfit >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    {accountStats.totalProfit >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                    <span>Total Profit</span>
                   </div>
                 </div>
               </div>
               
-              <div className="h-64 bg-secondary/30 rounded-lg flex items-center justify-center border border-border">
-                <p className="text-muted-foreground">Gráfico de Lucro (Em breve)</p>
+              <div className="h-64 rounded-lg border border-border bg-card p-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={accountStats.profitHistory.length > 0 ? accountStats.profitHistory : [
+                    { date: "Day 1", profit: 0 },
+                    { date: "Day 2", profit: 0 },
+                    { date: "Day 3", profit: 0 },
+                    { date: "Day 4", profit: 0 },
+                    { date: "Day 5", profit: 0 }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                    <XAxis 
+                      dataKey="date" 
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                      tickLine={false}
+                    />
+                    <YAxis 
+                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--background))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "6px"
+                      }}
+                      formatter={(value: number) => [`$${value.toFixed(2)}`, "Profit"]}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="profit" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      dot={{ fill: "hsl(var(--primary))", r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </Card>
