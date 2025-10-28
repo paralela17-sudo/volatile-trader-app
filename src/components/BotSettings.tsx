@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Save, Key } from "lucide-react";
+import { Save, Key, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { botConfigService } from "@/services/botService";
@@ -21,13 +21,25 @@ export const BotSettings = () => {
     changeInPrice: 3,
     stopLoss: RISK_SETTINGS.STOP_LOSS_PERCENT,
     takeProfit: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+    multiPairCount: 5, // Número de pares simultâneos
   });
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [currentPairs, setCurrentPairs] = useState<string[]>([]);
 
   useEffect(() => {
     loadUserAndConfig();
+    loadCurrentPairs();
   }, []);
+
+  const loadCurrentPairs = async () => {
+    try {
+      const pairs = await pairSelectionService.selectMultipleOptimalPairs(settings.multiPairCount);
+      setCurrentPairs(pairs);
+    } catch (error) {
+      console.error("Erro ao carregar pares:", error);
+    }
+  };
 
   const loadUserAndConfig = async () => {
     try {
@@ -50,6 +62,7 @@ export const BotSettings = () => {
           changeInPrice: 3,
           stopLoss: RISK_SETTINGS.STOP_LOSS_PERCENT,
           takeProfit: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+          multiPairCount: 5,
         });
       }
     } catch (error) {
@@ -71,15 +84,16 @@ export const BotSettings = () => {
 
     setLoading(true);
     try {
-      // Selecionar par ótimo baseado em volatilidade
-      const optimalPair = await pairSelectionService.selectOptimalPair();
+      // Selecionar múltiplos pares baseados em volatilidade
+      const optimalPairs = await pairSelectionService.selectMultipleOptimalPairs(settings.multiPairCount);
+      setCurrentPairs(optimalPairs);
       
       const config = await botConfigService.getConfig(userId);
       
-      if (config) {
+        if (config) {
         const success = await botConfigService.updateConfig(userId, {
           test_mode: settings.testMode,
-          trading_pair: optimalPair,
+          trading_pair: optimalPairs[0], // Usar o primeiro par como referência
           quantity: settings.quantity,
           stop_loss_percent: RISK_SETTINGS.STOP_LOSS_PERCENT,
           take_profit_percent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
@@ -90,7 +104,7 @@ export const BotSettings = () => {
         }
 
         if (success) {
-          toast.success(`Configurações salvas! Par selecionado: ${optimalPair}`);
+          toast.success(`Configurações salvas! Monitorando ${optimalPairs.length} pares: ${optimalPairs.join(", ")}`);
           setSettings(prev => ({ ...prev, apiKey: "", apiSecret: "" }));
         } else {
           toast.error("Erro ao salvar configurações");
@@ -102,7 +116,7 @@ export const BotSettings = () => {
             user_id: userId,
             test_mode: settings.testMode,
             test_balance: 1000,
-            trading_pair: optimalPair,
+            trading_pair: optimalPairs[0],
             quantity: settings.quantity,
             take_profit_percent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
             stop_loss_percent: RISK_SETTINGS.STOP_LOSS_PERCENT,
@@ -113,7 +127,7 @@ export const BotSettings = () => {
 
         if (!error && settings.apiKey && settings.apiSecret) {
           await botConfigService.saveApiCredentials(userId, settings.apiKey, settings.apiSecret);
-          toast.success(`Configurações criadas! Par selecionado: ${optimalPair}`);
+          toast.success(`Configurações criadas! Monitorando ${optimalPairs.length} pares: ${optimalPairs.join(", ")}`);
           setSettings(prev => ({ ...prev, apiKey: "", apiSecret: "" }));
         } else {
           toast.error("Erro ao criar configurações");
@@ -178,22 +192,61 @@ export const BotSettings = () => {
           </div>
         </div>
 
-        {/* Trading Parameters */}
-        <div className="space-y-4">
-          <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-            <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-primary">🎯 Seleção Automática:</span> O bot escolhe automaticamente o par de negociação mais volátil e adequado para a estratégia.
-            </p>
-          </div>
+                {/* Trading Parameters */}
+                <div className="space-y-4">
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp className="w-4 h-4 text-primary" />
+                      <span className="font-semibold text-primary">🎯 Sistema Multi-Par Ativo</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">
+                      O bot monitora e negocia automaticamente múltiplos pares simultaneamente, selecionando os mais voláteis.
+                    </p>
+                    {currentPairs.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-semibold text-primary">Pares Atuais:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {currentPairs.map(pair => (
+                            <Badge key={pair} variant="secondary" className="text-xs">
+                              {pair}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-          <div className="space-y-2">
-            <Label>Quantidade por Trade (USDT)</Label>
-            <Input
-              type="number"
-              value={settings.quantity}
-              onChange={(e) => setSettings({ ...settings, quantity: Number(e.target.value) })}
-            />
-          </div>
+                  <div className="space-y-2">
+                    <Label>Número de Pares Simultâneos</Label>
+                    <Input
+                      type="number"
+                      value={settings.multiPairCount}
+                      onChange={(e) => {
+                        const count = Number(e.target.value);
+                        setSettings({ ...settings, multiPairCount: count });
+                        if (count >= 5 && count <= 10) {
+                          loadCurrentPairs();
+                        }
+                      }}
+                      min="5"
+                      max="10"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Recomendado: 5-10 pares para melhor diversificação
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Quantidade por Trade (USDT)</Label>
+                    <Input
+                      type="number"
+                      value={settings.quantity}
+                      onChange={(e) => setSettings({ ...settings, quantity: Number(e.target.value) })}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Será distribuído automaticamente entre os pares
+                    </p>
+                  </div>
 
           <div className="space-y-2">
             <Label>Intervalo de Tempo (minutos)</Label>

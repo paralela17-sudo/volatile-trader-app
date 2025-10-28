@@ -1,0 +1,195 @@
+import { pairSelectionService, type VolatilityData } from "./pairSelectionService";
+
+export interface PairMonitor {
+  symbol: string;
+  lastPrices: number[];
+  volatility: number;
+  lastAnalysis: Date;
+  isActive: boolean;
+  priceChangePercent: number;
+  volume: number;
+}
+
+class MultiPairService {
+  private watchedPairs: Map<string, PairMonitor> = new Map();
+  private updateInterval: NodeJS.Timeout | null = null;
+  private readonly UPDATE_INTERVAL = 30 * 60 * 1000; // 30 minutos
+  private readonly MAX_PAIRS = 10;
+  private readonly MIN_PAIRS = 5;
+
+  /**
+   * Inicia o monitoramento de múltiplos pares
+   */
+  async start(): Promise<void> {
+    console.log("Starting multi-pair monitoring...");
+    
+    // Carregar pares iniciais
+    await this.updateWatchedPairs();
+
+    // Atualizar lista de pares periodicamente
+    this.updateInterval = setInterval(async () => {
+      await this.updateWatchedPairs();
+    }, this.UPDATE_INTERVAL);
+  }
+
+  /**
+   * Para o monitoramento
+   */
+  stop(): void {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = null;
+    }
+    this.watchedPairs.clear();
+    console.log("Multi-pair monitoring stopped");
+  }
+
+  /**
+   * Atualiza a lista de pares baseado em volatilidade
+   */
+  private async updateWatchedPairs(): Promise<void> {
+    try {
+      const volatilePairs = await pairSelectionService.getTopVolatilePairs(this.MAX_PAIRS);
+      
+      // Manter pares existentes e adicionar novos
+      const currentSymbols = new Set(this.watchedPairs.keys());
+      const newSymbols = new Set(volatilePairs.map(p => p.symbol));
+
+      // Remover pares que não estão mais na lista
+      for (const symbol of currentSymbols) {
+        if (!newSymbols.has(symbol)) {
+          this.watchedPairs.delete(symbol);
+          console.log(`Removed pair from monitoring: ${symbol}`);
+        }
+      }
+
+      // Adicionar ou atualizar pares
+      for (const pair of volatilePairs) {
+        const existing = this.watchedPairs.get(pair.symbol);
+        
+        if (existing) {
+          // Atualizar dados existentes
+          existing.volatility = pair.priceChangePercent;
+          existing.volume = pair.volume;
+          existing.lastAnalysis = new Date();
+        } else {
+          // Adicionar novo par
+          this.watchedPairs.set(pair.symbol, {
+            symbol: pair.symbol,
+            lastPrices: [],
+            volatility: pair.priceChangePercent,
+            lastAnalysis: new Date(),
+            isActive: true,
+            priceChangePercent: pair.priceChangePercent,
+            volume: pair.volume,
+          });
+          console.log(`Added new pair to monitoring: ${pair.symbol}`);
+        }
+      }
+
+      console.log(`Currently monitoring ${this.watchedPairs.size} pairs`);
+    } catch (error) {
+      console.error("Error updating watched pairs:", error);
+    }
+  }
+
+  /**
+   * Adiciona preço ao histórico de um par
+   */
+  addPrice(symbol: string, price: number): void {
+    const monitor = this.watchedPairs.get(symbol);
+    if (!monitor) return;
+
+    monitor.lastPrices.push(price);
+    
+    // Manter apenas os últimos 20 preços
+    if (monitor.lastPrices.length > 20) {
+      monitor.lastPrices.shift();
+    }
+
+    // Recalcular volatilidade se temos dados suficientes
+    if (monitor.lastPrices.length >= 10) {
+      monitor.volatility = this.calculateVolatility(monitor.lastPrices);
+      monitor.priceChangePercent = this.calculatePriceChangePercent(monitor.lastPrices);
+    }
+  }
+
+  /**
+   * Retorna todos os pares monitorados
+   */
+  getWatchedPairs(): PairMonitor[] {
+    return Array.from(this.watchedPairs.values());
+  }
+
+  /**
+   * Retorna um par específico
+   */
+  getPair(symbol: string): PairMonitor | undefined {
+    return this.watchedPairs.get(symbol);
+  }
+
+  /**
+   * Retorna pares ordenados por volatilidade
+   */
+  getPairsByVolatility(): PairMonitor[] {
+    return Array.from(this.watchedPairs.values())
+      .sort((a, b) => b.volatility - a.volatility);
+  }
+
+  /**
+   * Retorna pares com oportunidade de entrada
+   */
+  getPairsWithOpportunity(buyThreshold: number, minVolatility: number): PairMonitor[] {
+    return Array.from(this.watchedPairs.values())
+      .filter(pair => 
+        pair.lastPrices.length >= 10 &&
+        pair.volatility >= minVolatility &&
+        pair.priceChangePercent <= buyThreshold
+      )
+      .sort((a, b) => a.priceChangePercent - b.priceChangePercent); // Menor mudança primeiro (maior queda)
+  }
+
+  /**
+   * Calcula volatilidade de um array de preços
+   */
+  private calculateVolatility(prices: number[]): number {
+    if (prices.length < 2) return 0;
+
+    const returns = [];
+    for (let i = 1; i < prices.length; i++) {
+      returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);
+    }
+
+    const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+    const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - mean, 2), 0) / returns.length;
+    const volatility = Math.sqrt(variance) * 100;
+
+    return volatility;
+  }
+
+  /**
+   * Calcula mudança percentual de preço
+   */
+  private calculatePriceChangePercent(prices: number[]): number {
+    if (prices.length < 2) return 0;
+    const firstPrice = prices[0];
+    const lastPrice = prices[prices.length - 1];
+    return ((lastPrice - firstPrice) / firstPrice) * 100;
+  }
+
+  /**
+   * Verifica se está ativo
+   */
+  isActive(): boolean {
+    return this.updateInterval !== null;
+  }
+
+  /**
+   * Retorna número de pares monitorados
+   */
+  getWatchedPairsCount(): number {
+    return this.watchedPairs.size;
+  }
+}
+
+export const multiPairService = new MultiPairService();

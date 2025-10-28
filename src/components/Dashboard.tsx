@@ -12,6 +12,7 @@ import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
 import { AdminPanel } from "./AdminPanel";
 import { TradingOperationsCard } from "./TradingOperationsCard";
+import { MultiPairMonitor } from "./MultiPairMonitor";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { pairSelectionService } from "@/services/pairSelectionService";
@@ -321,14 +322,19 @@ export const Dashboard = () => {
         return;
       }
 
+      // Selecionar múltiplos pares para trading
+      const { pairSelectionService } = await import("@/services/pairSelectionService");
+      const symbols = await pairSelectionService.selectMultipleOptimalPairs(5);
+
       await tradingService.start({
         userId: user.id,
         configId: config.id,
-        symbol: config.trading_pair,
-        quantity: Number(config.quantity),
+        symbols: symbols,
+        totalCapital: config.test_mode ? Number(config.test_balance) : accountStats.initialCapital,
         takeProfitPercent: Number(config.take_profit_percent),
         stopLossPercent: Number(config.stop_loss_percent),
         testMode: config.test_mode,
+        maxPositions: 5,
       });
     } catch (error) {
       console.error("Error starting trading:", error);
@@ -594,6 +600,16 @@ export const Dashboard = () => {
             lastOperationSymbol={operationStats.lastOperationSymbol}
           />
 
+          {/* Multi-Pair Monitor */}
+          {botRunning && !botPoweredOff && (
+            <MultiPairMonitor
+              isActive={botRunning}
+              totalCapital={settings.testMode ? settings.testBalance : accountStats.initialCapital}
+              userId={configId || ""}
+              testMode={settings.testMode}
+            />
+          )}
+
           {/* Bot Settings */}
           <Card className="p-6 bg-gradient-card border-border">
             <div className="space-y-6">
@@ -664,7 +680,7 @@ export const Dashboard = () => {
                 <div className="space-y-4">
                   <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
                     <p className="text-sm text-muted-foreground">
-                      <span className="font-semibold text-primary">🎯 Seleção Automática:</span> O bot escolhe automaticamente o par de negociação mais volátil e adequado para a estratégia.
+                      <span className="font-semibold text-primary">🎯 Sistema Multi-Par:</span> O bot monitora e negocia automaticamente 5-10 pares simultaneamente, selecionando os mais voláteis e com melhor potencial de lucro em tempo real.
                     </p>
                   </div>
 

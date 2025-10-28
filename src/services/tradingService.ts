@@ -2,15 +2,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { binanceService } from "./binanceService";
 import { tradeService } from "./botService";
 import { toast } from "sonner";
+import { multiPairService } from "./multiPairService";
+import { capitalDistributionService, type CapitalAllocation } from "./capitalDistributionService";
 
 export interface TradingConfig {
   userId: string;
   configId: string;
-  symbol: string;
-  quantity: number;
+  symbols: string[]; // Agora suporta múltiplos pares
+  totalCapital: number;
   takeProfitPercent: number;
   stopLossPercent: number;
   testMode: boolean;
+  maxPositions?: number; // Máximo de posições simultâneas
 }
 
 export interface Position {
@@ -27,12 +30,12 @@ class TradingService {
   private priceCheckInterval: NodeJS.Timeout | null = null;
   private config: TradingConfig | null = null;
   private openPositions: Map<string, Position> = new Map();
-  private lastPrices: Map<string, number[]> = new Map();
+  private capitalAllocations: Map<string, CapitalAllocation> = new Map();
   private readonly PRICE_CHECK_INTERVAL = 5000; // 5 seconds
   private readonly POSITION_CHECK_INTERVAL = 3000; // 3 seconds
-  private readonly PRICE_HISTORY_LENGTH = 20; // Keep last 20 prices
-  private readonly BUY_THRESHOLD = -0.5; // Buy when price drops 0.5%
-  private readonly MIN_VOLATILITY = 0.1; // Minimum volatility to trade
+  private readonly BUY_THRESHOLD = -0.3; // Buy when price drops 0.3% (mais sensível)
+  private readonly MIN_VOLATILITY = 0.08; // Minimum volatility to trade (menos restritivo)
+  private readonly MAX_POSITIONS = 5; // Máximo de 5 posições simultâneas
 
   async start(config: TradingConfig): Promise<void> {
     if (this.isRunning) {
@@ -43,8 +46,20 @@ class TradingService {
     this.config = config;
     this.isRunning = true;
     
-    console.log("Starting automated trading...", config);
-    toast.success("Trading automático iniciado!");
+    console.log("Starting multi-pair automated trading...", config);
+    
+    // Iniciar serviço de múltiplos pares
+    await multiPairService.start();
+    
+    // Distribuir capital entre os pares
+    this.capitalAllocations = await capitalDistributionService.distributeCapital(
+      config.userId,
+      config.totalCapital,
+      config.symbols,
+      config.testMode
+    );
+    
+    toast.success(`Trading multi-par iniciado! Monitorando ${config.symbols.length} pares.`);
 
     // Load existing open positions
     await this.loadOpenPositions();
@@ -67,7 +82,10 @@ class TradingService {
       this.priceCheckInterval = null;
     }
 
-    console.log("Stopped automated trading");
+    // Parar serviço de múltiplos pares
+    multiPairService.stop();
+
+    console.log("Stopped multi-pair automated trading");
     toast.info("Trading automático pausado");
   }
 
@@ -126,33 +144,55 @@ class TradingService {
   private async analyzeMarketAndTrade(): Promise<void> {
     if (!this.config) return;
 
-    const priceData = await binanceService.getPrice(this.config.symbol);
-    if (!priceData) return;
-
-    // Store price history
-    const history = this.lastPrices.get(this.config.symbol) || [];
-    history.push(priceData.price);
-    if (history.length > this.PRICE_HISTORY_LENGTH) {
-      history.shift();
+    // Verificar se atingimos o limite de posições
+    const maxPositions = this.config.maxPositions || this.MAX_POSITIONS;
+    if (this.openPositions.size >= maxPositions) {
+      return; // Já temos posições suficientes abertas
     }
-    this.lastPrices.set(this.config.symbol, history);
 
-    // Need at least 10 prices for analysis
-    if (history.length < 10) return;
+    // Analisar todos os pares monitorados
+    for (const symbol of this.config.symbols) {
+      try {
+        const priceData = await binanceService.getPrice(symbol);
+        if (!priceData) continue;
 
-    // Calculate volatility and trend
-    const volatility = this.calculateVolatility(history);
-    const priceChange = this.calculatePriceChangePercent(history);
+        // Adicionar preço ao histórico do multi-pair service
+        multiPairService.addPrice(symbol, priceData.price);
 
-    console.log(`Market Analysis - Price: ${priceData.price}, Change: ${priceChange.toFixed(2)}%, Volatility: ${volatility.toFixed(2)}%`);
+        // Obter dados do par
+        const pairMonitor = multiPairService.getPair(symbol);
+        if (!pairMonitor || pairMonitor.lastPrices.length < 10) continue;
 
-    // Trading logic: Buy on dips in volatile markets
-    if (
-      volatility >= this.MIN_VOLATILITY &&
-      priceChange <= this.BUY_THRESHOLD &&
-      this.openPositions.size < 3 // Max 3 simultaneous positions
-    ) {
-      await this.executeBuy(priceData.price);
+        // Verificar se já temos posição aberta neste par
+        const hasOpenPosition = Array.from(this.openPositions.values())
+          .some(pos => pos.symbol === symbol);
+        
+        if (hasOpenPosition) continue;
+
+        // Lógica de compra adaptativa baseada em volatilidade
+        let buyThreshold = this.BUY_THRESHOLD;
+        if (pairMonitor.volatility > 0.5) {
+          buyThreshold = -0.4; // Mais conservador em alta volatilidade
+        } else {
+          buyThreshold = -0.2; // Mais agressivo em baixa volatilidade
+        }
+
+        console.log(`${symbol} Analysis - Price: ${priceData.price}, Change: ${pairMonitor.priceChangePercent.toFixed(2)}%, Volatility: ${pairMonitor.volatility.toFixed(2)}%`);
+
+        // Verificar condições de compra
+        if (
+          pairMonitor.volatility >= this.MIN_VOLATILITY &&
+          pairMonitor.priceChangePercent <= buyThreshold &&
+          this.openPositions.size < maxPositions
+        ) {
+          const allocation = this.capitalAllocations.get(symbol);
+          if (allocation) {
+            await this.executeBuy(symbol, priceData.price, allocation.quantity);
+          }
+        }
+      } catch (error) {
+        console.error(`Error analyzing ${symbol}:`, error);
+      }
     }
   }
 
@@ -183,29 +223,29 @@ class TradingService {
     }
   }
 
-  private async executeBuy(price: number): Promise<void> {
+  private async executeBuy(symbol: string, price: number, quantity: number): Promise<void> {
     if (!this.config) return;
 
     try {
-      console.log(`Executing BUY: ${this.config.symbol} at ${price}`);
+      console.log(`Executing BUY: ${symbol} at ${price} (quantity: ${quantity})`);
       
       const result = await tradeService.executeTrade(
-        this.config.symbol,
+        symbol,
         "BUY",
-        this.config.quantity,
+        quantity,
         this.config.testMode
       );
 
       if (result && result.trade) {
         this.openPositions.set(result.trade.id, {
           tradeId: result.trade.id,
-          symbol: this.config.symbol,
+          symbol: symbol,
           buyPrice: price,
-          quantity: this.config.quantity,
+          quantity: quantity,
           timestamp: Date.now(),
         });
 
-        toast.success(`Compra executada: ${this.config.symbol} @ $${price.toFixed(2)}`);
+        toast.success(`Compra executada: ${symbol} @ $${price.toFixed(2)}`);
       }
     } catch (error) {
       console.error("Error executing buy:", error);
@@ -257,34 +297,20 @@ class TradingService {
     }
   }
 
-  private calculateVolatility(prices: number[]): number {
-    if (prices.length < 2) return 0;
-
-    const returns = [];
-    for (let i = 1; i < prices.length; i++) {
-      returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);
-    }
-
-    const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
-    const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - mean, 2), 0) / returns.length;
-    const volatility = Math.sqrt(variance) * 100;
-
-    return volatility;
-  }
-
-  private calculatePriceChangePercent(prices: number[]): number {
-    if (prices.length < 2) return 0;
-    const firstPrice = prices[0];
-    const lastPrice = prices[prices.length - 1];
-    return ((lastPrice - firstPrice) / firstPrice) * 100;
-  }
-
   isActive(): boolean {
     return this.isRunning;
   }
 
   getOpenPositionsCount(): number {
     return this.openPositions.size;
+  }
+
+  getWatchedPairsCount(): number {
+    return multiPairService.getWatchedPairsCount();
+  }
+
+  getCapitalAllocations(): Map<string, CapitalAllocation> {
+    return this.capitalAllocations;
   }
 }
 

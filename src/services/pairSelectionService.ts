@@ -11,7 +11,7 @@ export const pairSelectionService = {
   /**
    * Busca pares de negociação populares na Binance
    */
-  async getTopVolatilePairs(limit = 5): Promise<VolatilityData[]> {
+  async getTopVolatilePairs(limit = 10): Promise<VolatilityData[]> {
     try {
       const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
       
@@ -21,11 +21,11 @@ export const pairSelectionService = {
 
       const data = await response.json();
       
-      // Filtrar apenas pares USDT com volume significativo
+      // Filtrar apenas pares USDT com volume significativo (reduzido para 5M)
       const usdtPairs = data
         .filter((ticker: any) => 
           ticker.symbol.endsWith('USDT') && 
-          parseFloat(ticker.quoteVolume) > 10000000 // Volume mínimo de 10M USDT
+          parseFloat(ticker.quoteVolume) > 5000000 // Volume mínimo de 5M USDT
         )
         .map((ticker: any) => ({
           symbol: ticker.symbol,
@@ -59,15 +59,49 @@ export const pairSelectionService = {
         return 'BTCUSDT'; // Fallback seguro
       }
 
-      // Selecionar par com boa volatilidade (entre 2% e 15% de mudança em 24h)
+      // Selecionar par com boa volatilidade (entre 1% e 20% de mudança em 24h) - Range mais amplo
       const optimalPair = volatilePairs.find(
-        pair => pair.priceChangePercent >= 2 && pair.priceChangePercent <= 15
+        pair => pair.priceChangePercent >= 1 && pair.priceChangePercent <= 20
       );
 
       return optimalPair ? optimalPair.symbol : volatilePairs[0].symbol;
     } catch (error) {
       console.error('Erro ao selecionar par ótimo:', error);
       return 'BTCUSDT';
+    }
+  },
+
+  /**
+   * Seleciona múltiplos pares ótimos para trading simultâneo
+   */
+  async selectMultipleOptimalPairs(count: number = 5): Promise<string[]> {
+    try {
+      const volatilePairs = await this.getTopVolatilePairs(count * 2); // Buscar o dobro para ter opções
+      
+      if (volatilePairs.length === 0) {
+        return ['BTCUSDT']; // Fallback seguro
+      }
+
+      // Filtrar pares com volatilidade adequada (1% a 20%)
+      const goodPairs = volatilePairs
+        .filter(pair => pair.priceChangePercent >= 1 && pair.priceChangePercent <= 20)
+        .slice(0, count)
+        .map(pair => pair.symbol);
+
+      // Se não encontrar pares suficientes, usar os mais voláteis disponíveis
+      if (goodPairs.length < count) {
+        const additionalPairs = volatilePairs
+          .slice(0, count)
+          .map(pair => pair.symbol)
+          .filter(symbol => !goodPairs.includes(symbol));
+        
+        return [...goodPairs, ...additionalPairs].slice(0, count);
+      }
+
+      return goodPairs;
+    } catch (error) {
+      console.error('Erro ao selecionar múltiplos pares:', error);
+      return ['BTCUSDT'];
     }
   },
 
