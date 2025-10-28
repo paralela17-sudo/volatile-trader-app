@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Save, Key } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { botConfigService } from "@/services/botService";
 
 export const BotSettings = () => {
   const [settings, setSettings] = useState({
@@ -19,9 +21,107 @@ export const BotSettings = () => {
     stopLoss: 3,
     takeProfit: 6,
   });
+  const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const handleSave = () => {
-    toast.success("Configurações salvas com sucesso!");
+  useEffect(() => {
+    loadUserAndConfig();
+  }, []);
+
+  const loadUserAndConfig = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Usuário não autenticado");
+        return;
+      }
+      
+      setUserId(user.id);
+      
+      const config = await botConfigService.getConfig(user.id);
+      if (config) {
+        setSettings({
+          apiKey: "",
+          apiSecret: "",
+          testMode: config.test_mode,
+          pairWith: config.trading_pair,
+          quantity: Number(config.quantity),
+          timeDifference: 5,
+          changeInPrice: 3,
+          stopLoss: Number(config.stop_loss_percent),
+          takeProfit: Number(config.take_profit_percent),
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao carregar configurações:", error);
+      toast.error("Erro ao carregar configurações");
+    }
+  };
+
+  const handleSave = async () => {
+    if (!userId) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
+    if (!settings.apiKey || !settings.apiSecret) {
+      toast.error("Por favor, preencha a API Key e API Secret");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const config = await botConfigService.getConfig(userId);
+      
+      if (config) {
+        const success = await botConfigService.updateConfig(userId, {
+          test_mode: settings.testMode,
+          trading_pair: settings.pairWith,
+          quantity: settings.quantity,
+          stop_loss_percent: settings.stopLoss,
+          take_profit_percent: settings.takeProfit,
+        });
+
+        if (success && settings.apiKey && settings.apiSecret) {
+          await botConfigService.saveApiCredentials(userId, settings.apiKey, settings.apiSecret);
+        }
+
+        if (success) {
+          toast.success("Configurações salvas com sucesso!");
+          setSettings(prev => ({ ...prev, apiKey: "", apiSecret: "" }));
+        } else {
+          toast.error("Erro ao salvar configurações");
+        }
+      } else {
+        const { error } = await supabase
+          .from('bot_configurations')
+          .insert({
+            user_id: userId,
+            test_mode: settings.testMode,
+            test_balance: 1000,
+            trading_pair: settings.pairWith,
+            quantity: settings.quantity,
+            take_profit_percent: settings.takeProfit,
+            stop_loss_percent: settings.stopLoss,
+            daily_profit_goal: 50,
+            is_running: false,
+            is_powered_on: true,
+          });
+
+        if (!error && settings.apiKey && settings.apiSecret) {
+          await botConfigService.saveApiCredentials(userId, settings.apiKey, settings.apiSecret);
+          toast.success("Configurações criadas com sucesso!");
+          setSettings(prev => ({ ...prev, apiKey: "", apiSecret: "" }));
+        } else {
+          toast.error("Erro ao criar configurações");
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao salvar:", error);
+      toast.error("Erro ao salvar configurações");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -144,9 +244,9 @@ export const BotSettings = () => {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={handleSave} className="gap-2">
+        <Button onClick={handleSave} className="gap-2" disabled={loading}>
           <Save className="w-4 h-4" />
-          Salvar Configurações
+          {loading ? "Salvando..." : "Salvar Configurações"}
         </Button>
       </div>
     </div>
