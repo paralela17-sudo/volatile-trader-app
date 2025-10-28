@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { pairSelectionService } from "@/services/pairSelectionService";
 import { statsService, type AccountStats } from "@/services/statsService";
+import { tradingService } from "@/services/tradingService";
 import { z } from "zod";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
@@ -285,19 +286,39 @@ export const Dashboard = () => {
     }
   };
 
-  const handlePowerToggle = () => {
-    const newState = !botPoweredOff;
-    setBotPoweredOff(newState);
-    if (newState) {
-      setBotRunning(false);
-      saveBotState(false, true);
-      toast.error("Bot desligado! Não realizará operações até ser ligado novamente.");
-    } else {
-      setPausedUntilMidnight(false);
-      setDailyProfitPercent(0);
-      saveBotState(false, false);
-      toast.success("Bot ligado! Pronto para operar.");
+  const startAutomatedTrading = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: config } = await supabase
+        .from("bot_configurations")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!config) {
+        toast.error("Configuração não encontrada. Configure o bot primeiro.");
+        return;
+      }
+
+      await tradingService.start({
+        userId: user.id,
+        configId: config.id,
+        symbol: config.trading_pair,
+        quantity: Number(config.quantity),
+        takeProfitPercent: Number(config.take_profit_percent),
+        stopLossPercent: Number(config.stop_loss_percent),
+        testMode: config.test_mode,
+      });
+    } catch (error) {
+      console.error("Error starting trading:", error);
+      toast.error("Erro ao iniciar trading automático");
     }
+  };
+
+  const stopAutomatedTrading = async () => {
+    await tradingService.stop();
   };
 
   const handleLogout = async () => {
@@ -396,9 +417,10 @@ export const Dashboard = () => {
               </Button>
               <Button
                 variant={botRunning ? "destructive" : "default"}
-                onClick={() => {
+                onClick={async () => {
                   if (botRunning) {
                     // Desligar bot
+                    await stopAutomatedTrading();
                     setBotRunning(false);
                     setBotPoweredOff(true);
                     saveBotState(false, true);
@@ -414,7 +436,8 @@ export const Dashboard = () => {
                     setPausedUntilMidnight(false);
                     setDailyProfitPercent(0);
                     saveBotState(true, false);
-                    toast.success("Bot ligado e iniciado!");
+                    await startAutomatedTrading();
+                    toast.success("Bot ligado e trading automático iniciado!");
                   }
                 }}
                 className="gap-2 shadow-glow-primary"
