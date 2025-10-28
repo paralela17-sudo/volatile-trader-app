@@ -1,11 +1,37 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, XCircle, AlertCircle, ExternalLink, Key, Database, Settings, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { botConfigService } from "@/services/botService";
 
 export const AdminPanel = () => {
+  const [apiKeysConfigured, setApiKeysConfigured] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    checkApiKeysStatus();
+  }, []);
+
+  const checkApiKeysStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const config = await botConfigService.getConfig(user.id);
+      if (config && config.api_key_encrypted && config.api_secret_encrypted) {
+        setApiKeysConfigured(true);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar status das chaves API:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const setupSteps = [
     {
       id: 1,
@@ -18,7 +44,7 @@ export const AdminPanel = () => {
       id: 2,
       title: "Configurar Credenciais da Binance",
       description: "Adicione suas API Key e Secret Key da Binance nas configurações do bot",
-      status: "pending" as const,
+      status: loading ? "pending" : (apiKeysConfigured ? "complete" : "pending"),
       icon: Key,
       instructions: [
         "1. Acesse https://www.binance.com/en/my/settings/api-management",
