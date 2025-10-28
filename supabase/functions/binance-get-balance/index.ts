@@ -100,9 +100,8 @@ serve(async (req) => {
     );
 
     if (!binanceResponse.ok) {
-      const errorText = await binanceResponse.text();
-      console.error("Binance API error:", errorText);
-      throw new Error(`Binance API error: ${binanceResponse.status}`);
+      console.error('Binance API Error: Status', binanceResponse.status);
+      throw new Error('Failed to fetch balance from Binance');
     }
 
     const accountData = await binanceResponse.json();
@@ -123,9 +122,9 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error fetching balance:", error);
+    console.error('Error in binance-get-balance');
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: 'An error occurred while processing your request' }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,

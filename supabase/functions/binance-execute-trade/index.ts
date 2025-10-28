@@ -54,7 +54,7 @@ serve(async (req) => {
 
     const { symbol, side, quantity, type = 'MARKET', testMode = true } = await req.json();
 
-    console.log(`Executing ${side} trade for ${symbol}, quantity: ${quantity}, testMode: ${testMode}`);
+    console.log(`Executing trade request`);
 
     // Buscar configuração do bot do usuário
     const { data: config, error: configError } = await supabase
@@ -93,7 +93,7 @@ serve(async (req) => {
         .single();
 
       if (tradeError) {
-        console.error('Error saving simulated trade:', tradeError);
+        console.error('Error saving simulated trade');
       }
 
       // Registrar log
@@ -163,7 +163,8 @@ serve(async (req) => {
     const binanceData = await binanceResponse.json();
 
     if (!binanceResponse.ok) {
-      throw new Error(`Binance API error: ${JSON.stringify(binanceData)}`);
+      console.error('Binance API Error: Status', binanceResponse.status);
+      throw new Error('Failed to execute trade on Binance');
     }
 
     // Registrar trade real
@@ -184,7 +185,7 @@ serve(async (req) => {
       .single();
 
     if (tradeError) {
-      console.error('Error saving real trade:', tradeError);
+      console.error('Error saving real trade');
     }
 
     // Registrar log
@@ -195,7 +196,7 @@ serve(async (req) => {
       details: { testMode: false, trade, binanceData }
     });
 
-    console.log('Trade executed successfully:', binanceData);
+    console.log('Trade executed successfully');
 
     return new Response(
       JSON.stringify({
@@ -210,12 +211,11 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in binance-execute-trade:', error);
+    console.error('Error in binance-execute-trade');
     
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        details: 'Failed to execute trade'
+        error: 'An error occurred while processing your request'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
