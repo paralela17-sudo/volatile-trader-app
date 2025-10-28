@@ -43,19 +43,26 @@ function generateSignature(queryString: string, secret: string): string {
 
 // Check rate limit using database function
 async function checkRateLimit(supabase: any, userId: string, endpoint: string): Promise<boolean> {
-  const { data, error } = await supabase.rpc('check_rate_limit', {
-    p_user_id: userId,
-    p_endpoint: endpoint,
-    p_max_requests: 12, // Max 12 trades per minute (1 every 5 seconds)
-    p_window_seconds: 60
-  });
+  try {
+    const { data, error } = await supabase.rpc('check_rate_limit', {
+      p_user_id: userId,
+      p_endpoint: endpoint,
+      p_max_requests: 12, // Max 12 trades per minute (1 every 5 seconds)
+      p_window_seconds: 60
+    });
 
-  if (error) {
-    console.error('Rate limit check error:', error);
-    return false;
+    if (error) {
+      console.warn('Rate limit check error (allowing request):', error.message);
+      // Se rate limit falhar, permitir a requisição para não bloquear operações
+      return true;
+    }
+
+    return data === true;
+  } catch (error) {
+    console.warn('Rate limit check exception (allowing request):', error);
+    // Se rate limit falhar, permitir a requisição
+    return true;
   }
-
-  return data === true;
 }
 
 serve(async (req) => {
