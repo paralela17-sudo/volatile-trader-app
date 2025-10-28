@@ -6,14 +6,23 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut } from "lucide-react";
+import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut, Settings } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
+import { AdminPanel } from "./AdminPanel";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Validation schema
 const botConfigSchema = z.object({
@@ -309,6 +318,26 @@ export const Dashboard = () => {
               )}
             </div>
             <div className="flex items-center gap-3">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Settings className="w-5 h-5" />
+                    Admin
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Painel Administrativo</DialogTitle>
+                    <DialogDescription>
+                      Configure a integração do bot com a Binance
+                    </DialogDescription>
+                  </DialogHeader>
+                  <AdminPanel />
+                </DialogContent>
+              </Dialog>
               <Button
                 variant="ghost"
                 onClick={handleLogout}

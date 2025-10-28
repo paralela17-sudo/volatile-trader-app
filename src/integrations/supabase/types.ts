@@ -68,6 +68,147 @@ export type Database = {
         }
         Relationships: []
       }
+      bot_logs: {
+        Row: {
+          bot_config_id: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          level: string
+          message: string
+          user_id: string
+        }
+        Insert: {
+          bot_config_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          level: string
+          message: string
+          user_id: string
+        }
+        Update: {
+          bot_config_id?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          level?: string
+          message?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_logs_bot_config_id_fkey"
+            columns: ["bot_config_id"]
+            isOneToOne: false
+            referencedRelation: "bot_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_alerts: {
+        Row: {
+          bot_config_id: string | null
+          condition: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          symbol: string
+          target_price: number
+          triggered_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bot_config_id?: string | null
+          condition: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          symbol: string
+          target_price: number
+          triggered_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bot_config_id?: string | null
+          condition?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          symbol?: string
+          target_price?: number
+          triggered_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_alerts_bot_config_id_fkey"
+            columns: ["bot_config_id"]
+            isOneToOne: false
+            referencedRelation: "bot_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trades: {
+        Row: {
+          binance_order_id: string | null
+          bot_config_id: string | null
+          created_at: string
+          executed_at: string | null
+          id: string
+          price: number
+          profit_loss: number | null
+          quantity: number
+          side: string
+          status: string
+          symbol: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          binance_order_id?: string | null
+          bot_config_id?: string | null
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          price: number
+          profit_loss?: number | null
+          quantity: number
+          side: string
+          status: string
+          symbol: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          binance_order_id?: string | null
+          bot_config_id?: string | null
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          price?: number
+          profit_loss?: number | null
+          quantity?: number
+          side?: string
+          status?: string
+          symbol?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_bot_config_id_fkey"
+            columns: ["bot_config_id"]
+            isOneToOne: false
+            referencedRelation: "bot_configurations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
