@@ -179,6 +179,12 @@ export const BotSettings = () => {
 
         {/* Trading Parameters */}
         <div className="space-y-4">
+          <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-semibold text-primary">🎯 Seleção Automática:</span> O bot escolhe automaticamente o par de negociação mais volátil e adequado para a estratégia.
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label>Quantidade por Trade (USDT)</Label>
             <Input
