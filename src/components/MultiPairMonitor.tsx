@@ -37,12 +37,24 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
     return () => clearInterval(interval);
   }, [isActive, totalCapital, userId, testMode]);
 
-  if (!isActive || pairs.length === 0) {
+  if (!isActive) {
     return (
       <Card className="p-6 bg-secondary/20 border-border">
         <div className="text-center text-muted-foreground">
           <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p className="text-sm">Sistema Multi-Par inativo. Inicie o bot para monitorar múltiplos pares.</p>
+        </div>
+      </Card>
+    );
+  }
+
+  if (pairs.length === 0) {
+    return (
+      <Card className="p-6 bg-secondary/20 border-border">
+        <div className="text-center text-muted-foreground">
+          <Activity className="w-12 h-12 mx-auto mb-3 opacity-50 animate-pulse" />
+          <p className="text-sm font-semibold">Carregando pares para monitoramento...</p>
+          <p className="text-xs mt-2">O sistema está identificando os melhores pares para trading.</p>
         </div>
       </Card>
     );

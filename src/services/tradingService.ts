@@ -48,8 +48,8 @@ class TradingService {
     
     console.log("Starting multi-pair automated trading...", config);
     
-    // Iniciar serviço de múltiplos pares
-    await multiPairService.start();
+    // Iniciar serviço de múltiplos pares com os símbolos configurados
+    await multiPairService.start(config.symbols);
     
     // Distribuir capital entre os pares
     this.capitalAllocations = await capitalDistributionService.distributeCapital(

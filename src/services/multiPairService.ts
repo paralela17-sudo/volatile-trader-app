@@ -20,16 +20,64 @@ class MultiPairService {
   /**
    * Inicia o monitoramento de múltiplos pares
    */
-  async start(): Promise<void> {
-    console.log("Starting multi-pair monitoring...");
+  async start(initialSymbols?: string[]): Promise<void> {
+    console.log("Starting multi-pair monitoring...", initialSymbols);
     
-    // Carregar pares iniciais
-    await this.updateWatchedPairs();
+    // Se símbolos iniciais foram fornecidos, inicializar com eles
+    if (initialSymbols && initialSymbols.length > 0) {
+      await this.initializeWithSymbols(initialSymbols);
+    } else {
+      // Caso contrário, carregar pares baseado em volatilidade
+      await this.updateWatchedPairs();
+    }
 
     // Atualizar lista de pares periodicamente
     this.updateInterval = setInterval(async () => {
       await this.updateWatchedPairs();
     }, this.UPDATE_INTERVAL);
+  }
+
+  /**
+   * Inicializa o monitoramento com símbolos específicos
+   */
+  private async initializeWithSymbols(symbols: string[]): Promise<void> {
+    try {
+      // Obter dados de volatilidade para os símbolos fornecidos
+      const allVolatilePairs = await pairSelectionService.getTopVolatilePairs(50);
+      
+      for (const symbol of symbols) {
+        const pairData = allVolatilePairs.find(p => p.symbol === symbol);
+        
+        if (pairData) {
+          this.watchedPairs.set(symbol, {
+            symbol: symbol,
+            lastPrices: [],
+            volatility: pairData.priceChangePercent,
+            lastAnalysis: new Date(),
+            isActive: true,
+            priceChangePercent: pairData.priceChangePercent,
+            volume: pairData.volume,
+          });
+          console.log(`Initialized monitoring for: ${symbol}`);
+        } else {
+          // Se não encontrou dados, criar com valores padrão
+          this.watchedPairs.set(symbol, {
+            symbol: symbol,
+            lastPrices: [],
+            volatility: 0,
+            lastAnalysis: new Date(),
+            isActive: true,
+            priceChangePercent: 0,
+            volume: 0,
+          });
+          console.log(`Initialized monitoring for: ${symbol} (default values)`);
+        }
+      }
+      
+      console.log(`Successfully initialized ${this.watchedPairs.size} pairs for monitoring`);
+    } catch (error) {
+      console.error("Error initializing with symbols:", error);
+    }
   }
 
   /**
