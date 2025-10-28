@@ -11,11 +11,13 @@ import { StatsCard } from "./StatsCard";
 import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
 import { AdminPanel } from "./AdminPanel";
+import { TradingOperationsCard } from "./TradingOperationsCard";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { pairSelectionService } from "@/services/pairSelectionService";
 import { statsService, type AccountStats } from "@/services/statsService";
 import { tradingService } from "@/services/tradingService";
+import { operationsStatsService, type OperationStats } from "@/services/operationsStatsService";
 import { z } from "zod";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
@@ -57,6 +59,13 @@ export const Dashboard = () => {
     activePositions: 0,
     totalProfit: 0,
     profitHistory: []
+  });
+  const [operationStats, setOperationStats] = useState<OperationStats>({
+    lastOperationTime: null,
+    totalOperationsToday: 0,
+    lastOperationProfit: null,
+    lastOperationSide: null,
+    lastOperationSymbol: null,
   });
   const [settings, setSettings] = useState({
     apiKey: "",
@@ -115,6 +124,10 @@ export const Dashboard = () => {
         config.test_balance
       );
       setAccountStats(stats);
+
+      // Buscar estatísticas de operações
+      const opStats = await operationsStatsService.getTodayOperationsStats(user.id);
+      setOperationStats(opStats);
 
       // Atualiza o Profit Diário com base no capital inicial do dia
       const today = new Date().toLocaleDateString('pt-BR');
@@ -571,6 +584,15 @@ export const Dashboard = () => {
               </div>
             </div>
           </Card>
+
+          {/* Trading Operations Card */}
+          <TradingOperationsCard
+            lastOperationTime={operationStats.lastOperationTime}
+            totalOperationsToday={operationStats.totalOperationsToday}
+            lastOperationProfit={operationStats.lastOperationProfit}
+            lastOperationSide={operationStats.lastOperationSide}
+            lastOperationSymbol={operationStats.lastOperationSymbol}
+          />
 
           {/* Bot Settings */}
           <Card className="p-6 bg-gradient-card border-border">
