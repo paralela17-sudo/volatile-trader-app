@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut, Settings } from "lucide-react";
+import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut, Settings, RotateCcw } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
@@ -19,6 +19,7 @@ import { pairSelectionService } from "@/services/pairSelectionService";
 import { statsService, type AccountStats } from "@/services/statsService";
 import { tradingService } from "@/services/tradingService";
 import { operationsStatsService, type OperationStats } from "@/services/operationsStatsService";
+import { resetService } from "@/services/resetService";
 import { z } from "zod";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
@@ -53,6 +54,8 @@ export const Dashboard = () => {
   const [botPoweredOff, setBotPoweredOff] = useState(false);
   const [dailyProfitPercent, setDailyProfitPercent] = useState(0);
   const [pausedUntilMidnight, setPausedUntilMidnight] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [accountStats, setAccountStats] = useState<AccountStats>({
     initialCapital: 0,
     successRate: 0,
@@ -352,6 +355,54 @@ export const Dashboard = () => {
     toast.success("Logout realizado com sucesso!");
   };
 
+  const handleResetBot = async () => {
+    if (!configId) {
+      toast.error("Configuração não encontrada");
+      return;
+    }
+
+    setResetting(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Usuário não autenticado");
+        return;
+      }
+
+      // Parar bot se estiver rodando
+      if (botRunning) {
+        await stopAutomatedTrading();
+        setBotRunning(false);
+      }
+
+      // Resetar bot
+      const success = await resetService.resetBot({
+        userId: user.id,
+        resetTrades: true,
+        resetBalance: true,
+        newBalance: 1000
+      });
+
+      if (success) {
+        toast.success("🔄 Bot resetado! Capital inicial: $1,000.00");
+        
+        // Recarregar dados
+        await loadAccountStats();
+        await loadBotConfiguration();
+        
+        setShowResetDialog(false);
+      } else {
+        toast.error("Erro ao resetar bot");
+      }
+    } catch (error) {
+      console.error("Erro no reset:", error);
+      toast.error("Erro ao resetar bot");
+    } finally {
+      setResetting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -432,6 +483,69 @@ export const Dashboard = () => {
                   <AdminPanel />
                 </DialogContent>
               </Dialog>
+              
+              <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="gap-2 border-yellow-500/50 hover:bg-yellow-500/10"
+                  >
+                    🔄 Reset
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>⚠️ Resetar Bot</DialogTitle>
+                    <DialogDescription>
+                      Esta ação irá:
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3 py-4">
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-red-500">•</span>
+                      <span>Deletar TODAS as operações (trades)</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-red-500">•</span>
+                      <span>Fechar todas as posições abertas</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-green-500">•</span>
+                      <span>Restaurar capital inicial para $1,000.00</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-blue-500">•</span>
+                      <span>Preparar para nova estratégia Momentum Trading</span>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                    <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
+                      ⚠️ Esta ação é irreversível!
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Todo o histórico de operações será perdido.
+                    </p>
+                  </div>
+                  <div className="flex gap-3 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowResetDialog(false)}
+                      disabled={resetting}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleResetBot}
+                      disabled={resetting}
+                      className="gap-2"
+                    >
+                      {resetting ? "Resetando..." : "Confirmar Reset"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <Button
                 variant="ghost"
                 onClick={handleLogout}
