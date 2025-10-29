@@ -170,8 +170,12 @@ class TradingService {
         const priceData = await binanceService.getPrice(symbol);
         if (!priceData) continue;
 
-        // Adicionar preço ao histórico do multi-pair service
-        multiPairService.addPrice(symbol, priceData.price);
+        // Buscar dados de mercado (incluindo volume)
+        const marketData = await binanceService.getMarketData(symbol);
+        const volume = marketData?.volume;
+
+        // Adicionar preço e volume ao histórico do multi-pair service
+        multiPairService.addPrice(symbol, priceData.price, volume);
 
         // Obter dados do par
         const pairMonitor = multiPairService.getPair(symbol);
@@ -184,8 +188,9 @@ class TradingService {
         if (hasOpenPosition) continue;
 
         // === MOMENTUM TRADING STRATEGY ===
-        // Analisar momentum do par
-        const momentum = momentumStrategyService.analyzeMomentum(pairMonitor.lastPrices);
+        // Analisar momentum do par (com volumes se disponíveis)
+        const volumes = pairMonitor.lastVolumes.length > 0 ? pairMonitor.lastVolumes : undefined;
+        const momentum = momentumStrategyService.analyzeMomentum(pairMonitor.lastPrices, volumes);
         const signal = momentumStrategyService.generateBuySignal(symbol, momentum);
 
         console.log(`📈 ${symbol} | Preço: $${priceData.price.toFixed(2)} | Mudança: ${momentum.priceChangePercent.toFixed(2)}% | Tendência: ${momentum.trend} | Confiança: ${(signal.confidence * 100).toFixed(0)}%`);

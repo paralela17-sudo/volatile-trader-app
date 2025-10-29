@@ -3,6 +3,7 @@ import { pairSelectionService, type VolatilityData } from "./pairSelectionServic
 export interface PairMonitor {
   symbol: string;
   lastPrices: number[];
+  lastVolumes: number[]; // Histórico de volumes
   volatility: number;
   lastAnalysis: Date;
   isActive: boolean;
@@ -52,6 +53,7 @@ class MultiPairService {
           this.watchedPairs.set(symbol, {
             symbol: symbol,
             lastPrices: [],
+            lastVolumes: [],
             volatility: pairData.priceChangePercent,
             lastAnalysis: new Date(),
             isActive: true,
@@ -64,6 +66,7 @@ class MultiPairService {
           this.watchedPairs.set(symbol, {
             symbol: symbol,
             lastPrices: [],
+            lastVolumes: [],
             volatility: 0,
             lastAnalysis: new Date(),
             isActive: true,
@@ -125,6 +128,7 @@ class MultiPairService {
           this.watchedPairs.set(pair.symbol, {
             symbol: pair.symbol,
             lastPrices: [],
+            lastVolumes: [],
             volatility: pair.priceChangePercent,
             lastAnalysis: new Date(),
             isActive: true,
@@ -142,13 +146,24 @@ class MultiPairService {
   }
 
   /**
-   * Adiciona preço ao histórico de um par
+   * Adiciona preço e volume ao histórico de um par
    */
-  addPrice(symbol: string, price: number): void {
+  addPrice(symbol: string, price: number, volume?: number): void {
     const monitor = this.watchedPairs.get(symbol);
     if (!monitor) return;
 
     monitor.lastPrices.push(price);
+    
+    // Adicionar volume se disponível
+    if (volume !== undefined) {
+      monitor.lastVolumes.push(volume);
+      monitor.volume = volume; // Atualizar volume atual
+      
+      // Manter apenas os últimos 20 volumes
+      if (monitor.lastVolumes.length > 20) {
+        monitor.lastVolumes.shift();
+      }
+    }
     
     // Manter apenas os últimos 20 preços
     if (monitor.lastPrices.length > 20) {
