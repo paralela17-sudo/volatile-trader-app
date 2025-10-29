@@ -3,12 +3,12 @@
  * Estratégia: Momentum Trading (5-15 min por operação)
  */
 export const RISK_SETTINGS = {
-  // Momentum Trading Strategy
-  STOP_LOSS_PERCENT: 1.5, // 1.5% stop loss (proteção rápida)
-  TAKE_PROFIT_PERCENT: 2.5, // 2.5% take profit (alvo agressivo)
+  // Momentum Trading Strategy (Risk/Reward 1:3 otimizado)
+  STOP_LOSS_PERCENT: 1.0, // 1.0% stop loss (reduzido para melhor ratio)
+  TAKE_PROFIT_PERCENT: 3.0, // 3.0% take profit (aumentado para ratio 1:3)
   
   // Session/position management
-  MAX_HOLD_MINUTES: 15, // Tempo máximo de posição aberta (5-15 min por operação)
+  MAX_HOLD_MINUTES: 25, // Tempo máximo de posição aberta (aumentado para deixar momentum desenvolver)
   
   // Capital Management (percent values)
   CAPITAL_PER_ROUND_PERCENT: 10, // Máximo 10% do capital total por rodada
@@ -16,14 +16,14 @@ export const RISK_SETTINGS = {
   SAFETY_RESERVE_PERCENT: 5, // Reserva de segurança aplicada sobre o capital da rodada
   MAX_POSITIONS: 5, // Máximo de posições simultâneas
   
-  // Momentum Parameters (percent units)
-  MOMENTUM_BUY_THRESHOLD: 0.5, // Comprar quando subir 0.5%+
-  MIN_VOLUME_RATIO: 1.2, // Volume 20% acima da média
-  PRICE_VELOCITY_THRESHOLD: 0.3, // Velocidade mínima (% por tick)
+  // Momentum Parameters (percent units) - Entrada mais cedo
+  MOMENTUM_BUY_THRESHOLD: 0.3, // Comprar quando subir 0.3%+ (entrada mais cedo)
+  MIN_VOLUME_RATIO: 1.15, // Volume 15% acima da média (menos restritivo)
+  PRICE_VELOCITY_THRESHOLD: 0.2, // Velocidade mínima (% por tick, mais sensível)
   
   // Cooldown & Protection
   PAIR_COOLDOWN_SECONDS: 90, // Aguardar 90s após venda antes de reentrar no mesmo par
-  PROFIT_PROTECT_THRESHOLD: 0.8, // Proteger lucro quando atingir 0.8%+
+  PROFIT_PROTECT_THRESHOLD: 1.5, // Proteger lucro quando atingir 1.5%+ (menos agressivo)
   
   // Reinvestment
   AUTO_REINVEST: true, // Reinvestir capital liberado automaticamente

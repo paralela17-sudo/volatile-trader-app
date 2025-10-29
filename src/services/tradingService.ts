@@ -270,17 +270,20 @@ class TradingService {
           continue;
         }
 
-        // Proteção de lucro parcial: se subiu 0.8%+ mas momentum caiu para NEUTRAL, realizar
+        // Trailing stop: se lucro >= 1%, mover stop para break-even
+        if (profitPercent >= 1.0) {
+          const breakEvenPrice = position.buyPrice * 1.001; // +0.1% acima do custo
+          if (currentPrice.price <= breakEvenPrice && momentum.trend !== 'BULLISH') {
+            console.log(`🔒 Trailing stop ativado no break-even (lucro protegido)`);
+            await this.executeSell(position, currentPrice.price, "TRAILING_STOP");
+            continue;
+          }
+        }
+
+        // Proteção de lucro parcial: se subiu 1.5%+ mas momentum caiu para NEUTRAL, realizar
         if (profitPercent >= RISK_SETTINGS.PROFIT_PROTECT_THRESHOLD && momentum.trend === 'NEUTRAL') {
           console.log(`💰 Protegendo lucro parcial: ${profitPercent.toFixed(2)}% (momentum NEUTRAL)`);
           await this.executeSell(position, currentPrice.price, "PROFIT_PROTECT");
-          continue;
-        }
-
-        // Saída antecipada de prejuízo: se no negativo e momentum não é BULLISH, sair
-        if (profitPercent < 0 && momentum.trend !== 'BULLISH') {
-          console.log(`⚠️ Saída antecipada: ${profitPercent.toFixed(2)}% (momentum não favorável)`);
-          await this.executeSell(position, currentPrice.price, "EARLY_EXIT");
           continue;
         }
 
