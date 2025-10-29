@@ -14,7 +14,7 @@ const encryptionKey = Deno.env.get('BINANCE_ENCRYPTION_KEY')!;
 
 // Input validation schema
 const TradeRequestSchema = z.object({
-  symbol: z.string().regex(/^[A-Z]{6,10}$/, "Invalid trading symbol format"),
+  symbol: z.string().regex(/^[A-Z0-9]{1,20}USDT$/, "Invalid trading symbol format"),
   side: z.enum(['BUY', 'SELL']),
   quantity: z.number().positive().max(10000),
   type: z.enum(['MARKET', 'LIMIT']).default('MARKET'),
@@ -101,8 +101,9 @@ serve(async (req) => {
       );
     }
 
-    // Validate input
-    const body = await req.json();
+    // Validate input (normalize symbol to uppercase)
+    const rawBody = await req.json();
+    const body = { ...rawBody, symbol: String(rawBody.symbol || '').toUpperCase().trim() };
     const validatedData = TradeRequestSchema.parse(body);
     const { symbol, side, quantity, type, testMode } = validatedData;
     const status = side === 'BUY' ? 'PENDING' : 'EXECUTED';
