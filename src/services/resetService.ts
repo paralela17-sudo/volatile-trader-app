@@ -23,42 +23,22 @@ class ResetService {
     try {
       console.log("🔄 Iniciando reset do bot...");
 
-      // 1. Deletar todos os trades do usuário
-      if (resetTrades) {
-        const { error: tradesError } = await supabase
-          .from("trades")
-          .delete()
-          .eq("user_id", userId);
+      // Executa reset via função de backend (garante bypass de RLS)
+      const { data, error } = await supabase.functions.invoke('reset-bot', {
+        body: { userId, newBalance }
+      });
 
-        if (tradesError) {
-          console.error("Erro ao deletar trades:", tradesError);
-          throw tradesError;
-        }
-
-        console.log("✅ Trades deletados");
+      if (error) {
+        console.error('Erro no edge function reset-bot:', error);
+        throw error;
       }
 
-      // 2. Resetar configuração do bot
-      if (resetBalance) {
-        const { error: configError } = await supabase
-          .from("bot_configurations")
-          .update({
-            test_balance: newBalance,
-            is_running: false,
-            is_powered_on: false,
-            updated_at: new Date().toISOString()
-          })
-          .eq("user_id", userId);
-
-        if (configError) {
-          console.error("Erro ao atualizar configuração:", configError);
-          throw configError;
-        }
-
-        console.log(`✅ Capital resetado para $${newBalance}`);
+      if (!data?.ok) {
+        console.error('Reset falhou no backend:', data);
+        throw new Error('Reset backend falhou');
       }
 
-      console.log("✅ Reset completo!");
+      console.log(`✅ Reset completo! Novo saldo: $${data.newBalance}`);
       return true;
     } catch (error) {
       console.error("❌ Erro no reset:", error);
