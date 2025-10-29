@@ -61,9 +61,9 @@ class MomentumStrategyService {
 
     // Determinar tendência alinhada ao threshold da estratégia
     let trend: 'BULLISH' | 'BEARISH' | 'NEUTRAL' = 'NEUTRAL';
-    if (priceChangePercent >= this.MOMENTUM_THRESHOLD && priceVelocity >= 0) {
+    if (priceChangePercent >= this.MOMENTUM_THRESHOLD) {
       trend = 'BULLISH';
-    } else if (priceChangePercent <= -this.MOMENTUM_THRESHOLD && priceVelocity <= 0) {
+    } else if (priceChangePercent <= -this.MOMENTUM_THRESHOLD) {
       trend = 'BEARISH';
     }
     return {

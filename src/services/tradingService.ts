@@ -179,7 +179,10 @@ class TradingService {
 
         // Obter dados do par
         const pairMonitor = multiPairService.getPair(symbol);
-        if (!pairMonitor || pairMonitor.lastPrices.length < 10) continue;
+        if (!pairMonitor || pairMonitor.lastPrices.length < 5) {
+          // Aguardar histórico mínimo para análise (5 ticks)
+          continue;
+        }
 
         // Verificar se já temos posição aberta neste par
         const hasOpenPosition = Array.from(this.openPositions.values())
