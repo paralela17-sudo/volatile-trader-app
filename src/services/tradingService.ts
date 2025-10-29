@@ -230,6 +230,15 @@ class TradingService {
 
       const profitPercent = ((currentPrice.price - position.buyPrice) / position.buyPrice) * 100;
 
+      // Saída por tempo máximo de posição (fail fast para estratégia 5-15min)
+      const holdMs = Date.now() - position.timestamp;
+      const maxHoldMs = RISK_SETTINGS.MAX_HOLD_MINUTES * 60 * 1000;
+      if (holdMs >= maxHoldMs) {
+        console.log(`⏱️ Tempo máximo atingido para ${position.symbol} (${(holdMs/60000).toFixed(1)}min). Encerrando posição.`);
+        await this.executeSell(position, currentPrice.price, "TIMEOUT_EXIT");
+        continue;
+      }
+
       // Obter momentum atual para decisão de hold
       const pairMonitor = multiPairService.getPair(position.symbol);
       if (pairMonitor && pairMonitor.lastPrices.length >= 10) {

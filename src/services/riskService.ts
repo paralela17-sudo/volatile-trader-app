@@ -7,6 +7,9 @@ export const RISK_SETTINGS = {
   STOP_LOSS_PERCENT: 1.5, // 1.5% stop loss (proteção rápida)
   TAKE_PROFIT_PERCENT: 2.5, // 2.5% take profit (alvo agressivo)
   
+  // Session/position management
+  MAX_HOLD_MINUTES: 15, // Tempo máximo de posição aberta (5-15 min por operação)
+  
   // Capital Management
   CAPITAL_PER_ROUND_PERCENT: 20, // 20% do capital total por rodada
   MAX_POSITIONS: 5, // Máximo de posições simultâneas
