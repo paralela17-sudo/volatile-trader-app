@@ -44,7 +44,9 @@ const TradeRequestSchema = z.object({
     .string()
     .trim()
     .transform((s) => s.toUpperCase())
-    .regex(/^[A-Z0-9]{1,20}USDT$/, "Símbolo inválido. Use pares USDT, ex: BTCUSDT"),
+    .pipe(
+      z.string().regex(/^[A-Z0-9]{1,20}USDT$/, "Símbolo inválido. Use pares USDT, ex: BTCUSDT")
+    ),
   side: z.enum(["BUY", "SELL"]),
   quantity: z.number().positive().max(10000),
   type: z.enum(["MARKET", "LIMIT"]).default("MARKET"),
