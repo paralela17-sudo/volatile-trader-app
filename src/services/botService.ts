@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
 
 export interface BotConfig {
   id: string;
@@ -35,6 +36,24 @@ export interface BotLog {
   message: string;
   details?: any;
   created_at: string;
+}
+
+// Client-side validation schema to fail fast and keep SRP
+const TradeRequestSchema = z.object({
+  symbol: z
+    .string()
+    .trim()
+    .transform((s) => s.toUpperCase())
+    .regex(/^[A-Z0-9]{1,20}USDT$/, "Símbolo inválido. Use pares USDT, ex: BTCUSDT"),
+  side: z.enum(["BUY", "SELL"]),
+  quantity: z.number().positive().max(10000),
+  type: z.enum(["MARKET", "LIMIT"]).default("MARKET"),
+  testMode: z.boolean().default(true),
+});
+
+function normalizeSymbol(symbol: string): string {
+  const s = String(symbol || '').toUpperCase().trim();
+  return s.endsWith('USDT') ? s : `${s}USDT`;
 }
 
 // Serviço para gerenciar configurações do bot
@@ -125,8 +144,25 @@ export const tradeService = {
       throw new Error('User not authenticated');
     }
 
+    // Normalize and validate input on client before network call (Fail Fast)
+    const bodyCandidate = {
+      symbol: normalizeSymbol(symbol),
+      side,
+      quantity,
+      type: 'MARKET' as const,
+      testMode,
+    };
+
+    const parsed = TradeRequestSchema.safeParse(bodyCandidate);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      const msg = first?.message || 'Invalid trade parameters';
+      console.error('Client validation failed:', parsed.error.flatten());
+      throw new Error(msg);
+    }
+
     const { data, error } = await supabase.functions.invoke('binance-execute-trade', {
-      body: { symbol, side, quantity, type: 'MARKET', testMode }
+      body: parsed.data
     });
 
     if (error) {
