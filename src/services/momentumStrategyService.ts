@@ -20,10 +20,10 @@ export interface MarketMomentum {
 
 class MomentumStrategyService {
   // Parâmetros da estratégia Momentum Trading (ajustados para mercado real)
-  private readonly MOMENTUM_THRESHOLD = 0.15; // Comprar quando subir 0.15%+
-  private readonly MIN_VOLUME_RATIO = 1.1; // Volume 10% acima da média
-  private readonly PRICE_VELOCITY_THRESHOLD = 0.01; // Velocidade mínima de subida
-  private readonly MIN_CONFIDENCE = 0.5; // Confiança mínima para trade
+  private readonly MOMENTUM_THRESHOLD = 0.03; // Comprar quando subir 0.03%+
+  private readonly MIN_VOLUME_RATIO = 1.0; // Aceitar volume estável quando não há tick-volume
+  private readonly PRICE_VELOCITY_THRESHOLD = 0.003; // Velocidade mínima (em % por tick)
+  private readonly MIN_CONFIDENCE = 0.4; // Confiança mínima para trade
 
   /**
    * Analisa se há momentum de compra em um par
@@ -144,14 +144,16 @@ class MomentumStrategyService {
   private calculateVelocity(prices: number[]): number {
     if (prices.length < 2) return 0;
     
-    // Calcular diferenças consecutivas
-    const differences: number[] = [];
+    // Calcular variação percentual consecutiva (% por tick)
+    const pctChanges: number[] = [];
     for (let i = 1; i < prices.length; i++) {
-      differences.push(prices[i] - prices[i - 1]);
+      const prev = prices[i - 1];
+      if (prev === 0) continue;
+      pctChanges.push(((prices[i] - prev) / prev) * 100);
     }
 
-    // Velocidade = média das diferenças (aceleração)
-    return this.average(differences);
+    // Velocidade = média das variações percentuais
+    return this.average(pctChanges);
   }
 }
 
