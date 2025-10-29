@@ -34,6 +34,7 @@ class TradingService {
   private config: TradingConfig | null = null;
   private openPositions: Map<string, Position> = new Map();
   private capitalAllocations: Map<string, CapitalAllocation> = new Map();
+  private pairCooldowns: Map<string, number> = new Map(); // Timestamp da última venda por par
   
   // Momentum Trading Strategy Parameters (SSOT via RISK_SETTINGS)
   private readonly PRICE_CHECK_INTERVAL = 3000; // 3 segundos (mais rápido)
@@ -199,6 +200,15 @@ class TradingService {
         
         if (hasOpenPosition) continue;
 
+        // Verificar cooldown do par (proteção contra reentrada imediata)
+        const lastSellTime = this.pairCooldowns.get(symbol) || 0;
+        const cooldownMs = RISK_SETTINGS.PAIR_COOLDOWN_SECONDS * 1000;
+        if (Date.now() - lastSellTime < cooldownMs) {
+          const remainingSeconds = Math.ceil((cooldownMs - (Date.now() - lastSellTime)) / 1000);
+          console.log(`⏳ ${symbol} em cooldown (${remainingSeconds}s restantes)`);
+          continue;
+        }
+
         // === MOMENTUM TRADING STRATEGY ===
         // Analisar momentum do par (com volumes se disponíveis)
         const volumes = pairMonitor.lastVolumes.length > 0 ? pairMonitor.lastVolumes : undefined;
@@ -257,6 +267,20 @@ class TradingService {
         if (profitPercent <= -RISK_SETTINGS.STOP_LOSS_PERCENT) {
           console.log(`🛑 Stop loss atingido: ${profitPercent.toFixed(2)}%`);
           await this.executeSell(position, currentPrice.price, "STOP_LOSS");
+          continue;
+        }
+
+        // Proteção de lucro parcial: se subiu 0.8%+ mas momentum caiu para NEUTRAL, realizar
+        if (profitPercent >= RISK_SETTINGS.PROFIT_PROTECT_THRESHOLD && momentum.trend === 'NEUTRAL') {
+          console.log(`💰 Protegendo lucro parcial: ${profitPercent.toFixed(2)}% (momentum NEUTRAL)`);
+          await this.executeSell(position, currentPrice.price, "PROFIT_PROTECT");
+          continue;
+        }
+
+        // Saída antecipada de prejuízo: se no negativo e momentum não é BULLISH, sair
+        if (profitPercent < 0 && momentum.trend !== 'BULLISH') {
+          console.log(`⚠️ Saída antecipada: ${profitPercent.toFixed(2)}% (momentum não favorável)`);
+          await this.executeSell(position, currentPrice.price, "EARLY_EXIT");
           continue;
         }
 
@@ -355,6 +379,9 @@ class TradingService {
           .eq("id", position.tradeId);
 
         this.openPositions.delete(position.tradeId);
+
+        // Registrar cooldown do par
+        this.pairCooldowns.set(position.symbol, Date.now());
 
         toast.success(
           `${reasonEmoji} Venda: ${position.symbol} @ $${price.toFixed(2)} | ${profitPercent > 0 ? "Lucro" : "Perda"}: ${profitPercent.toFixed(2)}%`

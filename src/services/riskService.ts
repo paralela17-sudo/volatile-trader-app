@@ -15,8 +15,13 @@ export const RISK_SETTINGS = {
   MAX_POSITIONS: 5, // Máximo de posições simultâneas
   
   // Momentum Parameters
-  MOMENTUM_BUY_THRESHOLD: 0.5, // Comprar quando subir 0.5%+
+  MOMENTUM_BUY_THRESHOLD: 0.005, // Comprar quando subir 0.5%+ (em decimal)
   MIN_VOLUME_RATIO: 1.2, // Volume 20% acima da média
+  PRICE_VELOCITY_THRESHOLD: 0.003, // Velocidade mínima (em % por tick)
+  
+  // Cooldown & Protection
+  PAIR_COOLDOWN_SECONDS: 90, // Aguardar 90s após venda antes de reentrar no mesmo par
+  PROFIT_PROTECT_THRESHOLD: 0.8, // Proteger lucro quando atingir 0.8%+
   
   // Reinvestment
   AUTO_REINVEST: true, // Reinvestir capital liberado automaticamente

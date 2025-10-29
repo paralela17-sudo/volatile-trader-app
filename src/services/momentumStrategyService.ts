@@ -1,7 +1,10 @@
+import { RISK_SETTINGS } from './riskService';
+
 /**
  * Momentum Trading Strategy Service
  * SRP: Responsável apenas pela lógica da estratégia de momentum
  * Compra em alta com volume forte, vende rápido (5-15 min)
+ * SSOT: Usa RISK_SETTINGS para todos os thresholds
  */
 
 export interface MomentumSignal {
@@ -19,10 +22,7 @@ export interface MarketMomentum {
 }
 
 class MomentumStrategyService {
-  // Parâmetros da estratégia Momentum Trading (ajustados para mercado real)
-  private readonly MOMENTUM_THRESHOLD = 0.01; // Comprar quando subir 0.01%+
-  private readonly MIN_VOLUME_RATIO = 1.0; // Aceitar volume estável quando não há tick-volume
-  private readonly PRICE_VELOCITY_THRESHOLD = 0.003; // Velocidade mínima (em % por tick)
+  // SSOT: Todos os parâmetros vêm de RISK_SETTINGS
   private readonly MIN_CONFIDENCE = 0.4; // Confiança mínima para trade
 
   /**
@@ -59,11 +59,11 @@ class MomentumStrategyService {
       volumeRatio = recentVolume / avgVolume;
     }
 
-    // Determinar tendência alinhada ao threshold da estratégia
+    // Determinar tendência alinhada ao threshold da estratégia (SSOT)
     let trend: 'BULLISH' | 'BEARISH' | 'NEUTRAL' = 'NEUTRAL';
-    if (priceChangePercent >= this.MOMENTUM_THRESHOLD) {
+    if (priceChangePercent >= RISK_SETTINGS.MOMENTUM_BUY_THRESHOLD) {
       trend = 'BULLISH';
-    } else if (priceChangePercent <= -this.MOMENTUM_THRESHOLD) {
+    } else if (priceChangePercent <= -RISK_SETTINGS.MOMENTUM_BUY_THRESHOLD) {
       trend = 'BEARISH';
     }
     return {
@@ -84,20 +84,20 @@ class MomentumStrategyService {
     let confidence = 0;
     const reasons: string[] = [];
 
-    // Verificar momentum de preço positivo
-    if (momentum.priceChangePercent >= this.MOMENTUM_THRESHOLD) {
+    // Verificar momentum de preço positivo (SSOT)
+    if (momentum.priceChangePercent >= RISK_SETTINGS.MOMENTUM_BUY_THRESHOLD) {
       confidence += 0.4;
       reasons.push(`Subida de ${momentum.priceChangePercent.toFixed(2)}%`);
     }
 
-    // Verificar volume acima da média
-    if (momentum.volumeRatio >= this.MIN_VOLUME_RATIO) {
+    // Verificar volume acima da média (SSOT)
+    if (momentum.volumeRatio >= RISK_SETTINGS.MIN_VOLUME_RATIO) {
       confidence += 0.3;
       reasons.push(`Volume ${((momentum.volumeRatio - 1) * 100).toFixed(0)}% acima da média`);
     }
 
-    // Verificar velocidade positiva
-    if (momentum.priceVelocity >= this.PRICE_VELOCITY_THRESHOLD) {
+    // Verificar velocidade positiva (SSOT)
+    if (momentum.priceVelocity >= RISK_SETTINGS.PRICE_VELOCITY_THRESHOLD) {
       confidence += 0.3;
       reasons.push('Aceleração positiva');
     }
