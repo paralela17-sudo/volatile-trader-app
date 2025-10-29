@@ -20,7 +20,7 @@ export interface MarketMomentum {
 
 class MomentumStrategyService {
   // Parâmetros da estratégia Momentum Trading (ajustados para mercado real)
-  private readonly MOMENTUM_THRESHOLD = 0.03; // Comprar quando subir 0.03%+
+  private readonly MOMENTUM_THRESHOLD = 0.01; // Comprar quando subir 0.01%+
   private readonly MIN_VOLUME_RATIO = 1.0; // Aceitar volume estável quando não há tick-volume
   private readonly PRICE_VELOCITY_THRESHOLD = 0.003; // Velocidade mínima (em % por tick)
   private readonly MIN_CONFIDENCE = 0.4; // Confiança mínima para trade

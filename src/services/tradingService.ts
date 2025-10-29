@@ -132,6 +132,15 @@ class TradingService {
   }
 
   private startMarketMonitoring(): void {
+    // Executa imediatamente para começar a acumular histórico e avaliar na largada
+    (async () => {
+      try {
+        await this.analyzeMarketAndTrade();
+      } catch (error) {
+        console.error("Error in initial market analysis:", error);
+      }
+    })();
+
     this.monitoringInterval = setInterval(async () => {
       if (!this.isRunning || !this.config) return;
 
