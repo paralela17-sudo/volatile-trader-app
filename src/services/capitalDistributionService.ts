@@ -8,8 +8,9 @@ export interface CapitalAllocation {
 }
 
 class CapitalDistributionService {
-  private readonly MAX_ALLOCATION_PER_PAIR = 0.20; // 20% máximo por par
-  private readonly SAFETY_RESERVE = 0.10; // 10% de reserva de segurança
+  private readonly CAPITAL_PER_ROUND = 0.20; // 20% do capital total por rodada (Momentum Trading)
+  private readonly MAX_ALLOCATION_PER_PAIR = 0.05; // 5% máximo por par
+  private readonly SAFETY_RESERVE = 0.05; // 5% de reserva de segurança
 
   /**
    * Distribui capital entre múltiplos pares
@@ -27,8 +28,11 @@ class CapitalDistributionService {
       return allocations;
     }
 
+    // Capital por rodada: 20% do total (Momentum Trading Strategy)
+    const capitalPerRound = totalCapital * this.CAPITAL_PER_ROUND;
+    
     // Capital disponível para trading (excluindo reserva de segurança)
-    const availableCapital = totalCapital * (1 - this.SAFETY_RESERVE);
+    const availableCapital = capitalPerRound * (1 - this.SAFETY_RESERVE);
     
     // Calcular alocação por par
     const allocationPerPair = Math.min(
@@ -36,8 +40,9 @@ class CapitalDistributionService {
       totalCapital * this.MAX_ALLOCATION_PER_PAIR
     );
 
-    console.log(`Distributing ${availableCapital.toFixed(2)} USDT among ${pairs.length} pairs`);
-    console.log(`Allocation per pair: ${allocationPerPair.toFixed(2)} USDT`);
+    console.log(`💰 Momentum Trading: Usando ${capitalPerRound.toFixed(2)} USDT (20% do capital)`);
+    console.log(`📊 Distribuindo ${availableCapital.toFixed(2)} USDT entre ${pairs.length} pares`);
+    console.log(`🎯 Alocação por par: ${allocationPerPair.toFixed(2)} USDT`);
 
     // Criar alocações para cada par
     for (const symbol of pairs) {

@@ -4,6 +4,8 @@ import { tradeService } from "./botService";
 import { toast } from "sonner";
 import { multiPairService } from "./multiPairService";
 import { capitalDistributionService, type CapitalAllocation } from "./capitalDistributionService";
+import { momentumStrategyService } from "./momentumStrategyService";
+import { RISK_SETTINGS } from "./riskService";
 
 export interface TradingConfig {
   userId: string;
@@ -28,14 +30,16 @@ class TradingService {
   private isRunning = false;
   private monitoringInterval: NodeJS.Timeout | null = null;
   private priceCheckInterval: NodeJS.Timeout | null = null;
+  private reinvestInterval: NodeJS.Timeout | null = null;
   private config: TradingConfig | null = null;
   private openPositions: Map<string, Position> = new Map();
   private capitalAllocations: Map<string, CapitalAllocation> = new Map();
-  private readonly PRICE_CHECK_INTERVAL = 5000; // 5 seconds
-  private readonly POSITION_CHECK_INTERVAL = 3000; // 3 seconds
-  private readonly BUY_THRESHOLD = -0.3; // Buy when price drops 0.3% (mais sensível)
-  private readonly MIN_VOLATILITY = 0.08; // Minimum volatility to trade (menos restritivo)
-  private readonly MAX_POSITIONS = 5; // Máximo de 5 posições simultâneas
+  
+  // Momentum Trading Strategy Parameters (SSOT via RISK_SETTINGS)
+  private readonly PRICE_CHECK_INTERVAL = 3000; // 3 segundos (mais rápido)
+  private readonly POSITION_CHECK_INTERVAL = 2000; // 2 segundos (mais rápido)
+  private readonly REINVEST_CHECK_INTERVAL = 10000; // 10 segundos
+  private readonly MAX_POSITIONS = RISK_SETTINGS.MAX_POSITIONS;
 
   async start(config: TradingConfig): Promise<void> {
     if (this.isRunning) {
@@ -59,7 +63,7 @@ class TradingService {
       config.testMode
     );
     
-    toast.success(`Trading multi-par iniciado! Monitorando ${config.symbols.length} pares.`);
+    toast.success(`🚀 Momentum Trading ativado! Usando 20% do capital em ${config.symbols.length} pares.`);
 
     // Load existing open positions
     await this.loadOpenPositions();
@@ -67,6 +71,11 @@ class TradingService {
     // Start monitoring market and positions
     this.startMarketMonitoring();
     this.startPositionMonitoring();
+    
+    // Start auto-reinvestment monitoring
+    if (RISK_SETTINGS.AUTO_REINVEST) {
+      this.startReinvestmentMonitoring();
+    }
   }
 
   async stop(): Promise<void> {
@@ -82,10 +91,15 @@ class TradingService {
       this.priceCheckInterval = null;
     }
 
+    if (this.reinvestInterval) {
+      clearInterval(this.reinvestInterval);
+      this.reinvestInterval = null;
+    }
+
     // Parar serviço de múltiplos pares
     multiPairService.stop();
 
-    console.log("Stopped multi-pair automated trading");
+    console.log("Stopped Momentum Trading");
     toast.info("Trading automático pausado");
   }
 
@@ -169,24 +183,18 @@ class TradingService {
         
         if (hasOpenPosition) continue;
 
-        // Lógica de compra adaptativa baseada em volatilidade
-        let buyThreshold = this.BUY_THRESHOLD;
-        if (pairMonitor.volatility > 0.5) {
-          buyThreshold = -0.4; // Mais conservador em alta volatilidade
-        } else {
-          buyThreshold = -0.2; // Mais agressivo em baixa volatilidade
-        }
+        // === MOMENTUM TRADING STRATEGY ===
+        // Analisar momentum do par
+        const momentum = momentumStrategyService.analyzeMomentum(pairMonitor.lastPrices);
+        const signal = momentumStrategyService.generateBuySignal(symbol, momentum);
 
-        console.log(`${symbol} Analysis - Price: ${priceData.price}, Change: ${pairMonitor.priceChangePercent.toFixed(2)}%, Volatility: ${pairMonitor.volatility.toFixed(2)}%`);
+        console.log(`📈 ${symbol} | Preço: $${priceData.price.toFixed(2)} | Mudança: ${momentum.priceChangePercent.toFixed(2)}% | Tendência: ${momentum.trend} | Confiança: ${(signal.confidence * 100).toFixed(0)}%`);
 
-        // Verificar condições de compra
-        if (
-          pairMonitor.volatility >= this.MIN_VOLATILITY &&
-          pairMonitor.priceChangePercent <= buyThreshold &&
-          this.openPositions.size < maxPositions
-        ) {
+        // Verificar sinal de compra do momentum
+        if (signal.shouldBuy && this.openPositions.size < maxPositions) {
           const allocation = this.capitalAllocations.get(symbol);
           if (allocation) {
+            console.log(`🎯 Sinal de compra: ${signal.reason}`);
             await this.executeBuy(symbol, priceData.price, allocation.quantity);
           }
         }
@@ -205,29 +213,62 @@ class TradingService {
 
       const profitPercent = ((currentPrice.price - position.buyPrice) / position.buyPrice) * 100;
 
-      console.log(`Position ${tradeId}: Buy ${position.buyPrice}, Current ${currentPrice.price}, P/L: ${profitPercent.toFixed(2)}%`);
+      // Obter momentum atual para decisão de hold
+      const pairMonitor = multiPairService.getPair(position.symbol);
+      if (pairMonitor && pairMonitor.lastPrices.length >= 10) {
+        const momentum = momentumStrategyService.analyzeMomentum(pairMonitor.lastPrices);
+        
+        console.log(`📊 ${position.symbol} | Compra: $${position.buyPrice.toFixed(2)} | Atual: $${currentPrice.price.toFixed(2)} | P/L: ${profitPercent.toFixed(2)}% | Tendência: ${momentum.trend}`);
 
-      // Check take profit
-      if (profitPercent >= this.config.takeProfitPercent) {
-        console.log(`Take profit triggered for ${tradeId}`);
-        await this.executeSell(position, currentPrice.price, "TAKE_PROFIT");
-        continue;
-      }
+        // Check take profit (Momentum: 2.5%)
+        if (profitPercent >= RISK_SETTINGS.TAKE_PROFIT_PERCENT) {
+          console.log(`✅ Take profit atingido: ${profitPercent.toFixed(2)}%`);
+          await this.executeSell(position, currentPrice.price, "TAKE_PROFIT");
+          continue;
+        }
 
-      // Check stop loss
-      if (profitPercent <= -this.config.stopLossPercent) {
-        console.log(`Stop loss triggered for ${tradeId}`);
-        await this.executeSell(position, currentPrice.price, "STOP_LOSS");
-        continue;
+        // Check stop loss (Momentum: 1.5%)
+        if (profitPercent <= -RISK_SETTINGS.STOP_LOSS_PERCENT) {
+          console.log(`🛑 Stop loss atingido: ${profitPercent.toFixed(2)}%`);
+          await this.executeSell(position, currentPrice.price, "STOP_LOSS");
+          continue;
+        }
+
+        // Saída por reversão de momentum (proteção adicional)
+        if (profitPercent > 0 && momentum.trend === 'BEARISH') {
+          console.log(`⚠️ Reversão de momentum detectada, realizando lucro`);
+          await this.executeSell(position, currentPrice.price, "MOMENTUM_REVERSAL");
+          continue;
+        }
       }
     }
+  }
+
+  /**
+   * Monitora capital liberado e reinveste automaticamente
+   */
+  private startReinvestmentMonitoring(): void {
+    this.reinvestInterval = setInterval(async () => {
+      if (!this.isRunning || !this.config) return;
+
+      try {
+        // Se temos menos posições que o máximo, tentar abrir novas
+        const maxPositions = this.config.maxPositions || this.MAX_POSITIONS;
+        if (this.openPositions.size < maxPositions) {
+          console.log(`💰 Capital disponível para reinvestimento. Posições abertas: ${this.openPositions.size}/${maxPositions}`);
+          // O analyzeMarketAndTrade já vai cuidar de abrir novas posições
+        }
+      } catch (error) {
+        console.error("Error in reinvestment monitoring:", error);
+      }
+    }, this.REINVEST_CHECK_INTERVAL);
   }
 
   private async executeBuy(symbol: string, price: number, quantity: number): Promise<void> {
     if (!this.config) return;
 
     try {
-      console.log(`Executing BUY: ${symbol} at ${price} (quantity: ${quantity})`);
+      console.log(`🟢 Executando COMPRA: ${symbol} @ $${price.toFixed(2)} (qty: ${quantity})`);
       
       const result = await tradeService.executeTrade(
         symbol,
@@ -245,7 +286,7 @@ class TradingService {
           timestamp: Date.now(),
         });
 
-        toast.success(`Compra executada: ${symbol} @ $${price.toFixed(2)}`);
+        toast.success(`🚀 Compra: ${symbol} @ $${price.toFixed(2)}`);
       }
     } catch (error) {
       console.error("Error executing buy:", error);
@@ -257,7 +298,10 @@ class TradingService {
     if (!this.config) return;
 
     try {
-      console.log(`Executing SELL: ${position.symbol} at ${price} (${reason})`);
+      const profitPercent = ((price - position.buyPrice) / position.buyPrice) * 100;
+      const reasonEmoji = reason === "TAKE_PROFIT" ? "✅" : reason === "STOP_LOSS" ? "🛑" : "⚠️";
+      
+      console.log(`🔴 Executando VENDA: ${position.symbol} @ $${price.toFixed(2)} | ${reason} (${profitPercent.toFixed(2)}%)`);
       
       const result = await tradeService.executeTrade(
         position.symbol,
@@ -286,10 +330,12 @@ class TradingService {
 
         this.openPositions.delete(position.tradeId);
 
-        const profitPercent = ((price - position.buyPrice) / position.buyPrice) * 100;
         toast.success(
-          `Venda executada: ${position.symbol} @ $${price.toFixed(2)} | ${profitPercent > 0 ? "Lucro" : "Perda"}: ${Math.abs(profitPercent).toFixed(2)}%`
+          `${reasonEmoji} Venda: ${position.symbol} @ $${price.toFixed(2)} | ${profitPercent > 0 ? "Lucro" : "Perda"}: ${profitPercent.toFixed(2)}%`
         );
+
+        // Após venda, capital está disponível para reinvestimento automático
+        console.log(`💰 Capital liberado! Posições restantes: ${this.openPositions.size}/${this.MAX_POSITIONS}`);
       }
     } catch (error) {
       console.error("Error executing sell:", error);

@@ -72,35 +72,42 @@ export const pairSelectionService = {
   },
 
   /**
-   * Seleciona múltiplos pares ótimos para trading simultâneo
+   * Seleciona múltiplos pares ótimos para Momentum Trading
+   * Prioriza pares em alta com volume forte
    */
   async selectMultipleOptimalPairs(count: number = 5): Promise<string[]> {
     try {
-      const volatilePairs = await this.getTopVolatilePairs(count * 2); // Buscar o dobro para ter opções
+      const volatilePairs = await this.getTopVolatilePairs(count * 3); // Buscar mais opções
       
       if (volatilePairs.length === 0) {
         return ['BTCUSDT']; // Fallback seguro
       }
 
-      // Filtrar pares com volatilidade adequada (1% a 20%)
-      const goodPairs = volatilePairs
-        .filter(pair => pair.priceChangePercent >= 1 && pair.priceChangePercent <= 20)
+      // Momentum Trading: Priorizar pares em ALTA (momentum positivo)
+      const momentumPairs = volatilePairs
+        .filter(pair => 
+          pair.priceChangePercent >= 0.5 && // Em alta
+          pair.priceChangePercent <= 15 && // Não extremo
+          pair.volume > 10000000 // Volume significativo
+        )
         .slice(0, count)
         .map(pair => pair.symbol);
 
-      // Se não encontrar pares suficientes, usar os mais voláteis disponíveis
-      if (goodPairs.length < count) {
+      // Se não encontrar pares suficientes, usar os mais voláteis em alta
+      if (momentumPairs.length < count) {
         const additionalPairs = volatilePairs
+          .filter(pair => pair.priceChangePercent > 0) // Apenas em alta
           .slice(0, count)
           .map(pair => pair.symbol)
-          .filter(symbol => !goodPairs.includes(symbol));
+          .filter(symbol => !momentumPairs.includes(symbol));
         
-        return [...goodPairs, ...additionalPairs].slice(0, count);
+        return [...momentumPairs, ...additionalPairs].slice(0, count);
       }
 
-      return goodPairs;
+      console.log('🚀 Pares selecionados com momentum:', momentumPairs);
+      return momentumPairs;
     } catch (error) {
-      console.error('Erro ao selecionar múltiplos pares:', error);
+      console.error('Erro ao selecionar pares com momentum:', error);
       return ['BTCUSDT'];
     }
   },

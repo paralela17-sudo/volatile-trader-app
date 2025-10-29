@@ -680,7 +680,7 @@ export const Dashboard = () => {
                 <div className="space-y-4">
                   <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
                     <p className="text-sm text-muted-foreground">
-                      <span className="font-semibold text-primary">🎯 Sistema Multi-Par:</span> O bot monitora e negocia automaticamente 5-10 pares simultaneamente, selecionando os mais voláteis e com melhor potencial de lucro em tempo real.
+                      <span className="font-semibold text-primary">🚀 Estratégia Momentum Trading:</span> Compra em alta com volume forte, vendas rápidas (5-15 min). Usa 20% do capital por rodada, distribuído entre pares com momentum positivo. Reinvestimento automático.
                     </p>
                   </div>
 
@@ -708,21 +708,26 @@ export const Dashboard = () => {
 
                   <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
                     <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-2">
-                      🔒 Configurações Fixas de Risco
+                      🔒 Momentum Trading - Parâmetros Fixos
                     </p>
                     <p className="text-xs text-muted-foreground mb-3">
-                      Stop Loss e Take Profit são calculados sobre o <strong>capital inicial do dia</strong> e não podem ser alterados:
+                      Estratégia otimizada para operações rápidas (5-15 min):
                     </p>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-2">
                       <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
                         <Label className="text-xs text-red-600 dark:text-red-400 font-semibold">Stop Loss</Label>
-                        <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">3%</p>
-                        <p className="text-xs text-muted-foreground mt-1">do capital inicial</p>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">1.5%</p>
+                        <p className="text-xs text-muted-foreground mt-1">por trade</p>
                       </div>
                       <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                         <Label className="text-xs text-green-600 dark:text-green-400 font-semibold">Take Profit</Label>
-                        <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">6%</p>
-                        <p className="text-xs text-muted-foreground mt-1">do capital inicial</p>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">2.5%</p>
+                        <p className="text-xs text-muted-foreground mt-1">por trade</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                        <Label className="text-xs text-blue-600 dark:text-blue-400 font-semibold">Capital/Rodada</Label>
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">20%</p>
+                        <p className="text-xs text-muted-foreground mt-1">do total</p>
                       </div>
                     </div>
                   </div>
