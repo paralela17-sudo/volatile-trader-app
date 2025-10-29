@@ -483,68 +483,6 @@ export const Dashboard = () => {
                   <AdminPanel />
                 </DialogContent>
               </Dialog>
-              
-              <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="gap-2 border-yellow-500/50 hover:bg-yellow-500/10"
-                  >
-                    🔄 Reset
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>⚠️ Resetar Bot</DialogTitle>
-                    <DialogDescription>
-                      Esta ação irá:
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-3 py-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-red-500">•</span>
-                      <span>Deletar TODAS as operações (trades)</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-red-500">•</span>
-                      <span>Fechar todas as posições abertas</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-green-500">•</span>
-                      <span>Restaurar capital inicial para $1,000.00</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-blue-500">•</span>
-                      <span>Preparar para nova estratégia Momentum Trading</span>
-                    </div>
-                  </div>
-                  <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
-                    <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
-                      ⚠️ Esta ação é irreversível!
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Todo o histórico de operações será perdido.
-                    </p>
-                  </div>
-                  <div className="flex gap-3 justify-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowResetDialog(false)}
-                      disabled={resetting}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      onClick={handleResetBot}
-                      disabled={resetting}
-                      className="gap-2"
-                    >
-                      {resetting ? "Resetando..." : "Confirmar Reset"}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
 
               <Button
                 variant="ghost"
@@ -861,6 +799,68 @@ export const Dashboard = () => {
                       <p className="text-xs text-muted-foreground">
                         Valor inicial para simulação de trades no modo teste
                       </p>
+                      
+                      <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="gap-2 border-yellow-500/50 hover:bg-yellow-500/10 w-full mt-3"
+                          >
+                            🔄 Resetar Bot
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>⚠️ Resetar Bot</DialogTitle>
+                            <DialogDescription>
+                              Esta ação irá:
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-3 py-4">
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-red-500">•</span>
+                              <span>Deletar TODAS as operações (trades)</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-red-500">•</span>
+                              <span>Fechar todas as posições abertas</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-green-500">•</span>
+                              <span>Restaurar capital inicial para $1,000.00</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-blue-500">•</span>
+                              <span>Preparar para nova estratégia Momentum Trading</span>
+                            </div>
+                          </div>
+                          <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                            <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
+                              ⚠️ Esta ação é irreversível!
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Todo o histórico de operações será perdido.
+                            </p>
+                          </div>
+                          <div className="flex gap-3 justify-end">
+                            <Button
+                              variant="outline"
+                              onClick={() => setShowResetDialog(false)}
+                              disabled={resetting}
+                            >
+                              Cancelar
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={handleResetBot}
+                              disabled={resetting}
+                              className="gap-2"
+                            >
+                              {resetting ? "Resetando..." : "Confirmar Reset"}
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   )}
                 </div>
