@@ -376,7 +376,7 @@ export const Dashboard = () => {
         setBotRunning(false);
       }
 
-      // Resetar bot
+      // Resetar bot no banco de dados
       const success = await resetService.resetBot({
         userId: user.id,
         resetTrades: true,
@@ -385,11 +385,39 @@ export const Dashboard = () => {
       });
 
       if (success) {
+        // Resetar estados locais imediatamente
+        setAccountStats({
+          initialCapital: 1000,
+          successRate: 0,
+          totalTrades: 0,
+          activePositions: 0,
+          totalProfit: 0,
+          profitHistory: []
+        });
+
+        setOperationStats({
+          lastOperationTime: null,
+          totalOperationsToday: 0,
+          lastOperationProfit: null,
+          lastOperationSide: null,
+          lastOperationSymbol: null,
+        });
+
+        setDailyProfitPercent(0);
+        
+        // Atualizar settings com novo balance
+        setSettings(prev => ({
+          ...prev,
+          testBalance: 1000
+        }));
+
         toast.success("🔄 Bot resetado! Capital inicial: $1,000.00");
         
-        // Recarregar dados
-        await loadAccountStats();
-        await loadBotConfiguration();
+        // Recarregar dados do banco com delay para garantir propagação
+        setTimeout(async () => {
+          await loadAccountStats();
+          await loadBotConfiguration();
+        }, 500);
         
         setShowResetDialog(false);
       } else {

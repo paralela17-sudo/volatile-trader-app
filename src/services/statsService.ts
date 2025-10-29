@@ -94,6 +94,16 @@ export const statsService = {
       // Posições ativas (trades pendentes)
       const activePositions = openPositions.length;
 
+      console.log('📊 Stats calculadas:', {
+        baseCapital,
+        totalProfit,
+        allocatedCapital,
+        initialCapital,
+        totalTrades,
+        activePositions,
+        successRate
+      });
+
       // Histórico de lucro (agregado por dia)
       const profitByDate = executedTrades.reduce((acc: any, t: any) => {
         const date = new Date(t.created_at).toLocaleDateString('pt-BR');

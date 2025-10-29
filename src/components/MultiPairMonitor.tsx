@@ -20,15 +20,23 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
   useEffect(() => {
     if (!isActive) return;
 
-    const updatePairs = () => {
+    const updatePairs = async () => {
       const watchedPairs = multiPairService.getWatchedPairs();
       setPairs(watchedPairs);
 
-      // Atualizar alocações de capital
-      const symbols = watchedPairs.map(p => p.symbol);
-      capitalDistributionService
-        .distributeCapital(userId, totalCapital, symbols, testMode)
-        .then(setAllocations);
+      // Só atualizar alocações se houver pares monitorados
+      if (watchedPairs.length > 0) {
+        const symbols = watchedPairs.map(p => p.symbol);
+        const newAllocations = await capitalDistributionService.distributeCapital(
+          userId, 
+          totalCapital, 
+          symbols, 
+          testMode
+        );
+        setAllocations(newAllocations);
+      } else {
+        setAllocations(new Map());
+      }
     };
 
     updatePairs();
