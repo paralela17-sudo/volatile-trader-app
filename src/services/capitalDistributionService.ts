@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { RISK_SETTINGS } from './riskService';
 
 export interface CapitalAllocation {
   symbol: string;
@@ -8,9 +9,10 @@ export interface CapitalAllocation {
 }
 
 class CapitalDistributionService {
-  private readonly CAPITAL_PER_ROUND = 0.20; // 20% do capital total por rodada (Momentum Trading)
-  private readonly MAX_ALLOCATION_PER_PAIR = 0.05; // 5% máximo por par
-  private readonly SAFETY_RESERVE = 0.05; // 5% de reserva de segurança
+  // Usar SSOT (RISK_SETTINGS) para todos os percentuais
+  private readonly CAPITAL_PER_ROUND = RISK_SETTINGS.CAPITAL_PER_ROUND_PERCENT / 100;
+  private readonly MAX_ALLOCATION_PER_PAIR = RISK_SETTINGS.MAX_ALLOCATION_PER_PAIR_PERCENT / 100;
+  private readonly SAFETY_RESERVE = RISK_SETTINGS.SAFETY_RESERVE_PERCENT / 100;
 
   /**
    * Distribui capital entre múltiplos pares
@@ -28,10 +30,10 @@ class CapitalDistributionService {
       return allocations;
     }
 
-    // Capital por rodada: 20% do total (Momentum Trading Strategy)
+    // Capital por rodada definido na estratégia (SSOT)
     const capitalPerRound = totalCapital * this.CAPITAL_PER_ROUND;
     
-    // Capital disponível para trading (excluindo reserva de segurança)
+    // Capital disponível para trading (exclui reserva de segurança)
     const availableCapital = capitalPerRound * (1 - this.SAFETY_RESERVE);
     
     // Calcular alocação por par
@@ -40,9 +42,9 @@ class CapitalDistributionService {
       totalCapital * this.MAX_ALLOCATION_PER_PAIR
     );
 
-    console.log(`💰 Momentum Trading: Usando ${capitalPerRound.toFixed(2)} USDT (20% do capital)`);
-    console.log(`📊 Distribuindo ${availableCapital.toFixed(2)} USDT entre ${pairs.length} pares`);
-    console.log(`🎯 Alocação por par: ${allocationPerPair.toFixed(2)} USDT`);
+    console.log(`💰 Momentum Trading: Usando ${capitalPerRound.toFixed(2)} USDT (${RISK_SETTINGS.CAPITAL_PER_ROUND_PERCENT}% do capital)`);
+    console.log(`📊 Distribuindo ${availableCapital.toFixed(2)} USDT entre ${pairs.length} pares (reserva ${RISK_SETTINGS.SAFETY_RESERVE_PERCENT}%)`);
+    console.log(`🎯 Alocação por par: ${allocationPerPair.toFixed(2)} USDT (máx ${RISK_SETTINGS.MAX_ALLOCATION_PER_PAIR_PERCENT}% por par)`);
 
     // Criar alocações para cada par
     for (const symbol of pairs) {

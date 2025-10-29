@@ -10,14 +10,16 @@ export const RISK_SETTINGS = {
   // Session/position management
   MAX_HOLD_MINUTES: 15, // Tempo máximo de posição aberta (5-15 min por operação)
   
-  // Capital Management
-  CAPITAL_PER_ROUND_PERCENT: 20, // 20% do capital total por rodada
+  // Capital Management (percent values)
+  CAPITAL_PER_ROUND_PERCENT: 10, // Máximo 10% do capital total por rodada
+  MAX_ALLOCATION_PER_PAIR_PERCENT: 5, // Máximo 5% do capital por par
+  SAFETY_RESERVE_PERCENT: 5, // Reserva de segurança aplicada sobre o capital da rodada
   MAX_POSITIONS: 5, // Máximo de posições simultâneas
   
-  // Momentum Parameters
-  MOMENTUM_BUY_THRESHOLD: 0.005, // Comprar quando subir 0.5%+ (em decimal)
+  // Momentum Parameters (percent units)
+  MOMENTUM_BUY_THRESHOLD: 0.5, // Comprar quando subir 0.5%+
   MIN_VOLUME_RATIO: 1.2, // Volume 20% acima da média
-  PRICE_VELOCITY_THRESHOLD: 0.003, // Velocidade mínima (em % por tick)
+  PRICE_VELOCITY_THRESHOLD: 0.3, // Velocidade mínima (% por tick)
   
   // Cooldown & Protection
   PAIR_COOLDOWN_SECONDS: 90, // Aguardar 90s após venda antes de reentrar no mesmo par

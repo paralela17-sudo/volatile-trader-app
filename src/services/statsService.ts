@@ -77,8 +77,8 @@ export const statsService = {
         sum + (t.profit_loss || 0), 0
       );
 
-      // Capital atual disponível = capital base + lucro total - capital alocado
-      const initialCapital = baseCapital + totalProfit - allocatedCapital;
+      // Capital inicial (fonte única da verdade): saldo base do modo atual
+      const initialCapital = baseCapital;
 
       // Total de trades
       const totalTrades = allTrades.length;
