@@ -6,6 +6,7 @@ import { multiPairService } from "./multiPairService";
 import { capitalDistributionService, type CapitalAllocation } from "./capitalDistributionService";
 import { momentumStrategyService } from "./momentumStrategyService";
 import { RISK_SETTINGS } from "./riskService";
+import { operationsStatsService } from "./operationsStatsService";
 
 export interface TradingConfig {
   userId: string;
@@ -35,6 +36,8 @@ class TradingService {
   private openPositions: Map<string, Position> = new Map();
   private capitalAllocations: Map<string, CapitalAllocation> = new Map();
   private pairCooldowns: Map<string, number> = new Map(); // Timestamp da última venda por par
+  private pairLossCount: Map<string, number> = new Map(); // Contador de perdas por par
+  private circuitBreakerUntil: number = 0; // Timestamp até quando o circuit breaker está ativo
   
   // Momentum Trading Strategy Parameters (SSOT via RISK_SETTINGS)
   private readonly PRICE_CHECK_INTERVAL = 3000; // 3 segundos (mais rápido)
@@ -168,6 +171,27 @@ class TradingService {
   private async analyzeMarketAndTrade(): Promise<void> {
     if (!this.config) return;
 
+    // ===== CIRCUIT BREAKER (Proteção contra Drawdowns) =====
+    const now = Date.now();
+    if (now < this.circuitBreakerUntil) {
+      const minutesLeft = Math.ceil((this.circuitBreakerUntil - now) / 60000);
+      if (minutesLeft > 0) {
+        console.log(`🚫 Circuit breaker ativo (${minutesLeft} min restantes)`);
+      }
+      return; // Não entrar em novas operações
+    }
+
+    // Verificar circuit breaker baseado em estatísticas do dia
+    const stats = await operationsStatsService.getTodayOperationsStats(this.config.userId);
+    const cbCheck = operationsStatsService.shouldActivateCircuitBreaker(stats, this.config.totalCapital);
+    
+    if (cbCheck.shouldPause) {
+      this.circuitBreakerUntil = cbCheck.pauseUntil;
+      console.log(`⚠️ Circuit breaker ativado: ${cbCheck.reason}`);
+      toast.error(`⚠️ Trading pausado: ${cbCheck.reason}`);
+      return;
+    }
+
     // Verificar se atingimos o limite de posições
     const maxPositions = this.config.maxPositions || this.MAX_POSITIONS;
     if (this.openPositions.size >= maxPositions) {
@@ -200,12 +224,22 @@ class TradingService {
         
         if (hasOpenPosition) continue;
 
-        // Verificar cooldown do par (proteção contra reentrada imediata)
+        // ===== COOLDOWN DINÂMICO (aprende com perdas) =====
         const lastSellTime = this.pairCooldowns.get(symbol) || 0;
-        const cooldownMs = RISK_SETTINGS.PAIR_COOLDOWN_SECONDS * 1000;
-        if (Date.now() - lastSellTime < cooldownMs) {
-          const remainingSeconds = Math.ceil((cooldownMs - (Date.now() - lastSellTime)) / 1000);
-          console.log(`⏳ ${symbol} em cooldown (${remainingSeconds}s restantes)`);
+        const lossCount = this.pairLossCount.get(symbol) || 0;
+        
+        // Cooldown base + adicional por perdas recentes
+        const baseCooldownMs = RISK_SETTINGS.PAIR_COOLDOWN_SECONDS * 1000;
+        const lossCooldownMs = lossCount * RISK_SETTINGS.LOSS_COOLDOWN_BASE_MINUTES * 60000;
+        const totalCooldownMs = baseCooldownMs + lossCooldownMs;
+        
+        if (Date.now() - lastSellTime < totalCooldownMs) {
+          const remainingMinutes = Math.ceil((totalCooldownMs - (Date.now() - lastSellTime)) / 60000);
+          if (lossCount > 0) {
+            console.log(`⏳ ${symbol} em cooldown estendido (${remainingMinutes} min | ${lossCount} perdas recentes)`);
+          } else {
+            console.log(`⏳ ${symbol} em cooldown (${remainingMinutes} min)`);
+          }
           continue;
         }
 
@@ -213,7 +247,17 @@ class TradingService {
         // Analisar momentum do par (com volumes se disponíveis)
         const volumes = pairMonitor.lastVolumes.length > 0 ? pairMonitor.lastVolumes : undefined;
         const momentum = momentumStrategyService.analyzeMomentum(pairMonitor.lastPrices, volumes);
-        const signal = momentumStrategyService.generateBuySignal(symbol, momentum);
+        
+        // Aplicar filtros inteligentes (liquidez + volatilidade)
+        const quoteVolume = marketData?.volume && marketData?.price 
+          ? marketData.volume * marketData.price 
+          : undefined;
+        const signal = momentumStrategyService.generateBuySignal(
+          symbol, 
+          momentum,
+          quoteVolume,
+          pairMonitor.lastPrices
+        );
 
         console.log(`📈 ${symbol} | Preço: $${priceData.price.toFixed(2)} | Mudança: ${momentum.priceChangePercent.toFixed(2)}% | Tendência: ${momentum.trend} | Confiança: ${(signal.confidence * 100).toFixed(0)}%`);
 
@@ -263,21 +307,11 @@ class TradingService {
           continue;
         }
 
-        // Check stop loss (Momentum: 1.5%)
+        // Check stop loss (Momentum: 1.0%)
         if (profitPercent <= -RISK_SETTINGS.STOP_LOSS_PERCENT) {
           console.log(`🛑 Stop loss atingido: ${profitPercent.toFixed(2)}%`);
           await this.executeSell(position, currentPrice.price, "STOP_LOSS");
           continue;
-        }
-
-        // Trailing stop: se lucro >= 1%, mover stop para break-even
-        if (profitPercent >= 1.0) {
-          const breakEvenPrice = position.buyPrice * 1.001; // +0.1% acima do custo
-          if (currentPrice.price <= breakEvenPrice && momentum.trend !== 'BULLISH') {
-            console.log(`🔒 Trailing stop ativado no break-even (lucro protegido)`);
-            await this.executeSell(position, currentPrice.price, "TRAILING_STOP");
-            continue;
-          }
         }
 
         // Proteção de lucro parcial: se subiu 1.5%+ mas momentum caiu para NEUTRAL, realizar
@@ -385,6 +419,17 @@ class TradingService {
 
         // Registrar cooldown do par
         this.pairCooldowns.set(position.symbol, Date.now());
+        
+        // ===== COOLDOWN DINÂMICO: Atualizar contador de perdas =====
+        if (reason === "STOP_LOSS") {
+          const currentCount = this.pairLossCount.get(position.symbol) || 0;
+          this.pairLossCount.set(position.symbol, currentCount + 1);
+          console.log(`📉 Perda registrada para ${position.symbol} (total: ${currentCount + 1})`);
+        } else if (reason === "TAKE_PROFIT" || reason === "PROFIT_PROTECT") {
+          // Reset contador de perdas ao ter sucesso
+          this.pairLossCount.set(position.symbol, 0);
+          console.log(`✅ Contador de perdas resetado para ${position.symbol}`);
+        }
 
         toast.success(
           `${reasonEmoji} Venda: ${position.symbol} @ $${price.toFixed(2)} | ${profitPercent > 0 ? "Lucro" : "Perda"}: ${profitPercent.toFixed(2)}%`

@@ -12,7 +12,7 @@ export const RISK_SETTINGS = {
   
   // Capital Management (percent values)
   CAPITAL_PER_ROUND_PERCENT: 10, // Máximo 10% do capital total por rodada
-  MAX_ALLOCATION_PER_PAIR_PERCENT: 5, // Máximo 5% do capital por par
+  MAX_ALLOCATION_PER_PAIR_PERCENT: 5, // Máximo 5% do capital total por par
   SAFETY_RESERVE_PERCENT: 5, // Reserva de segurança aplicada sobre o capital da rodada
   MAX_POSITIONS: 5, // Máximo de posições simultâneas
   
@@ -27,6 +27,24 @@ export const RISK_SETTINGS = {
   
   // Reinvestment
   AUTO_REINVEST: true, // Reinvestir capital liberado automaticamente
+  
+  // ===== NOVOS FILTROS INTELIGENTES (Quality Over Quantity) =====
+  
+  // Filtro de Liquidez (evita slippage e falsos sinais)
+  MIN_QUOTE_VOLUME_24H_USDT: 10_000_000, // Mínimo 10M USDT de volume 24h
+  
+  // Filtro de Volatilidade Intraday (evita mercados "chop")
+  MIN_VOLATILITY_PERCENT: 0.25, // Mínimo 0.25% de volatilidade realizada
+  VOLATILITY_WINDOW_TICKS: 40, // Janela de 40 ticks para calcular volatilidade
+  
+  // Circuit Breakers (proteção contra drawdowns)
+  LOSS_STREAK_LIMIT: 3, // Pausar após 3 perdas consecutivas
+  DAILY_MAX_DRAWDOWN_PERCENT: 3.0, // Pausar se perda diária ≥ 3%
+  CIRCUIT_BREAKER_PAUSE_MINUTES: 60, // Tempo de pausa após circuit breaker
+  
+  // Cooldown Dinâmico por Perda (aprende com erros)
+  LOSS_COOLDOWN_BASE_MINUTES: 10, // Base: 10 min após cada stop loss
+  LOSS_COOLDOWN_MULTIPLIER: 1.0, // Multiplica por número de perdas recentes
 } as const;
 
 export function computeDailyProfitPercent(initialCapital: number, todaysProfit: number): number {

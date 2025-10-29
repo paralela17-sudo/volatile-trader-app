@@ -6,6 +6,11 @@ export interface OperationStats {
   lastOperationProfit: number | null;
   lastOperationSide: string | null;
   lastOperationSymbol: string | null;
+  // Novos campos para circuit breakers
+  lossStreak: number;
+  dailyPnL: number;
+  circuitBreakerActive: boolean;
+  circuitBreakerUntil: number | null;
 }
 
 /**
@@ -37,6 +42,10 @@ export const operationsStatsService = {
           lastOperationProfit: null,
           lastOperationSide: null,
           lastOperationSymbol: null,
+          lossStreak: 0,
+          dailyPnL: 0,
+          circuitBreakerActive: false,
+          circuitBreakerUntil: null,
         };
       }
 
@@ -50,12 +59,34 @@ export const operationsStatsService = {
         t.status === 'EXECUTED'
       ).length;
 
+      // Calcular loss streak (perdas consecutivas)
+      let lossStreak = 0;
+      for (const trade of allTrades) {
+        if (trade.status !== 'EXECUTED') continue;
+        
+        const pnl = trade.profit_loss || 0;
+        if (pnl < 0) {
+          lossStreak++;
+        } else if (pnl > 0) {
+          break; // Para quando encontrar um lucro
+        }
+      }
+
+      // Calcular PnL diário
+      const dailyPnL = allTrades
+        .filter((t: any) => t.status === 'EXECUTED')
+        .reduce((sum: number, t: any) => sum + (t.profit_loss || 0), 0);
+
       return {
         lastOperationTime: lastOperation?.executed_at || lastOperation?.created_at || null,
         totalOperationsToday,
         lastOperationProfit: lastOperation?.profit_loss || null,
         lastOperationSide: lastOperation?.side || null,
         lastOperationSymbol: lastOperation?.symbol || null,
+        lossStreak,
+        dailyPnL,
+        circuitBreakerActive: false,
+        circuitBreakerUntil: null,
       };
     } catch (error) {
       console.error('Exception in getTodayOperationsStats:', error);
@@ -65,7 +96,62 @@ export const operationsStatsService = {
         lastOperationProfit: null,
         lastOperationSide: null,
         lastOperationSymbol: null,
+        lossStreak: 0,
+        dailyPnL: 0,
+        circuitBreakerActive: false,
+        circuitBreakerUntil: null,
       };
     }
+  },
+
+  /**
+   * Verifica se circuit breaker deve ser ativado
+   */
+  shouldActivateCircuitBreaker(stats: OperationStats, initialCapital: number): {
+    shouldPause: boolean;
+    reason: string;
+    pauseUntil: number;
+  } {
+    const now = Date.now();
+    
+    // Verificar se já está em pausa
+    if (stats.circuitBreakerActive && stats.circuitBreakerUntil) {
+      if (now < stats.circuitBreakerUntil) {
+        const minutesLeft = Math.ceil((stats.circuitBreakerUntil - now) / 60000);
+        return {
+          shouldPause: true,
+          reason: `Circuit breaker ativo (${minutesLeft} min restantes)`,
+          pauseUntil: stats.circuitBreakerUntil
+        };
+      }
+    }
+
+    // Verificar loss streak
+    const RISK_SETTINGS = require('./riskService').RISK_SETTINGS;
+    if (stats.lossStreak >= RISK_SETTINGS.LOSS_STREAK_LIMIT) {
+      const pauseUntil = now + (RISK_SETTINGS.CIRCUIT_BREAKER_PAUSE_MINUTES * 60000);
+      return {
+        shouldPause: true,
+        reason: `${stats.lossStreak} perdas consecutivas detectadas`,
+        pauseUntil
+      };
+    }
+
+    // Verificar drawdown diário
+    const drawdownPercent = (stats.dailyPnL / initialCapital) * 100;
+    if (drawdownPercent <= -RISK_SETTINGS.DAILY_MAX_DRAWDOWN_PERCENT) {
+      const pauseUntil = now + (RISK_SETTINGS.CIRCUIT_BREAKER_PAUSE_MINUTES * 60000);
+      return {
+        shouldPause: true,
+        reason: `Drawdown diário de ${drawdownPercent.toFixed(2)}% atingido`,
+        pauseUntil
+      };
+    }
+
+    return {
+      shouldPause: false,
+      reason: '',
+      pauseUntil: 0
+    };
   }
 };

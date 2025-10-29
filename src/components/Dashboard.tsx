@@ -70,6 +70,10 @@ export const Dashboard = () => {
     lastOperationProfit: null,
     lastOperationSide: null,
     lastOperationSymbol: null,
+    lossStreak: 0,
+    dailyPnL: 0,
+    circuitBreakerActive: false,
+    circuitBreakerUntil: null,
   });
   const [settings, setSettings] = useState({
     apiKey: "",
@@ -401,6 +405,10 @@ export const Dashboard = () => {
           lastOperationProfit: null,
           lastOperationSide: null,
           lastOperationSymbol: null,
+          lossStreak: 0,
+          dailyPnL: 0,
+          circuitBreakerActive: false,
+          circuitBreakerUntil: null,
         });
 
         setDailyProfitPercent(0);
