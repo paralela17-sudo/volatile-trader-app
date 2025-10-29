@@ -59,14 +59,13 @@ class MomentumStrategyService {
       volumeRatio = recentVolume / avgVolume;
     }
 
-    // Determinar tendência
+    // Determinar tendência alinhada ao threshold da estratégia
     let trend: 'BULLISH' | 'BEARISH' | 'NEUTRAL' = 'NEUTRAL';
-    if (priceChangePercent > 0.3 && priceVelocity > 0) {
+    if (priceChangePercent >= this.MOMENTUM_THRESHOLD && priceVelocity >= 0) {
       trend = 'BULLISH';
-    } else if (priceChangePercent < -0.3 && priceVelocity < 0) {
+    } else if (priceChangePercent <= -this.MOMENTUM_THRESHOLD && priceVelocity <= 0) {
       trend = 'BEARISH';
     }
-
     return {
       priceChangePercent,
       volumeRatio,
