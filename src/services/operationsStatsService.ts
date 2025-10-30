@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-
+import { RISK_SETTINGS } from "./riskService";
 export interface OperationStats {
   lastOperationTime: string | null;
   totalOperationsToday: number;
@@ -127,7 +127,7 @@ export const operationsStatsService = {
     }
 
     // Verificar loss streak
-    const RISK_SETTINGS = require('./riskService').RISK_SETTINGS;
+    
     if (stats.lossStreak >= RISK_SETTINGS.LOSS_STREAK_LIMIT) {
       const pauseUntil = now + (RISK_SETTINGS.CIRCUIT_BREAKER_PAUSE_MINUTES * 60000);
       return {
