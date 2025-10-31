@@ -39,6 +39,9 @@ class TradingService {
   private pairLossCount: Map<string, number> = new Map(); // Contador de perdas por par
   private circuitBreakerUntil: number = 0; // Timestamp até quando o circuit breaker está ativo
   
+  // FASE 3: Zona de recompra rápida
+  private lastProfitableSells: Map<string, { price: number; time: number }> = new Map();
+  
   // Momentum Trading Strategy Parameters (SSOT via RISK_SETTINGS)
   private readonly PRICE_CHECK_INTERVAL = 3000; // 3 segundos (mais rápido)
   private readonly POSITION_CHECK_INTERVAL = 2000; // 2 segundos (mais rápido)
@@ -234,6 +237,31 @@ class TradingService {
         
         if (hasOpenPosition) continue;
 
+        // ===== FASE 3: ZONA DE RECOMPRA RÁPIDA =====
+        const lastProfitSell = this.lastProfitableSells.get(symbol);
+        const now = Date.now();
+        
+        // Se vendeu com lucro nos últimos 30s e preço voltou para zona de compra
+        if (lastProfitSell && now - lastProfitSell.time < 30000) {
+          const momentum = momentumStrategyService.analyzeMomentum(
+            pairMonitor?.lastPrices || [],
+            undefined,
+            candles
+          );
+          const avgLows = momentum.avgLows || 0;
+          const rebuyZone = avgLows * 1.003; // +0.3% de tolerância
+          
+          if (currentPrice <= rebuyZone) {
+            console.log(`🔄 ${symbol} RECOMPRA RÁPIDA: Preço voltou para $${currentPrice.toFixed(2)} (zona: $${rebuyZone.toFixed(2)})`);
+            const allocation = this.capitalAllocations.get(symbol);
+            if (allocation && this.openPositions.size < maxPositions) {
+              await this.executeBuy(symbol, currentPrice, allocation.quantity);
+              this.lastProfitableSells.delete(symbol); // Limpar após recompra
+              continue;
+            }
+          }
+        }
+        
         // ===== COOLDOWN DINÂMICO (aprende com perdas) =====
         const lastSellTime = this.pairCooldowns.get(symbol) || 0;
         const lossCount = this.pairLossCount.get(symbol) || 0;
@@ -243,8 +271,8 @@ class TradingService {
         const lossCooldownMs = lossCount * RISK_SETTINGS.LOSS_COOLDOWN_BASE_MINUTES * 60000;
         const totalCooldownMs = baseCooldownMs + lossCooldownMs;
         
-        if (Date.now() - lastSellTime < totalCooldownMs) {
-          const remainingMinutes = Math.ceil((totalCooldownMs - (Date.now() - lastSellTime)) / 60000);
+        if (now - lastSellTime < totalCooldownMs) {
+          const remainingMinutes = Math.ceil((totalCooldownMs - (now - lastSellTime)) / 60000);
           if (lossCount > 0) {
             console.log(`⏳ ${symbol} em cooldown estendido (${remainingMinutes} min | ${lossCount} perdas recentes)`);
           } else {
@@ -449,10 +477,17 @@ class TradingService {
           const currentCount = this.pairLossCount.get(position.symbol) || 0;
           this.pairLossCount.set(position.symbol, currentCount + 1);
           console.log(`📉 Perda registrada para ${position.symbol} (total: ${currentCount + 1})`);
-        } else if (reason === "TAKE_PROFIT" || reason === "PROFIT_PROTECT") {
+        } else if (reason === "TAKE_PROFIT" || reason === "PROFIT_PROTECT" || reason === "STRATEGY_EXIT") {
           // Reset contador de perdas ao ter sucesso
           this.pairLossCount.set(position.symbol, 0);
           console.log(`✅ Contador de perdas resetado para ${position.symbol}`);
+          
+          // FASE 3: Registrar venda lucrativa para zona de recompra
+          this.lastProfitableSells.set(position.symbol, {
+            price: price,
+            time: Date.now()
+          });
+          console.log(`🔄 Zona de recompra ativada para ${position.symbol} (30s)`);
         }
 
         toast.success(

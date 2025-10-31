@@ -49,6 +49,7 @@ class MomentumStrategyService {
 
   /**
    * Função principal de decisão de trade
+   * FASE 1: Margem de tolerância +0.2% para mais sinais
    */
   private avaliarEstrategia(candles: Candle[], precoAtual: number): 'comprar' | 'vender' | 'manter' {
     if (candles.length < 3) return 'manter';
@@ -56,7 +57,9 @@ class MomentumStrategyService {
     const mediaMinimas = this.calcularMediaMinimas(candles);
     const mediaMaximas = this.calcularMediaMaximas(candles);
 
-    if (precoAtual <= mediaMinimas) {
+    // FASE 1: Adicionar margem de tolerância de 0.2% acima da média das mínimas
+    const margemTolerancia = mediaMinimas * 1.002;
+    if (precoAtual <= margemTolerancia) {
       return 'comprar';
     }
 
@@ -134,6 +137,7 @@ class MomentumStrategyService {
 
   /**
    * Gera sinal de compra baseado na estratégia de média das 3 mínimas
+   * FASE 3: Adiciona estratégia híbrida (momentum rápido)
    */
   generateBuySignal(
     symbol: string,
@@ -154,14 +158,31 @@ class MomentumStrategyService {
     const currentPrice = candles[candles.length - 1].close;
     const decision = this.avaliarEstrategia(candles, currentPrice);
 
+    // ESTRATÉGIA PRIMÁRIA: Média das 3 mínimas (com margem de tolerância)
     if (decision === 'comprar') {
       const avgLows = momentum.avgLows || 0;
       return {
         symbol,
         shouldBuy: true,
         confidence: 0.9,
-        reason: `Preço atual ($${currentPrice.toFixed(2)}) ≤ Média das 3 mínimas ($${avgLows.toFixed(2)})`
+        reason: `PRIMÁRIA: Preço ($${currentPrice.toFixed(2)}) ≤ Média mínimas ($${avgLows.toFixed(2)})`
       };
+    }
+
+    // FASE 3: ESTRATÉGIA SECUNDÁRIA (Momentum Rápido)
+    // Compra se: preço subindo 0.5%+ E volume 1.3x+ acima da média
+    if (recentPrices && recentPrices.length >= 5) {
+      const priceChangePercent = momentum.priceChangePercent;
+      const volumeRatio = momentum.volumeRatio;
+      
+      if (priceChangePercent >= 0.5 && volumeRatio >= 1.3) {
+        return {
+          symbol,
+          shouldBuy: true,
+          confidence: 0.75,
+          reason: `MOMENTUM: Subida ${priceChangePercent.toFixed(2)}% + Volume ${(volumeRatio * 100).toFixed(0)}%`
+        };
+      }
     }
 
     return {
@@ -170,7 +191,7 @@ class MomentumStrategyService {
       confidence: 0,
       reason: decision === 'vender' 
         ? `Preço em zona de venda (≥ média das 3 máximas)` 
-        : 'Aguardando preço atingir média das mínimas'
+        : 'Aguardando condições de entrada'
     };
   }
 

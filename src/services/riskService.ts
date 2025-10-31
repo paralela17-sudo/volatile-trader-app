@@ -22,7 +22,7 @@ export const RISK_SETTINGS = {
   PRICE_VELOCITY_THRESHOLD: 0.2, // Velocidade mínima (% por tick, mais sensível)
   
   // Cooldown & Protection
-  PAIR_COOLDOWN_SECONDS: 90, // Aguardar 90s após venda antes de reentrar no mesmo par
+  PAIR_COOLDOWN_SECONDS: 45, // FASE 1: Reduzido de 90s para 45s (mais oportunidades)
   PROFIT_PROTECT_THRESHOLD: 1.5, // Proteger lucro quando atingir 1.5%+ (menos agressivo)
   
   // Reinvestment
@@ -31,7 +31,7 @@ export const RISK_SETTINGS = {
   // ===== NOVOS FILTROS INTELIGENTES (Quality Over Quantity) =====
   
   // Filtro de Liquidez (evita slippage e falsos sinais)
-  MIN_QUOTE_VOLUME_24H_USDT: 10_000_000, // Mínimo 10M USDT de volume 24h
+  MIN_QUOTE_VOLUME_24H_USDT: 5_000_000, // FASE 1: Reduzido de 10M para 5M (mais pares disponíveis)
   
   // Filtro de Volatilidade Intraday (evita mercados "chop")
   MIN_VOLATILITY_PERCENT: 0.25, // Mínimo 0.25% de volatilidade realizada
