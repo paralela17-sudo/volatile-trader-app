@@ -36,16 +36,24 @@ serve(async (req) => {
     console.log(`Fetching price for ${symbol}`);
 
     // Política de retries com backoff e timeout por tentativa
-    const maxAttempts = 3;
-    const baseTimeoutMs = 4000;
+    const maxAttempts = 4;
+    const baseTimeoutMs = 3000;
+    const baseUrls = [
+      'https://api.binance.com',
+      'https://api1.binance.com',
+      'https://api2.binance.com',
+      'https://api3.binance.com',
+    ];
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), baseTimeoutMs);
 
       try {
+        const baseUrl = baseUrls[(attempt - 1) % baseUrls.length];
+        console.log(`Attempt ${attempt} for ${symbol} via ${baseUrl}`);
         const response = await fetch(
-          `https://api.binance.com/api/v3/ticker/price?symbol=${symbol}`,
+          `${baseUrl}/api/v3/ticker/price?symbol=${symbol}`,
           {
             signal: controller.signal,
             headers: { 'Accept': 'application/json' }
