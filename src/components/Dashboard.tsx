@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut, Settings, RotateCcw } from "lucide-react";
 import { StatsCard } from "./StatsCard";
-import { CoinMonitor } from "./CoinMonitor";
 import { TradeHistory } from "./TradeHistory";
 import { AdminPanel } from "./AdminPanel";
 import { TradingOperationsCard } from "./TradingOperationsCard";
@@ -912,10 +911,7 @@ export const Dashboard = () => {
           </Card>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-2 p-6 bg-gradient-card border-border">
-              <CoinMonitor isRunning={botRunning} />
-            </Card>
+          <div className="grid grid-cols-1 gap-6">
             <Card className="p-6 bg-gradient-card border-border">
               <TradeHistory />
             </Card>
