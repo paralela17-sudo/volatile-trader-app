@@ -201,20 +201,30 @@ class TradingService {
     // Analisar todos os pares monitorados
     for (const symbol of this.config.symbols) {
       try {
-        const priceData = await binanceService.getPrice(symbol);
-        if (!priceData) continue;
+        // Buscar candles para a nova estratégia
+        const candles = await binanceService.getCandles(symbol, '1m', 20);
+        if (!candles || candles.length < 3) {
+          console.log(`${symbol}: Aguardando dados de candles...`);
+          continue;
+        }
 
-        // Buscar dados de mercado (incluindo volume)
+        const currentPrice = candles[candles.length - 1].close;
+
+        // Adicionar candles ao histórico do multi-pair service
+        const pairMonitor = multiPairService.getPair(symbol);
+        if (pairMonitor) {
+          candles.forEach(candle => multiPairService.addCandle(symbol, candle));
+        }
+
+        // Buscar dados de mercado (incluindo volume) para compatibilidade
         const marketData = await binanceService.getMarketData(symbol);
         const volume = marketData?.volume;
 
-        // Adicionar preço e volume ao histórico do multi-pair service
-        multiPairService.addPrice(symbol, priceData.price, volume);
+        // Adicionar preço e volume ao histórico do multi-pair service (compatibilidade)
+        multiPairService.addPrice(symbol, currentPrice, volume);
 
-        // Obter dados do par
-        const pairMonitor = multiPairService.getPair(symbol);
-        if (!pairMonitor || pairMonitor.lastPrices.length < 5) {
-          // Aguardar histórico mínimo para análise (5 ticks)
+        if (!pairMonitor || candles.length < 3) {
+          // Aguardar histórico mínimo para análise (3 candles)
           continue;
         }
 
@@ -243,10 +253,14 @@ class TradingService {
           continue;
         }
 
-        // === MOMENTUM TRADING STRATEGY ===
-        // Analisar momentum do par (com volumes se disponíveis)
+        // === THREE MIN/MAX STRATEGY ===
+        // Analisar momentum do par com candles (nova estratégia)
         const volumes = pairMonitor.lastVolumes.length > 0 ? pairMonitor.lastVolumes : undefined;
-        const momentum = momentumStrategyService.analyzeMomentum(pairMonitor.lastPrices, volumes);
+        const momentum = momentumStrategyService.analyzeMomentum(
+          pairMonitor.lastPrices, 
+          volumes,
+          pairMonitor.lastCandles
+        );
         
         // Aplicar filtros inteligentes (liquidez + volatilidade)
         const quoteVolume = marketData?.volume && marketData?.price 
@@ -256,17 +270,20 @@ class TradingService {
           symbol, 
           momentum,
           quoteVolume,
-          pairMonitor.lastPrices
+          pairMonitor.lastPrices,
+          pairMonitor.lastCandles
         );
 
-        console.log(`📈 ${symbol} | Preço: $${priceData.price.toFixed(2)} | Mudança: ${momentum.priceChangePercent.toFixed(2)}% | Tendência: ${momentum.trend} | Confiança: ${(signal.confidence * 100).toFixed(0)}%`);
+        const avgLows = momentum.avgLows || 0;
+        const avgHighs = momentum.avgHighs || 0;
+        console.log(`📈 ${symbol} | Preço: $${currentPrice.toFixed(2)} | Média Mínimas: $${avgLows.toFixed(2)} | Média Máximas: $${avgHighs.toFixed(2)} | Tendência: ${momentum.trend} | Confiança: ${(signal.confidence * 100).toFixed(0)}%`);
 
-        // Verificar sinal de compra do momentum
+        // Verificar sinal de compra da nova estratégia
         if (signal.shouldBuy && this.openPositions.size < maxPositions) {
           const allocation = this.capitalAllocations.get(symbol);
           if (allocation) {
             console.log(`🎯 Sinal de compra: ${signal.reason}`);
-            await this.executeBuy(symbol, priceData.price, allocation.quantity);
+            await this.executeBuy(symbol, currentPrice, allocation.quantity);
           }
         }
       } catch (error) {
@@ -293,12 +310,19 @@ class TradingService {
         continue;
       }
 
-      // Obter momentum atual para decisão de hold
+      // Obter candles atuais para decisão de venda
+      const candles = await binanceService.getCandles(position.symbol, '1m', 20);
       const pairMonitor = multiPairService.getPair(position.symbol);
-      if (pairMonitor && pairMonitor.lastPrices.length >= 10) {
-        const momentum = momentumStrategyService.analyzeMomentum(pairMonitor.lastPrices);
+      
+      if (candles && candles.length >= 3) {
+        const momentum = momentumStrategyService.analyzeMomentum(
+          pairMonitor?.lastPrices || [],
+          undefined,
+          candles
+        );
         
-        console.log(`📊 ${position.symbol} | Compra: $${position.buyPrice.toFixed(2)} | Atual: $${currentPrice.price.toFixed(2)} | P/L: ${profitPercent.toFixed(2)}% | Tendência: ${momentum.trend}`);
+        const avgMaximas = momentum.avgHighs || 0;
+        console.log(`📊 ${position.symbol} | Compra: $${position.buyPrice.toFixed(2)} | Atual: $${currentPrice.price.toFixed(2)} | P/L: ${profitPercent.toFixed(2)}% | Média Máximas: $${avgMaximas.toFixed(2)}`);
 
         // Check take profit (Momentum: 2.5%)
         if (profitPercent >= RISK_SETTINGS.TAKE_PROFIT_PERCENT) {
@@ -314,17 +338,17 @@ class TradingService {
           continue;
         }
 
-        // Proteção de lucro parcial: se subiu 1.5%+ mas momentum caiu para NEUTRAL, realizar
-        if (profitPercent >= RISK_SETTINGS.PROFIT_PROTECT_THRESHOLD && momentum.trend === 'NEUTRAL') {
-          console.log(`💰 Protegendo lucro parcial: ${profitPercent.toFixed(2)}% (momentum NEUTRAL)`);
-          await this.executeSell(position, currentPrice.price, "PROFIT_PROTECT");
+        // NOVA ESTRATÉGIA: Vender quando preço >= média das 3 máximas
+        if (momentumStrategyService.shouldSell(candles)) {
+          console.log(`💰 Estratégia ativada: Preço atingiu média das 3 máximas ($${avgMaximas.toFixed(2)})`);
+          await this.executeSell(position, currentPrice.price, "STRATEGY_EXIT");
           continue;
         }
 
-        // Saída por reversão de momentum (proteção adicional)
-        if (profitPercent > 0 && momentum.trend === 'BEARISH') {
-          console.log(`⚠️ Reversão de momentum detectada, realizando lucro`);
-          await this.executeSell(position, currentPrice.price, "MOMENTUM_REVERSAL");
+        // Proteção de lucro parcial: se subiu 1.5%+ mas preço está próximo da média das máximas
+        if (profitPercent >= RISK_SETTINGS.PROFIT_PROTECT_THRESHOLD && currentPrice.price >= avgMaximas * 0.98) {
+          console.log(`💰 Protegendo lucro parcial: ${profitPercent.toFixed(2)}% (próximo à média das máximas)`);
+          await this.executeSell(position, currentPrice.price, "PROFIT_PROTECT");
           continue;
         }
       }

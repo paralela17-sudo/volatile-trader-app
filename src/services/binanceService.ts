@@ -16,6 +16,14 @@ export interface MarketData {
   low: number;
 }
 
+export interface Candle {
+  high: number;
+  low: number;
+  close: number;
+  open: number;
+  timestamp: number;
+}
+
 // Serviço para interação com a Binance API
 export const binanceService = {
   async getPrice(symbol: string): Promise<PriceData | null> {
@@ -59,6 +67,31 @@ export const binanceService = {
     } catch (error) {
       console.error('Exception in getMarketData:', error);
       return null;
+    }
+  },
+
+  async getCandles(symbol: string, interval: string = '1m', limit: number = 20): Promise<Candle[]> {
+    try {
+      const response = await fetch(
+        `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch candles');
+      }
+
+      const data = await response.json();
+
+      return data.map((candle: any) => ({
+        timestamp: candle[0],
+        open: parseFloat(candle[1]),
+        high: parseFloat(candle[2]),
+        low: parseFloat(candle[3]),
+        close: parseFloat(candle[4])
+      }));
+    } catch (error) {
+      console.error('Exception in getCandles:', error);
+      return [];
     }
   },
 

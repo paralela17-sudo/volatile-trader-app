@@ -1,9 +1,11 @@
 import { pairSelectionService, type VolatilityData } from "./pairSelectionService";
+import { type Candle } from "./binanceService";
 
 export interface PairMonitor {
   symbol: string;
   lastPrices: number[];
   lastVolumes: number[]; // Histórico de volumes
+  lastCandles: Candle[]; // Histórico de candles (OHLC)
   volatility: number;
   lastAnalysis: Date;
   isActive: boolean;
@@ -54,6 +56,7 @@ class MultiPairService {
             symbol: symbol,
             lastPrices: [],
             lastVolumes: [],
+            lastCandles: [],
             volatility: pairData.priceChangePercent,
             lastAnalysis: new Date(),
             isActive: true,
@@ -67,6 +70,7 @@ class MultiPairService {
             symbol: symbol,
             lastPrices: [],
             lastVolumes: [],
+            lastCandles: [],
             volatility: 0,
             lastAnalysis: new Date(),
             isActive: true,
@@ -129,6 +133,7 @@ class MultiPairService {
             symbol: pair.symbol,
             lastPrices: [],
             lastVolumes: [],
+            lastCandles: [],
             volatility: pair.priceChangePercent,
             lastAnalysis: new Date(),
             isActive: true,
@@ -174,6 +179,21 @@ class MultiPairService {
     if (monitor.lastPrices.length >= 10) {
       monitor.volatility = this.calculateVolatility(monitor.lastPrices);
       monitor.priceChangePercent = this.calculatePriceChangePercent(monitor.lastPrices);
+    }
+  }
+
+  /**
+   * Adiciona candle ao histórico de um par
+   */
+  addCandle(symbol: string, candle: Candle): void {
+    const monitor = this.watchedPairs.get(symbol);
+    if (!monitor) return;
+
+    monitor.lastCandles.push(candle);
+    
+    // Manter apenas os últimos 20 candles
+    if (monitor.lastCandles.length > 20) {
+      monitor.lastCandles.shift();
     }
   }
 

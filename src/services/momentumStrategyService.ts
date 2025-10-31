@@ -1,10 +1,11 @@
-import { RISK_SETTINGS } from './riskService';
+import { type Candle } from './binanceService';
 
 /**
- * Momentum Trading Strategy Service
- * SRP: Responsável apenas pela lógica da estratégia de momentum
- * Compra em alta com volume forte, vende rápido (5-15 min)
- * SSOT: Usa RISK_SETTINGS para todos os thresholds
+ * Three Min/Max Strategy Service
+ * Estratégia baseada na média das 3 últimas mínimas e máximas
+ * 
+ * Compra: quando preço atual <= média das 3 últimas mínimas
+ * Venda: quando preço atual >= média das 3 últimas máximas
  */
 
 export interface MomentumSignal {
@@ -16,23 +17,65 @@ export interface MomentumSignal {
 
 export interface MarketMomentum {
   priceChangePercent: number;
-  volumeRatio: number; // Volume atual vs média
-  priceVelocity: number; // Taxa de mudança de preço
+  volumeRatio: number;
+  priceVelocity: number;
   trend: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  avgLows?: number;
+  avgHighs?: number;
 }
 
 class MomentumStrategyService {
-  // SSOT: Todos os parâmetros vêm de RISK_SETTINGS
-  private readonly MIN_CONFIDENCE = 0.4; // Confiança mínima para trade
+  private readonly MIN_CONFIDENCE = 0.7; // Alta confiança para sinais claros
 
   /**
-   * Analisa se há momentum de compra em um par
+   * Calcula a média das últimas 3 mínimas
+   */
+  private calcularMediaMinimas(candles: Candle[]): number {
+    if (candles.length < 3) return 0;
+    const ultimos3 = candles.slice(-3);
+    const somaMinimas = ultimos3.reduce((acc, c) => acc + c.low, 0);
+    return somaMinimas / 3;
+  }
+
+  /**
+   * Calcula a média das últimas 3 máximas
+   */
+  private calcularMediaMaximas(candles: Candle[]): number {
+    if (candles.length < 3) return 0;
+    const ultimos3 = candles.slice(-3);
+    const somaMaximas = ultimos3.reduce((acc, c) => acc + c.high, 0);
+    return somaMaximas / 3;
+  }
+
+  /**
+   * Função principal de decisão de trade
+   */
+  private avaliarEstrategia(candles: Candle[], precoAtual: number): 'comprar' | 'vender' | 'manter' {
+    if (candles.length < 3) return 'manter';
+
+    const mediaMinimas = this.calcularMediaMinimas(candles);
+    const mediaMaximas = this.calcularMediaMaximas(candles);
+
+    if (precoAtual <= mediaMinimas) {
+      return 'comprar';
+    }
+
+    if (precoAtual >= mediaMaximas) {
+      return 'vender';
+    }
+
+    return 'manter';
+  }
+
+  /**
+   * Analisa momentum do mercado com base nos candles
    */
   analyzeMomentum(
     prices: number[],
-    volumes?: number[]
+    volumes?: number[],
+    candles?: Candle[]
   ): MarketMomentum {
-    if (prices.length < 5) {
+    if (!candles || candles.length < 3) {
       return {
         priceChangePercent: 0,
         volumeRatio: 0,
@@ -41,36 +84,35 @@ class MomentumStrategyService {
       };
     }
 
-    // Calcular mudança de preço (últimos vs primeiros 5 pontos)
-    const recentPrices = prices.slice(-5);
-    const olderPrices = prices.slice(-10, -5);
-    const recentAvg = this.average(recentPrices);
-    const olderAvg = this.average(olderPrices);
-    const priceChangePercent = ((recentAvg - olderAvg) / olderAvg) * 100;
+    const avgLows = this.calcularMediaMinimas(candles);
+    const avgHighs = this.calcularMediaMaximas(candles);
+    const currentPrice = candles[candles.length - 1].close;
 
-    // Calcular velocidade de mudança de preço (aceleração)
-    const priceVelocity = this.calculateVelocity(prices.slice(-10));
+    // Calcular tendência baseada na posição do preço atual
+    let trend: 'BULLISH' | 'BEARISH' | 'NEUTRAL' = 'NEUTRAL';
+    const priceChangePercent = ((currentPrice - candles[0].close) / candles[0].close) * 100;
+
+    if (currentPrice <= avgLows) {
+      trend = 'BULLISH'; // Oportunidade de compra
+    } else if (currentPrice >= avgHighs) {
+      trend = 'BEARISH'; // Oportunidade de venda
+    }
 
     // Calcular volume ratio se disponível
     let volumeRatio = 1.0;
-    if (volumes && volumes.length >= 10) {
-      const recentVolume = this.average(volumes.slice(-5));
+    if (volumes && volumes.length >= 3) {
+      const recentVolume = this.average(volumes.slice(-3));
       const avgVolume = this.average(volumes);
       volumeRatio = recentVolume / avgVolume;
     }
 
-    // Determinar tendência alinhada ao threshold da estratégia (SSOT)
-    let trend: 'BULLISH' | 'BEARISH' | 'NEUTRAL' = 'NEUTRAL';
-    if (priceChangePercent >= RISK_SETTINGS.MOMENTUM_BUY_THRESHOLD) {
-      trend = 'BULLISH';
-    } else if (priceChangePercent <= -RISK_SETTINGS.MOMENTUM_BUY_THRESHOLD) {
-      trend = 'BEARISH';
-    }
     return {
       priceChangePercent,
       volumeRatio,
-      priceVelocity,
-      trend
+      priceVelocity: 0,
+      trend,
+      avgLows,
+      avgHighs
     };
   }
 
@@ -87,130 +129,89 @@ class MomentumStrategyService {
       returns.push(Math.abs(((prices[i] - prev) / prev) * 100));
     }
     
-    // Volatilidade = média dos retornos absolutos
     return this.average(returns);
   }
 
   /**
-   * Gera sinal de compra baseado em momentum
+   * Gera sinal de compra baseado na estratégia de média das 3 mínimas
    */
   generateBuySignal(
     symbol: string,
     momentum: MarketMomentum,
     quoteVolume24h?: number,
-    recentPrices?: number[]
+    recentPrices?: number[],
+    candles?: Candle[]
   ): MomentumSignal {
-    let confidence = 0;
-    const reasons: string[] = [];
-    const rejectionReasons: string[] = [];
-
-    // ===== NOVOS FILTROS INTELIGENTES (Quality Filters) =====
-    
-    // Filtro 1: Liquidez (evita slippage e manipulação)
-    if (quoteVolume24h !== undefined) {
-      if (quoteVolume24h < RISK_SETTINGS.MIN_QUOTE_VOLUME_24H_USDT) {
-        rejectionReasons.push(`Baixa liquidez (${(quoteVolume24h / 1_000_000).toFixed(1)}M < 10M USDT)`);
-        return {
-          symbol,
-          shouldBuy: false,
-          confidence: 0,
-          reason: rejectionReasons.join(', ')
-        };
-      }
-      confidence += 0.15;
-      reasons.push(`Liquidez OK (${(quoteVolume24h / 1_000_000).toFixed(1)}M USDT)`);
+    if (!candles || candles.length < 3) {
+      return {
+        symbol,
+        shouldBuy: false,
+        confidence: 0,
+        reason: 'Dados insuficientes (necessário 3+ candles)'
+      };
     }
 
-    // Filtro 2: Volatilidade Intraday (evita mercados "chop")
-    if (recentPrices && recentPrices.length >= RISK_SETTINGS.VOLATILITY_WINDOW_TICKS) {
-      const windowPrices = recentPrices.slice(-RISK_SETTINGS.VOLATILITY_WINDOW_TICKS);
-      const shortTermVol = this.calculateShortTermVolatility(windowPrices);
-      
-      if (shortTermVol < RISK_SETTINGS.MIN_VOLATILITY_PERCENT) {
-        rejectionReasons.push(`Baixa volatilidade (${shortTermVol.toFixed(2)}% < 0.25%)`);
-        return {
-          symbol,
-          shouldBuy: false,
-          confidence: 0,
-          reason: rejectionReasons.join(', ')
-        };
-      }
-      confidence += 0.15;
-      reasons.push(`Volatilidade adequada (${shortTermVol.toFixed(2)}%)`);
+    const currentPrice = candles[candles.length - 1].close;
+    const decision = this.avaliarEstrategia(candles, currentPrice);
+
+    if (decision === 'comprar') {
+      const avgLows = momentum.avgLows || 0;
+      return {
+        symbol,
+        shouldBuy: true,
+        confidence: 0.9,
+        reason: `Preço atual ($${currentPrice.toFixed(2)}) ≤ Média das 3 mínimas ($${avgLows.toFixed(2)})`
+      };
     }
-
-    // ===== FILTROS ORIGINAIS DE MOMENTUM =====
-
-    // Verificar momentum de preço positivo (SSOT)
-    if (momentum.priceChangePercent >= RISK_SETTINGS.MOMENTUM_BUY_THRESHOLD) {
-      confidence += 0.3;
-      reasons.push(`Subida de ${momentum.priceChangePercent.toFixed(2)}%`);
-    }
-
-    // Verificar volume acima da média (SSOT)
-    if (momentum.volumeRatio >= RISK_SETTINGS.MIN_VOLUME_RATIO) {
-      confidence += 0.2;
-      reasons.push(`Volume ${((momentum.volumeRatio - 1) * 100).toFixed(0)}% acima da média`);
-    }
-
-    // Verificar velocidade positiva (SSOT)
-    if (momentum.priceVelocity >= RISK_SETTINGS.PRICE_VELOCITY_THRESHOLD) {
-      confidence += 0.2;
-      reasons.push('Aceleração positiva');
-    }
-
-    const shouldBuy = confidence >= this.MIN_CONFIDENCE && momentum.trend === 'BULLISH';
 
     return {
       symbol,
-      shouldBuy,
-      confidence,
-      reason: reasons.join(', ') || 'Sem momentum'
+      shouldBuy: false,
+      confidence: 0,
+      reason: decision === 'vender' 
+        ? `Preço em zona de venda (≥ média das 3 máximas)` 
+        : 'Aguardando preço atingir média das mínimas'
     };
   }
 
   /**
-   * Verifica se deve manter posição ou sair
+   * Verifica se deve manter posição ou sair (para vendas)
    */
   shouldHoldPosition(
     buyPrice: number,
     currentPrice: number,
-    momentum: MarketMomentum
+    momentum: MarketMomentum,
+    candles?: Candle[]
   ): boolean {
-    const profitPercent = ((currentPrice - buyPrice) / buyPrice) * 100;
+    if (!candles || candles.length < 3) return true;
 
-    // Se está em lucro e momentum continua positivo, manter
-    if (profitPercent > 0 && momentum.trend === 'BULLISH') {
-      return true;
-    }
+    const decision = this.avaliarEstrategia(candles, currentPrice);
 
-    // Se momentum virou negativo, não manter
-    if (momentum.trend === 'BEARISH') {
+    // Se a decisão é vender (preço >= média das máximas), não manter
+    if (decision === 'vender') {
       return false;
     }
 
+    // Manter posição enquanto não atingir média das máximas
     return true;
+  }
+
+  /**
+   * Verifica se deve vender posição (usado pelo tradingService)
+   */
+  shouldSell(candles: Candle[]): boolean {
+    if (candles.length < 3) return false;
+    
+    const currentPrice = candles[candles.length - 1].close;
+    const decision = this.avaliarEstrategia(candles, currentPrice);
+    
+    return decision === 'vender';
   }
 
   // Métodos auxiliares
   private average(values: number[]): number {
     if (values.length === 0) return 0;
     return values.reduce((sum, val) => sum + val, 0) / values.length;
-  }
-
-  private calculateVelocity(prices: number[]): number {
-    if (prices.length < 2) return 0;
-    
-    // Calcular variação percentual consecutiva (% por tick)
-    const pctChanges: number[] = [];
-    for (let i = 1; i < prices.length; i++) {
-      const prev = prices[i - 1];
-      if (prev === 0) continue;
-      pctChanges.push(((prices[i] - prev) / prev) * 100);
-    }
-
-    // Velocidade = média das variações percentuais
-    return this.average(pctChanges);
   }
 }
 
