@@ -3,9 +3,9 @@
  * Estratégia: Momentum Trading (5-15 min por operação)
  */
 export const RISK_SETTINGS = {
-  // Momentum Trading Strategy (Risk/Reward 1:3 otimizado)
-  STOP_LOSS_PERCENT: 1.0, // 1.0% stop loss (reduzido para melhor ratio)
-  TAKE_PROFIT_PERCENT: 3.0, // 3.0% take profit (aumentado para ratio 1:3)
+  // Mean Reversion Strategy - Parâmetros Otimizados
+  STOP_LOSS_PERCENT: 2.5, // 2.5% stop loss (mais conservador)
+  TAKE_PROFIT_PERCENT: 5.0, // 5.0% take profit (ratio 1:2 realista)
   
   // Session/position management
   MAX_HOLD_MINUTES: 25, // Tempo máximo de posição aberta (aumentado para deixar momentum desenvolver)

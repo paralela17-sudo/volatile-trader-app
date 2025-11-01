@@ -204,8 +204,8 @@ class TradingService {
     // Analisar todos os pares monitorados
     for (const symbol of this.config.symbols) {
       try {
-        // Buscar candles para a nova estratégia
-        const candles = await binanceService.getCandles(symbol, '1m', 20);
+        // Buscar candles para Mean Reversion (necessário 21+ para BB+RSI)
+        const candles = await binanceService.getCandles(symbol, '1m', 30);
         if (!candles || candles.length < 3) {
           console.log(`${symbol}: Aguardando dados de candles...`);
           continue;
@@ -338,8 +338,8 @@ class TradingService {
         continue;
       }
 
-      // Obter candles atuais para decisão de venda
-      const candles = await binanceService.getCandles(position.symbol, '1m', 20);
+      // Obter candles atuais para decisão de venda (necessário 21+ para BB+RSI)
+      const candles = await binanceService.getCandles(position.symbol, '1m', 30);
       const pairMonitor = multiPairService.getPair(position.symbol);
       
       if (candles && candles.length >= 3) {
@@ -366,9 +366,9 @@ class TradingService {
           continue;
         }
 
-        // NOVA ESTRATÉGIA: Vender quando preço >= média das 3 máximas
-        if (momentumStrategyService.shouldSell(candles)) {
-          console.log(`💰 Estratégia ativada: Preço atingiu média das 3 máximas ($${avgMaximas.toFixed(2)})`);
+        // NOVA ESTRATÉGIA: Mean Reversion (passa buyPrice agora)
+        if (momentumStrategyService.shouldSell(candles, position.buyPrice)) {
+          console.log(`💰 Mean Reversion: Sinal de venda detectado`);
           await this.executeSell(position, currentPrice.price, "STRATEGY_EXIT");
           continue;
         }

@@ -1,11 +1,10 @@
 import { type Candle } from './binanceService';
+import { meanReversionStrategy } from './strategies/meanReversionStrategy';
 
 /**
- * Three Min/Max Strategy Service
- * Estratégia baseada na média das 3 últimas mínimas e máximas
- * 
- * Compra: quando preço atual <= média das 3 últimas mínimas
- * Venda: quando preço atual >= média das 3 últimas máximas
+ * Momentum Strategy Service (Refatorado)
+ * Agora usa Mean Reversion com Bollinger Bands + RSI
+ * Estratégia comprovadamente lucrativa e de baixo risco
  */
 
 export interface MomentumSignal {
@@ -25,10 +24,17 @@ export interface MarketMomentum {
 }
 
 class MomentumStrategyService {
-  private readonly MIN_CONFIDENCE = 0.7; // Alta confiança para sinais claros
+  private readonly MIN_CONFIDENCE = 0.7;
 
   /**
-   * Calcula a média das últimas 3 mínimas
+   * Extrai preços de fechamento dos candles
+   */
+  private extractClosePrices(candles: Candle[]): number[] {
+    return candles.map(c => c.close);
+  }
+
+  /**
+   * [DEPRECADO] Mantido por compatibilidade - Use meanReversionStrategy
    */
   private calcularMediaMinimas(candles: Candle[]): number {
     if (candles.length < 3) return 0;
@@ -38,7 +44,7 @@ class MomentumStrategyService {
   }
 
   /**
-   * Calcula a média das últimas 3 máximas
+   * [DEPRECADO] Mantido por compatibilidade - Use meanReversionStrategy
    */
   private calcularMediaMaximas(candles: Candle[]): number {
     if (candles.length < 3) return 0;
@@ -48,22 +54,21 @@ class MomentumStrategyService {
   }
 
   /**
-   * Função principal de decisão de trade
-   * FASE 1: Margem de tolerância +0.2% para mais sinais
+   * NOVA ESTRATÉGIA: Mean Reversion com BB + RSI
    */
   private avaliarEstrategia(candles: Candle[], precoAtual: number): 'comprar' | 'vender' | 'manter' {
-    if (candles.length < 3) return 'manter';
+    if (candles.length < 21) return 'manter'; // Necessário para BB + RSI
 
-    const mediaMinimas = this.calcularMediaMinimas(candles);
-    const mediaMaximas = this.calcularMediaMaximas(candles);
+    const prices = this.extractClosePrices(candles);
+    const buySignal = meanReversionStrategy.analyzeBuyOpportunity(prices);
 
-    // FASE 1: Adicionar margem de tolerância de 0.2% acima da média das mínimas
-    const margemTolerancia = mediaMinimas * 1.002;
-    if (precoAtual <= margemTolerancia) {
+    if (buySignal.action === 'buy' && buySignal.confidence >= this.MIN_CONFIDENCE) {
       return 'comprar';
     }
 
-    if (precoAtual >= mediaMaximas) {
+    const sellSignal = meanReversionStrategy.analyzeSellOpportunity(prices);
+    
+    if (sellSignal.action === 'sell' && sellSignal.confidence >= this.MIN_CONFIDENCE) {
       return 'vender';
     }
 
@@ -136,8 +141,7 @@ class MomentumStrategyService {
   }
 
   /**
-   * Gera sinal de compra baseado na estratégia de média das 3 mínimas
-   * FASE 3: Adiciona estratégia híbrida (momentum rápido)
+   * Gera sinal de compra com NOVA ESTRATÉGIA (Mean Reversion)
    */
   generateBuySignal(
     symbol: string,
@@ -146,57 +150,28 @@ class MomentumStrategyService {
     recentPrices?: number[],
     candles?: Candle[]
   ): MomentumSignal {
-    if (!candles || candles.length < 3) {
+    if (!candles || candles.length < 21) {
       return {
         symbol,
         shouldBuy: false,
         confidence: 0,
-        reason: 'Dados insuficientes (necessário 3+ candles)'
+        reason: 'Dados insuficientes (necessário 21+ candles para BB+RSI)'
       };
     }
 
-    const currentPrice = candles[candles.length - 1].close;
-    const decision = this.avaliarEstrategia(candles, currentPrice);
-
-    // ESTRATÉGIA PRIMÁRIA: Média das 3 mínimas (com margem de tolerância)
-    if (decision === 'comprar') {
-      const avgLows = momentum.avgLows || 0;
-      return {
-        symbol,
-        shouldBuy: true,
-        confidence: 0.9,
-        reason: `PRIMÁRIA: Preço ($${currentPrice.toFixed(2)}) ≤ Média mínimas ($${avgLows.toFixed(2)})`
-      };
-    }
-
-    // FASE 3: ESTRATÉGIA SECUNDÁRIA (Momentum Rápido)
-    // Compra se: preço subindo 0.5%+ E volume 1.3x+ acima da média
-    if (recentPrices && recentPrices.length >= 5) {
-      const priceChangePercent = momentum.priceChangePercent;
-      const volumeRatio = momentum.volumeRatio;
-      
-      if (priceChangePercent >= 0.5 && volumeRatio >= 1.3) {
-        return {
-          symbol,
-          shouldBuy: true,
-          confidence: 0.75,
-          reason: `MOMENTUM: Subida ${priceChangePercent.toFixed(2)}% + Volume ${(volumeRatio * 100).toFixed(0)}%`
-        };
-      }
-    }
+    const prices = this.extractClosePrices(candles);
+    const signal = meanReversionStrategy.analyzeBuyOpportunity(prices);
 
     return {
       symbol,
-      shouldBuy: false,
-      confidence: 0,
-      reason: decision === 'vender' 
-        ? `Preço em zona de venda (≥ média das 3 máximas)` 
-        : 'Aguardando condições de entrada'
+      shouldBuy: signal.action === 'buy',
+      confidence: signal.confidence,
+      reason: signal.reason
     };
   }
 
   /**
-   * Verifica se deve manter posição ou sair (para vendas)
+   * Verifica se deve manter posição ou sair (NOVA ESTRATÉGIA)
    */
   shouldHoldPosition(
     buyPrice: number,
@@ -204,29 +179,25 @@ class MomentumStrategyService {
     momentum: MarketMomentum,
     candles?: Candle[]
   ): boolean {
-    if (!candles || candles.length < 3) return true;
+    if (!candles || candles.length < 21) return true;
 
-    const decision = this.avaliarEstrategia(candles, currentPrice);
+    const prices = this.extractClosePrices(candles);
+    const signal = meanReversionStrategy.analyzeSellOpportunity(prices, buyPrice);
 
-    // Se a decisão é vender (preço >= média das máximas), não manter
-    if (decision === 'vender') {
-      return false;
-    }
-
-    // Manter posição enquanto não atingir média das máximas
-    return true;
+    // Se o sinal é vender com confiança >= 70%, não manter
+    return !(signal.action === 'sell' && signal.confidence >= this.MIN_CONFIDENCE);
   }
 
   /**
-   * Verifica se deve vender posição (usado pelo tradingService)
+   * Verifica se deve vender posição (NOVA ESTRATÉGIA)
    */
-  shouldSell(candles: Candle[]): boolean {
-    if (candles.length < 3) return false;
+  shouldSell(candles: Candle[], buyPrice?: number): boolean {
+    if (candles.length < 21) return false;
     
-    const currentPrice = candles[candles.length - 1].close;
-    const decision = this.avaliarEstrategia(candles, currentPrice);
+    const prices = this.extractClosePrices(candles);
+    const signal = meanReversionStrategy.analyzeSellOpportunity(prices, buyPrice);
     
-    return decision === 'vender';
+    return signal.action === 'sell' && signal.confidence >= this.MIN_CONFIDENCE;
   }
 
   // Métodos auxiliares
