@@ -17,11 +17,9 @@ export const BotSettings = () => {
     apiSecret: "",
     testMode: true,
     quantity: 100,
-    timeDifference: 5,
-    changeInPrice: 3,
     stopLoss: RISK_SETTINGS.STOP_LOSS_PERCENT,
     takeProfit: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
-    multiPairCount: 5, // Número de pares simultâneos
+    multiPairCount: 5,
   });
   const [loading, setLoading] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
@@ -58,8 +56,6 @@ export const BotSettings = () => {
           apiSecret: "",
           testMode: config.test_mode,
           quantity: Number(config.quantity),
-          timeDifference: 5,
-          changeInPrice: 3,
           stopLoss: RISK_SETTINGS.STOP_LOSS_PERCENT,
           takeProfit: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
           multiPairCount: 5,
@@ -194,17 +190,20 @@ export const BotSettings = () => {
 
                 {/* Trading Parameters */}
                 <div className="space-y-4">
-                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                    <div className="flex items-center gap-2 mb-2">
+                  <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                    <div className="flex items-center gap-2 mb-3">
                       <TrendingUp className="w-4 h-4 text-primary" />
-                      <span className="font-semibold text-primary">🎯 Sistema Multi-Par Ativo</span>
+                      <span className="font-semibold text-primary">📊 Estratégia: Mean Reversion</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      O bot monitora e negocia automaticamente múltiplos pares simultaneamente, selecionando os mais voláteis.
-                    </p>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <p><strong>Indicadores:</strong> Bollinger Bands (20, 2.0) + RSI (14)</p>
+                      <p><strong>Entrada:</strong> Preço ≤ Lower Band + RSI &lt; 35 (oversold)</p>
+                      <p><strong>Saída:</strong> Preço ≥ Upper Band + RSI &gt; 70 (overbought)</p>
+                      <p><strong>Proteção:</strong> Stop Loss 2.5% | Take Profit 5.0%</p>
+                    </div>
                     {currentPairs.length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-xs font-semibold text-primary">Pares Atuais:</p>
+                      <div className="space-y-1 mt-3 pt-3 border-t border-primary/20">
+                        <p className="text-xs font-semibold text-primary">Pares Monitorados:</p>
                         <div className="flex flex-wrap gap-1">
                           {currentPairs.map(pair => (
                             <Badge key={pair} variant="secondary" className="text-xs">
@@ -242,39 +241,30 @@ export const BotSettings = () => {
                       type="number"
                       value={settings.quantity}
                       onChange={(e) => setSettings({ ...settings, quantity: Number(e.target.value) })}
+                      min="10"
                     />
                     <p className="text-xs text-muted-foreground">
-                      Será distribuído automaticamente entre os pares
+                      Capital por rodada, distribuído entre {settings.multiPairCount} pares
                     </p>
                   </div>
 
-          <div className="space-y-2">
-            <Label>Intervalo de Tempo (minutos)</Label>
-            <Input
-              type="number"
-              value={settings.timeDifference}
-              onChange={(e) => setSettings({ ...settings, timeDifference: Number(e.target.value) })}
-              disabled
-            />
-          </div>
-
           <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
             <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-2">
-              🔒 Configurações Fixas de Risco
+              🔒 Parâmetros Fixos de Risco
             </p>
             <p className="text-xs text-muted-foreground mb-3">
-              Stop Loss e Take Profit são calculados sobre o <strong>capital inicial do dia</strong> e não podem ser alterados:
+              Valores otimizados para Mean Reversion (ratio 1:2 risk/reward):
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
                 <Label className="text-xs text-red-600 dark:text-red-400 font-semibold">Stop Loss</Label>
-                <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">3%</p>
-                <p className="text-xs text-muted-foreground mt-1">do capital inicial</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{RISK_SETTINGS.STOP_LOSS_PERCENT}%</p>
+                <p className="text-xs text-muted-foreground mt-1">por operação</p>
               </div>
               <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                 <Label className="text-xs text-green-600 dark:text-green-400 font-semibold">Take Profit</Label>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">6%</p>
-                <p className="text-xs text-muted-foreground mt-1">do capital inicial</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{RISK_SETTINGS.TAKE_PROFIT_PERCENT}%</p>
+                <p className="text-xs text-muted-foreground mt-1">por operação</p>
               </div>
             </div>
           </div>
