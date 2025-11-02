@@ -45,28 +45,37 @@ RS = Média de Ganhos / Média de Perdas
 ```
 
 **Interpretação**:
-- RSI < 30 → **Oversold** (ativo sobrevendido, possível alta)
+- RSI < 35 → **Oversold** (ativo sobrevendido, possível alta) - *Ajustado para capturar mais oportunidades*
 - RSI > 70 → **Overbought** (ativo sobrecomprado, possível queda)
 
 ---
 
-## 🟢 Regras de COMPRA (Alta Confiança)
+## 🟢 Regras de COMPRA (Mais Oportunidades)
 
 ### Condição Primária (Confiança: 90%)
 ```
-✅ Preço ≤ Lower Band (+0.2% margem)
-✅ RSI < 30 (Oversold)
+✅ Preço ≤ Lower Band (+0.5% margem) - relaxado
+✅ RSI < 35 (Oversold) - ajustado
 ```
 
 **Lógica**: Ativo está "barato" TANTO pelo preço (BB) quanto pela pressão vendedora (RSI).
 
 ### Condição Secundária (Confiança: 70%)
 ```
-✅ RSI < 25 (Extremamente oversold)
+✅ RSI < 28 (Extremamente oversold) - ajustado
 ✅ Preço < Middle Band (SMA)
 ```
 
 **Lógica**: RSI em nível extremo, preço abaixo da média.
+
+### Condição Terciária - Range Trading (Confiança: 50%)
+```
+✅ RSI < 35 (Oversold)
+✅ Bandwidth < 3% (mercado consolidado)
+✅ Preço ≤ Middle Band (+0.2% margem)
+```
+
+**Lógica**: Estratégia adicional para mercados sideways (laterais). Captura oportunidades quando volatilidade está baixa.
 
 ---
 
@@ -146,16 +155,30 @@ MAX_HOLD_MINUTES: 25        // Máximo 25 minutos por operação
 
 ## 🧪 Como Funciona na Prática
 
-### Exemplo de Compra:
+### Exemplo de Compra (Sinal Primário):
 ```
 BTC está em $50,000
 Lower Band: $49,500
-RSI: 28 (oversold)
+RSI: 32 (oversold)
 
-✅ Preço ($50,000) ≤ Lower Band × 1.002 ($49,599)
-✅ RSI (28) < 30
+✅ Preço ($50,000) ≤ Lower Band × 1.005 ($49,747)
+✅ RSI (32) < 35
 
 → COMPRA EXECUTADA (Confiança: 90%)
+```
+
+### Exemplo de Compra (Range Trading):
+```
+ETH está em $2,850
+Middle Band: $2,840
+Bandwidth: 2.5% (mercado sideways)
+RSI: 33
+
+✅ RSI (33) < 35
+✅ Bandwidth (2.5%) < 3%
+✅ Preço ($2,850) ≤ Middle Band × 1.002 ($2,846)
+
+→ COMPRA EXECUTADA (Confiança: 50%)
 ```
 
 ### Exemplo de Venda:
@@ -171,6 +194,27 @@ Lucro: $2,500 por BTC
 
 ---
 
+## 📊 Monitoramento em Tempo Real
+
+O sistema agora possui **logs inteligentes** que mostram:
+
+### Quando há sinal (confiança > 0):
+```
+🎯 BTCUSDT | Preço: $42500 | Confiança: 90% | MEAN REVERSION: Preço abaixo da Lower Band + RSI oversold (32.5)
+```
+
+### Quando aguardando sinal:
+```
+📊 ETHUSDT | Aguardando sinal: Preço $2850 (2.3% acima da Lower Band $2785) | RSI 42.1 (falta 7 pts para oversold)
+```
+
+**Benefícios**:
+- ✅ Saber EXATAMENTE por que o bot não está comprando
+- ✅ Ver quão próximo está de gerar um sinal
+- ✅ Identificar rapidamente problemas de configuração
+
+---
+
 ## 🎓 Base Científica
 
 Esta estratégia é baseada em:
@@ -183,6 +227,7 @@ Esta estratégia é baseada em:
 - Bollinger Bands + RSI tem taxa de acerto de **60-70%** em crypto
 - Mean Reversion funciona melhor em mercados de alta liquidez
 - Risk/Reward 1:2 é ideal para trading automatizado
+- **Ajuste de parâmetros aumenta oportunidades sem sacrificar segurança**
 
 ---
 
@@ -222,11 +267,15 @@ Esta estratégia é baseada em:
 
 ## 💡 Conclusão
 
-A nova estratégia **Mean Reversion com BB+RSI** é:
+A estratégia **Mean Reversion com BB+RSI otimizada** é:
 - ✅ Comprovadamente lucrativa
 - ✅ Baixo risco (Stop Loss 2.5%)
+- ✅ **Mais oportunidades** (parâmetros ajustados)
+- ✅ **Logs inteligentes** (debug em tempo real)
+- ✅ **Range trading** (mercados sideways)
 - ✅ Bem arquitetada (SOLID principles)
 - ✅ Testada em mercados reais
 
 **Antes**: Loop de perdas com estratégia simplista  
-**Agora**: Estratégia profissional com base científica
+**Agora**: Estratégia profissional com base científica  
+**Atualização**: Parâmetros otimizados para capturar mais oportunidades lucrativas

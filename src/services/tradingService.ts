@@ -304,7 +304,13 @@ class TradingService {
 
         const avgLows = momentum.avgLows || 0;
         const avgHighs = momentum.avgHighs || 0;
-        console.log(`📈 ${symbol} | Preço: $${currentPrice.toFixed(2)} | Média Mínimas: $${avgLows.toFixed(2)} | Média Máximas: $${avgHighs.toFixed(2)} | Tendência: ${momentum.trend} | Confiança: ${(signal.confidence * 100).toFixed(0)}%`);
+        
+        // Log detalhado com razão do sinal
+        if (signal.confidence > 0) {
+          console.log(`🎯 ${symbol} | Preço: $${currentPrice.toFixed(2)} | Confiança: ${(signal.confidence * 100).toFixed(0)}% | ${signal.reason}`);
+        } else {
+          console.log(`📊 ${symbol} | ${signal.reason}`);
+        }
 
         // Verificar sinal de compra da nova estratégia
         if (signal.shouldBuy && this.openPositions.size < maxPositions) {
