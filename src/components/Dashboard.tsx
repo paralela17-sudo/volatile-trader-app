@@ -765,10 +765,16 @@ export const Dashboard = () => {
 
                 {/* Trading Parameters */}
                 <div className="space-y-4">
-                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-semibold text-primary">🚀 Estratégia Momentum Trading:</span> Compra em alta com volume forte, vendas rápidas (5-15 min). Usa 20% do capital por rodada, distribuído entre pares com momentum positivo. Reinvestimento automático.
-                    </p>
+                  <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="font-semibold text-primary">📊 Estratégia: Mean Reversion</span>
+                    </div>
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <p><strong>Indicadores:</strong> Bollinger Bands (20, 2.0) + RSI (14)</p>
+                      <p><strong>Entrada:</strong> Preço ≤ Lower Band + RSI &lt; 35 (oversold)</p>
+                      <p><strong>Saída:</strong> Preço ≥ Upper Band + RSI &gt; 70 (overbought)</p>
+                      <p><strong>Proteção:</strong> Stop Loss {RISK_SETTINGS.STOP_LOSS_PERCENT}% | Take Profit {RISK_SETTINGS.TAKE_PROFIT_PERCENT}%</p>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -781,40 +787,28 @@ export const Dashboard = () => {
                       max="100000"
                       step="0.001"
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Intervalo de Tempo (minutos)</Label>
-                    <Input
-                      type="number"
-                      value={settings.timeDifference}
-                      onChange={(e) => setSettings({ ...settings, timeDifference: Number(e.target.value) })}
-                      disabled
-                    />
+                    <p className="text-xs text-muted-foreground">
+                      Capital por rodada, distribuído entre múltiplos pares
+                    </p>
                   </div>
 
                   <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
                     <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-2">
-                      🔒 Momentum Trading - Parâmetros Fixos
+                      🔒 Parâmetros Fixos de Risco
                     </p>
                     <p className="text-xs text-muted-foreground mb-3">
-                      Estratégia otimizada para operações rápidas (5-15 min):
+                      Valores otimizados para Mean Reversion (ratio 1:2 risk/reward):
                     </p>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
                         <Label className="text-xs text-red-600 dark:text-red-400 font-semibold">Stop Loss</Label>
-                        <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">1.5%</p>
-                        <p className="text-xs text-muted-foreground mt-1">por trade</p>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{RISK_SETTINGS.STOP_LOSS_PERCENT}%</p>
+                        <p className="text-xs text-muted-foreground mt-1">por operação</p>
                       </div>
                       <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
                         <Label className="text-xs text-green-600 dark:text-green-400 font-semibold">Take Profit</Label>
-                        <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">2.5%</p>
-                        <p className="text-xs text-muted-foreground mt-1">por trade</p>
-                      </div>
-                      <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                        <Label className="text-xs text-blue-600 dark:text-blue-400 font-semibold">Capital/Rodada</Label>
-                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">20%</p>
-                        <p className="text-xs text-muted-foreground mt-1">do total</p>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{RISK_SETTINGS.TAKE_PROFIT_PERCENT}%</p>
+                        <p className="text-xs text-muted-foreground mt-1">por operação</p>
                       </div>
                     </div>
                   </div>
