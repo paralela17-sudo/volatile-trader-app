@@ -8,6 +8,11 @@ export interface AccountStats {
   activePositions: number;
   totalProfit: number;
   profitHistory: { date: string; profit: number }[];
+  dailyProfit: number;
+  dailyProfitPercent: number;
+  currentBalance: number;
+  winRate24h: number;
+  monthlyProfit: number;
 }
 
 export const statsService = {
@@ -43,14 +48,7 @@ export const statsService = {
 
       if (error) {
         console.error('Error fetching trades for stats:', error);
-        return {
-          initialCapital: testMode ? testBalance : 0,
-          successRate: 0,
-          totalTrades: 0,
-          activePositions: 0,
-          totalProfit: 0,
-          profitHistory: []
-        };
+        return this.getEmptyStats(testMode, testBalance);
       }
 
       const allTrades = trades || [];
@@ -63,8 +61,9 @@ export const statsService = {
       }
 
       // Calcular capital alocado em posições abertas
-      // Posições abertas: BUY ainda sem lucro (não fechadas)
-      const openPositions = allTrades.filter((t: any) => t.side === 'BUY' && (t.profit_loss === null || typeof t.profit_loss === 'undefined'));
+      const openPositions = allTrades.filter((t: any) => 
+        t.side === 'BUY' && (t.profit_loss === null || typeof t.profit_loss === 'undefined')
+      );
       const allocatedCapital = openPositions.reduce((sum: number, t: any) => {
         return sum + (Number(t.price) * Number(t.quantity));
       }, 0);
@@ -77,13 +76,13 @@ export const statsService = {
         sum + (t.profit_loss || 0), 0
       );
 
-      // Capital inicial (fonte única da verdade): saldo base do modo atual
+      // Capital inicial
       const initialCapital = baseCapital;
 
       // Total de trades
       const totalTrades = allTrades.length;
 
-      // Taxa de sucesso (trades com lucro / total de trades executadas)
+      // Taxa de sucesso geral
       const profitableTrades = executedTrades.filter((t: any) => 
         (t.profit_loss || 0) > 0
       );
@@ -91,18 +90,49 @@ export const statsService = {
         ? (profitableTrades.length / executedTrades.length) * 100 
         : 0;
 
-      // Posições ativas (trades pendentes)
+      // Posições ativas
       const activePositions = openPositions.length;
 
-      console.log('📊 Stats calculadas:', {
-        baseCapital,
-        totalProfit,
-        allocatedCapital,
-        initialCapital,
-        totalTrades,
-        activePositions,
-        successRate
+      // Calcular lucro diário
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayTrades = executedTrades.filter((t: any) => {
+        const tradeDate = new Date(t.executed_at || t.created_at);
+        tradeDate.setHours(0, 0, 0, 0);
+        return tradeDate.getTime() === today.getTime();
       });
+      const dailyProfit = todayTrades.reduce((sum: number, t: any) => 
+        sum + (t.profit_loss || 0), 0
+      );
+      const dailyProfitPercent = initialCapital > 0 
+        ? (dailyProfit / initialCapital) * 100 
+        : 0;
+
+      // Saldo atual (capital inicial + lucro total - capital alocado)
+      const currentBalance = initialCapital + totalProfit;
+
+      // Win Rate últimas 24h
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const last24hTrades = executedTrades.filter((t: any) => {
+        const tradeDate = new Date(t.executed_at || t.created_at);
+        return tradeDate >= twentyFourHoursAgo;
+      });
+      const last24hWins = last24hTrades.filter((t: any) => (t.profit_loss || 0) > 0);
+      const winRate24h = last24hTrades.length > 0 
+        ? (last24hWins.length / last24hTrades.length) * 100 
+        : 0;
+
+      // Lucro mensal
+      const thisMonth = new Date();
+      thisMonth.setDate(1);
+      thisMonth.setHours(0, 0, 0, 0);
+      const monthlyTrades = executedTrades.filter((t: any) => {
+        const tradeDate = new Date(t.executed_at || t.created_at);
+        return tradeDate >= thisMonth;
+      });
+      const monthlyProfit = monthlyTrades.reduce((sum: number, t: any) => 
+        sum + (t.profit_loss || 0), 0
+      );
 
       // Histórico de lucro (agregado por dia)
       const profitByDate = executedTrades.reduce((acc: any, t: any) => {
@@ -117,24 +147,56 @@ export const statsService = {
         profit: profit as number
       }));
 
+      console.log('📊 Stats calculadas:', {
+        baseCapital,
+        totalProfit,
+        dailyProfit,
+        dailyProfitPercent,
+        currentBalance,
+        winRate24h,
+        monthlyProfit,
+        allocatedCapital,
+        initialCapital,
+        totalTrades,
+        activePositions,
+        successRate
+      });
+
       return {
         initialCapital,
         successRate,
         totalTrades,
         activePositions,
         totalProfit,
-        profitHistory
+        profitHistory,
+        dailyProfit,
+        dailyProfitPercent,
+        currentBalance,
+        winRate24h,
+        monthlyProfit,
       };
     } catch (error) {
       console.error('Exception in getAccountStats:', error);
-      return {
-        initialCapital: testMode ? testBalance : 0,
-        successRate: 0,
-        totalTrades: 0,
-        activePositions: 0,
-        totalProfit: 0,
-        profitHistory: []
-      };
+      return this.getEmptyStats(testMode, testBalance);
     }
+  },
+
+  /**
+   * Retorna estatísticas vazias
+   */
+  getEmptyStats(testMode: boolean, testBalance: number): AccountStats {
+    return {
+      initialCapital: testMode ? testBalance : 0,
+      successRate: 0,
+      totalTrades: 0,
+      activePositions: 0,
+      totalProfit: 0,
+      profitHistory: [],
+      dailyProfit: 0,
+      dailyProfitPercent: 0,
+      currentBalance: testMode ? testBalance : 0,
+      winRate24h: 0,
+      monthlyProfit: 0,
+    };
   }
 };

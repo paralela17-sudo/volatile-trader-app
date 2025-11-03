@@ -62,7 +62,12 @@ export const Dashboard = () => {
     totalTrades: 0,
     activePositions: 0,
     totalProfit: 0,
-    profitHistory: []
+    profitHistory: [],
+    dailyProfit: 0,
+    dailyProfitPercent: 0,
+    currentBalance: 0,
+    winRate24h: 0,
+    monthlyProfit: 0,
   });
   const [operationStats, setOperationStats] = useState<OperationStats>({
     lastOperationTime: null,
@@ -396,7 +401,12 @@ export const Dashboard = () => {
           totalTrades: 0,
           activePositions: 0,
           totalProfit: 0,
-          profitHistory: []
+          profitHistory: [],
+          dailyProfit: 0,
+          dailyProfitPercent: 0,
+          currentBalance: 1000,
+          winRate24h: 0,
+          monthlyProfit: 0,
         });
 
         setOperationStats({
@@ -572,40 +582,53 @@ export const Dashboard = () => {
           </div>
 
           {/* Top Metrics Row */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Saldo Inicial */}
             <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Capital Inicial</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Saldo Inicial</p>
                 <div className="flex items-end gap-2">
                   <p className="text-3xl font-bold text-primary tracking-tight">
                     ${accountStats.initialCapital.toFixed(2)}
                   </p>
                 </div>
+                <p className="text-xs text-muted-foreground">Saldo do dia</p>
               </div>
             </Card>
 
+            {/* Lucro Total do Dia */}
             <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Taxa de Sucesso</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Lucro Total do Dia</p>
                 <div className="flex items-end gap-2">
-                  <p className="text-3xl font-bold text-primary tracking-tight">
-                    {accountStats.successRate.toFixed(1)}%
+                  <p className={`text-3xl font-bold tracking-tight ${
+                    accountStats.dailyProfit >= 0 ? 'text-success' : 'text-destructive'
+                  }`}>
+                    ${accountStats.dailyProfit.toFixed(2)}
                   </p>
                 </div>
+                <p className={`text-xs ${
+                  accountStats.dailyProfitPercent >= 0 ? 'text-success' : 'text-destructive'
+                }`}>
+                  {accountStats.dailyProfitPercent >= 0 ? '+' : ''}{accountStats.dailyProfitPercent.toFixed(2)}% hoje
+                </p>
               </div>
             </Card>
 
+            {/* Saldo Atual */}
             <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total de Trades</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Saldo Atual</p>
                 <div className="flex items-end gap-2">
                   <p className="text-3xl font-bold text-primary tracking-tight">
-                    {accountStats.totalTrades}
+                    ${accountStats.currentBalance.toFixed(2)}
                   </p>
                 </div>
+                <p className="text-xs text-muted-foreground">Saldo atualizado</p>
               </div>
             </Card>
 
+            {/* Posições Ativas */}
             <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Posições Ativas</p>
@@ -614,6 +637,35 @@ export const Dashboard = () => {
                     {accountStats.activePositions}
                   </p>
                 </div>
+                <p className="text-xs text-muted-foreground">Trades abertos</p>
+              </div>
+            </Card>
+
+            {/* Taxa de Vitória */}
+            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Taxa de Vitória</p>
+                <div className="flex items-end gap-2">
+                  <p className="text-3xl font-bold text-primary tracking-tight">
+                    {accountStats.winRate24h.toFixed(1)}%
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">Últimas 24h</p>
+              </div>
+            </Card>
+
+            {/* Lucro Acumulado no Mês */}
+            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Lucro Acumulado no Mês</p>
+                <div className="flex items-end gap-2">
+                  <p className={`text-3xl font-bold tracking-tight ${
+                    accountStats.monthlyProfit >= 0 ? 'text-success' : 'text-destructive'
+                  }`}>
+                    ${accountStats.monthlyProfit.toFixed(2)}
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">Lucro mensal</p>
               </div>
             </Card>
           </div>
