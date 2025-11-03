@@ -10,7 +10,7 @@ import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut,
 import { StatsCard } from "./StatsCard";
 import { TradeHistory } from "./TradeHistory";
 import { AdminPanel } from "./AdminPanel";
-import { LiveTradingOperationsCard } from "./LiveTradingOperationsCard";
+
 import { MultiPairMonitor } from "./MultiPairMonitor";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -678,14 +678,6 @@ export const Dashboard = () => {
             </div>
           </Card>
 
-          {/* Live Trading Operations Card com Progresso Animado */}
-          <LiveTradingOperationsCard
-            lastOperationTime={operationStats.lastOperationTime}
-            totalOperationsToday={operationStats.totalOperationsToday}
-            lastOperationProfit={operationStats.lastOperationProfit}
-            lastOperationSide={operationStats.lastOperationSide}
-            lastOperationSymbol={operationStats.lastOperationSymbol}
-          />
 
           {/* Multi-Pair Monitor */}
           {botRunning && !botPoweredOff && (
