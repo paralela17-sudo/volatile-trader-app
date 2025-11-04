@@ -364,16 +364,18 @@ class TradingService {
         const avgMaximas = momentum.avgHighs || 0;
         console.log(`📊 ${position.symbol} | Compra: $${position.buyPrice.toFixed(2)} | Atual: $${currentPrice.price.toFixed(2)} | P/L: ${profitPercent.toFixed(2)}% | Média Máximas: $${avgMaximas.toFixed(2)}`);
 
-        // Check take profit (Momentum: 2.5%)
-        if (profitPercent >= RISK_SETTINGS.TAKE_PROFIT_PERCENT) {
-          console.log(`✅ Take profit atingido: ${profitPercent.toFixed(2)}%`);
+        // Check take profit (usar valor configurável do banco)
+        const takeProfitThreshold = this.config?.takeProfitPercent || RISK_SETTINGS.TAKE_PROFIT_PERCENT;
+        if (profitPercent >= takeProfitThreshold) {
+          console.log(`✅ Take profit atingido: ${profitPercent.toFixed(2)}% (limite: ${takeProfitThreshold}%)`);
           await this.executeSell(position, currentPrice.price, "TAKE_PROFIT");
           continue;
         }
 
-        // Check stop loss (Momentum: 1.0%)
-        if (profitPercent <= -RISK_SETTINGS.STOP_LOSS_PERCENT) {
-          console.log(`🛑 Stop loss atingido: ${profitPercent.toFixed(2)}%`);
+        // Check stop loss (usar valor configurável do banco)
+        const stopLossThreshold = this.config?.stopLossPercent || RISK_SETTINGS.STOP_LOSS_PERCENT;
+        if (profitPercent <= -stopLossThreshold) {
+          console.log(`🛑 Stop loss atingido: ${profitPercent.toFixed(2)}% (limite: -${stopLossThreshold}%)`);
           await this.executeSell(position, currentPrice.price, "STOP_LOSS");
           continue;
         }

@@ -13,6 +13,7 @@ import { AdminPanel } from "./AdminPanel";
 
 import { MultiPairMonitor } from "./MultiPairMonitor";
 import { LastRoundPerformance } from "./LastRoundPerformance";
+import { TradeAdjustments } from "./TradeAdjustments";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { pairSelectionService } from "@/services/pairSelectionService";
@@ -733,6 +734,9 @@ export const Dashboard = () => {
 
           {/* Performance da Última Rodada */}
           <LastRoundPerformance />
+
+          {/* Ajustes de Configuração */}
+          <TradeAdjustments />
 
           {/* Multi-Pair Monitor */}
           {botRunning && !botPoweredOff && (
