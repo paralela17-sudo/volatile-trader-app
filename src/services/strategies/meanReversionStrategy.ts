@@ -28,8 +28,8 @@ class MeanReversionStrategy {
   private readonly BB_PERIOD = 20;
   private readonly BB_STD_DEV = 2.0;
   private readonly RSI_PERIOD = 14;
-  private readonly RSI_OVERSOLD = 35; // Relaxado de 30 para 35
-  private readonly RSI_EXTREME_OVERSOLD = 28; // Relaxado de 25 para 28
+  private readonly RSI_OVERSOLD = 40; // Relaxado de 35 para 40 (mais oportunidades)
+  private readonly RSI_EXTREME_OVERSOLD = 30; // Relaxado de 28 para 30
   private readonly RSI_OVERBOUGHT = 70;
   private readonly RSI_EXTREME_OVERBOUGHT = 75;
   
@@ -63,7 +63,7 @@ class MeanReversionStrategy {
     }
 
     // CONDIÇÃO 1: Preço abaixo da Lower Band + RSI Oversold
-    const isPriceNearLowerBand = currentPrice <= bb.lower * 1.005; // 0.5% de margem (relaxado)
+    const isPriceNearLowerBand = currentPrice <= bb.lower * 1.01; // 1% de margem (relaxado para mais oportunidades)
     const isRSIOversold = rsi.value < this.RSI_OVERSOLD;
 
     if (isPriceNearLowerBand && isRSIOversold) {

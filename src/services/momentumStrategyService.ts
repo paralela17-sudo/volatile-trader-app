@@ -24,7 +24,7 @@ export interface MarketMomentum {
 }
 
 class MomentumStrategyService {
-  private readonly MIN_CONFIDENCE = 0.7;
+  private readonly MIN_CONFIDENCE = 0.5; // Reduzido para aceitar sinais de Range Trading
 
   /**
    * Extrai preços de fechamento dos candles

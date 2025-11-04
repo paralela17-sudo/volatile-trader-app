@@ -205,7 +205,7 @@ class TradingService {
     for (const symbol of this.config.symbols) {
       try {
         // Buscar candles para Mean Reversion (necessário 21+ para BB+RSI)
-        const candles = await binanceService.getCandles(symbol, '1m', 30);
+        const candles = await binanceService.getCandles(symbol, '1m', 50);
         if (!candles || candles.length < 3) {
           console.log(`${symbol}: Aguardando dados de candles...`);
           continue;
@@ -312,6 +312,9 @@ class TradingService {
           console.log(`📊 ${symbol} | ${signal.reason}`);
         }
 
+        // Debug: Verificar por que sinais não estão sendo aceitos
+        console.log(`🔍 DEBUG ${symbol}: shouldBuy=${signal.shouldBuy}, confidence=${signal.confidence.toFixed(2)}, openPositions=${this.openPositions.size}/${maxPositions}, candles=${candles.length}`);
+
         // Verificar sinal de compra da nova estratégia
         if (signal.shouldBuy && this.openPositions.size < maxPositions) {
           const allocation = this.capitalAllocations.get(symbol);
@@ -345,7 +348,7 @@ class TradingService {
       }
 
       // Obter candles atuais para decisão de venda (necessário 21+ para BB+RSI)
-      const candles = await binanceService.getCandles(position.symbol, '1m', 30);
+      const candles = await binanceService.getCandles(position.symbol, '1m', 50);
       const pairMonitor = multiPairService.getPair(position.symbol);
       
       if (candles && candles.length >= 3) {
