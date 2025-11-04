@@ -282,12 +282,12 @@ class TradingService {
         }
 
         // === THREE MIN/MAX STRATEGY ===
-        // Analisar momentum do par com candles (nova estratégia)
+        // Analisar momentum do par com candles FRESCOS (50 candles)
         const volumes = pairMonitor.lastVolumes.length > 0 ? pairMonitor.lastVolumes : undefined;
         const momentum = momentumStrategyService.analyzeMomentum(
           pairMonitor.lastPrices, 
           volumes,
-          pairMonitor.lastCandles
+          candles // CORREÇÃO: usar candles frescos (50) ao invés de pairMonitor.lastCandles (20)
         );
         
         // Aplicar filtros inteligentes (liquidez + volatilidade)
@@ -299,7 +299,7 @@ class TradingService {
           momentum,
           quoteVolume,
           pairMonitor.lastPrices,
-          pairMonitor.lastCandles
+          candles // CORREÇÃO: usar candles frescos (50) ao invés de pairMonitor.lastCandles (20)
         );
 
         const avgLows = momentum.avgLows || 0;
@@ -314,6 +314,9 @@ class TradingService {
 
         // Debug: Verificar por que sinais não estão sendo aceitos
         console.log(`🔍 DEBUG ${symbol}: shouldBuy=${signal.shouldBuy}, confidence=${signal.confidence.toFixed(2)}, openPositions=${this.openPositions.size}/${maxPositions}, candles=${candles.length}`);
+        
+        // Sanidade: Confirmar que estamos usando os candles corretos
+        console.log(`🧪 Candles usados p/ sinal ${symbol}: fresh=${candles.length}, monitor=${pairMonitor.lastCandles?.length ?? 0}`);
 
         // Verificar sinal de compra da nova estratégia
         if (signal.shouldBuy && this.openPositions.size < maxPositions) {

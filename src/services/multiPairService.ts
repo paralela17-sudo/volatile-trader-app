@@ -191,8 +191,9 @@ class MultiPairService {
 
     monitor.lastCandles.push(candle);
     
-    // Manter apenas os últimos 20 candles
-    if (monitor.lastCandles.length > 20) {
+    // Manter apenas os últimos 60 candles (aumentado de 20 para compatibilidade com estratégias)
+    const MAX_CANDLES = 60;
+    if (monitor.lastCandles.length > MAX_CANDLES) {
       monitor.lastCandles.shift();
     }
   }
