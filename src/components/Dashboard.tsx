@@ -14,6 +14,7 @@ import { AdminPanel } from "./AdminPanel";
 import { MultiPairMonitor } from "./MultiPairMonitor";
 import { LastRoundPerformance } from "./LastRoundPerformance";
 import { TradeAdjustments } from "./TradeAdjustments";
+import { CircuitBreakerBanner } from "./CircuitBreakerBanner";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { pairSelectionService } from "@/services/pairSelectionService";
@@ -581,6 +582,9 @@ export const Dashboard = () => {
               </Button>
             </div>
           </div>
+
+          {/* Circuit Breaker Banner */}
+          <CircuitBreakerBanner />
 
           {/* Top Metrics Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

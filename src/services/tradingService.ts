@@ -38,6 +38,7 @@ class TradingService {
   private pairCooldowns: Map<string, number> = new Map(); // Timestamp da última venda por par
   private pairLossCount: Map<string, number> = new Map(); // Contador de perdas por par
   private circuitBreakerUntil: number = 0; // Timestamp até quando o circuit breaker está ativo
+  private lastCBLogTime: number = 0; // Track last circuit breaker log time
   
   // FASE 3: Zona de recompra rápida
   private lastProfitableSells: Map<string, { price: number; time: number }> = new Map();
@@ -122,6 +123,17 @@ class TradingService {
         .eq("side", "BUY");
 
       if (trades) {
+        console.log(`📂 Carregadas ${trades.length} posições abertas do banco`);
+        
+        // Log detalhes de PENDING
+        if (trades.length > 0) {
+          console.log(`⏳ ${trades.length} ordens PENDING encontradas:`);
+          trades.forEach(t => {
+            const ageMinutes = Math.floor((Date.now() - new Date(t.created_at).getTime()) / 60000);
+            console.log(`  - ${t.symbol}: ${ageMinutes} min (criada em ${new Date(t.created_at).toLocaleTimeString()})`);
+          });
+        }
+        
         trades.forEach((trade) => {
           this.openPositions.set(trade.id, {
             tradeId: trade.id,
@@ -131,7 +143,7 @@ class TradingService {
             timestamp: new Date(trade.created_at).getTime(),
           });
         });
-        console.log(`Loaded ${this.openPositions.size} open positions`);
+        console.log(`✅ ${this.openPositions.size} posições ativas carregadas`);
       }
     } catch (error) {
       console.error("Error loading open positions:", error);
@@ -190,7 +202,26 @@ class TradingService {
     
     if (cbCheck.shouldPause) {
       this.circuitBreakerUntil = cbCheck.pauseUntil;
+      const minutesLeft = Math.ceil((cbCheck.pauseUntil - now) / 60000);
       console.log(`⚠️ Circuit breaker ativado: ${cbCheck.reason}`);
+      
+      // Registrar log persistente na primeira vez que detectar
+      if (!this.lastCBLogTime || now - this.lastCBLogTime > 300000) { // Log a cada 5min
+        const { logService } = await import("./botService");
+        await logService.addLog(
+          this.config.userId,
+          'WARNING',
+          `Circuit Breaker Ativado: ${cbCheck.reason}`,
+          {
+            lossStreak: stats.lossStreak,
+            dailyPnL: stats.dailyPnL,
+            pauseMinutes: minutesLeft,
+            pauseUntil: new Date(cbCheck.pauseUntil).toISOString(),
+          }
+        );
+        this.lastCBLogTime = now;
+      }
+      
       toast.error(`⚠️ Trading pausado: ${cbCheck.reason}`);
       return;
     }
@@ -336,6 +367,28 @@ class TradingService {
     if (!this.config || this.openPositions.size === 0) return;
 
     for (const [tradeId, position] of this.openPositions.entries()) {
+      const now = Date.now();
+      const elapsedMinutes = (now - position.timestamp) / 60000;
+      
+      // Verificar se é PENDING congelada (muito antiga sem execução)
+      const { data: tradeData } = await supabase
+        .from('trades')
+        .select('status')
+        .eq('id', position.tradeId)
+        .single();
+      
+      if (tradeData?.status === 'PENDING' && elapsedMinutes > RISK_SETTINGS.MAX_HOLD_MINUTES) {
+        console.log(`⚠️ Marcando PENDING congelada como FAILED: ${position.symbol} (${elapsedMinutes.toFixed(0)} min)`);
+        
+        await supabase
+          .from('trades')
+          .update({ status: 'FAILED' })
+          .eq('id', position.tradeId);
+        
+        this.openPositions.delete(tradeId);
+        continue;
+      }
+      
       const currentPrice = await binanceService.getPrice(position.symbol);
       if (!currentPrice) continue;
 
@@ -531,6 +584,59 @@ class TradingService {
 
   getCapitalAllocations(): Map<string, CapitalAllocation> {
     return this.capitalAllocations;
+  }
+
+  /**
+   * Retorna estado atual do circuit breaker
+   */
+  async getCircuitBreakerState(): Promise<{
+    active: boolean;
+    minutesLeft: number;
+    reason: string;
+  }> {
+    if (!this.config) {
+      return { active: false, minutesLeft: 0, reason: '' };
+    }
+
+    const opStats = await operationsStatsService.getTodayOperationsStats(this.config.userId);
+    const cbCheck = operationsStatsService.shouldActivateCircuitBreaker(
+      opStats,
+      this.config.totalCapital
+    );
+
+    return {
+      active: cbCheck.shouldPause,
+      minutesLeft: Math.ceil((cbCheck.pauseUntil - Date.now()) / 60000),
+      reason: cbCheck.reason,
+    };
+  }
+
+  /**
+   * Limpa circuit breaker (apenas em modo teste com confirmação)
+   */
+  async clearCircuitBreaker(): Promise<boolean> {
+    if (!this.config) return false;
+    
+    // Apenas permitido em modo teste
+    if (!this.config.testMode) {
+      console.warn('⚠️ Clear circuit breaker só permitido em modo teste');
+      return false;
+    }
+
+    console.log('✅ Circuit breaker limpo manualmente (modo teste)');
+    this.lastCBLogTime = 0;
+    this.circuitBreakerUntil = 0;
+    
+    // Log da ação
+    const { logService } = await import("./botService");
+    await logService.addLog(
+      this.config.userId,
+      'INFO',
+      'Circuit Breaker limpo manualmente (modo teste)',
+      { timestamp: new Date().toISOString() }
+    );
+    
+    return true;
   }
 }
 
