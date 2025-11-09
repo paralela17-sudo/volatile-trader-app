@@ -15,6 +15,7 @@ import { MultiPairMonitor } from "./MultiPairMonitor";
 import { LastRoundPerformance } from "./LastRoundPerformance";
 import { TradeAdjustments } from "./TradeAdjustments";
 import { CircuitBreakerBanner } from "./CircuitBreakerBanner";
+import { CircuitBreakerReset } from "./CircuitBreakerReset";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { pairSelectionService } from "@/services/pairSelectionService";
@@ -585,6 +586,14 @@ export const Dashboard = () => {
 
           {/* Circuit Breaker Banner */}
           <CircuitBreakerBanner />
+          
+          {/* Circuit Breaker Reset (Test Mode Only) */}
+          <CircuitBreakerReset 
+            testMode={settings.testMode}
+            onReset={() => {
+              loadAccountStats();
+            }}
+          />
 
           {/* Top Metrics Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
