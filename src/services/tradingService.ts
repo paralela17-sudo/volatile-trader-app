@@ -7,6 +7,7 @@ import { capitalDistributionService, type CapitalAllocation } from "./capitalDis
 import { momentumStrategyService } from "./momentumStrategyService";
 import { RISK_SETTINGS } from "./riskService";
 import { operationsStatsService } from "./operationsStatsService";
+import { adaptiveStrategyService, type AdaptiveRiskParams } from "./adaptiveStrategyService";
 
 export interface TradingConfig {
   userId: string;
@@ -39,6 +40,8 @@ class TradingService {
   private pairLossCount: Map<string, number> = new Map(); // Contador de perdas por par
   private circuitBreakerUntil: number = 0; // Timestamp até quando o circuit breaker está ativo
   private lastCBLogTime: number = 0; // Track last circuit breaker log time
+  private currentAdaptiveParams: AdaptiveRiskParams | null = null; // Parâmetros adaptativos atuais
+  private lastLossStreak: number = 0; // Loss streak anterior (para detectar mudanças)
   
   // FASE 3: Zona de recompra rápida
   private lastProfitableSells: Map<string, { price: number; time: number }> = new Map();
@@ -186,7 +189,36 @@ class TradingService {
   private async analyzeMarketAndTrade(): Promise<void> {
     if (!this.config) return;
 
-    // ===== CIRCUIT BREAKER (Proteção contra Drawdowns) =====
+    // ===== ESTRATÉGIA ADAPTATIVA (antes do Circuit Breaker) =====
+    // 1. Buscar stats e aplicar estratégia adaptativa ANTES do circuit breaker
+    const stats = await operationsStatsService.getTodayOperationsStats(this.config.userId);
+    const lossStreak = stats.lossStreak || 0;
+
+    // Aplicar ajuste adaptativo baseado em loss streak
+    this.currentAdaptiveParams = adaptiveStrategyService.getAdaptiveParams(lossStreak);
+    
+    // Detectar mudança de modo e logar
+    if (adaptiveStrategyService.hasStrategyChanged(this.lastLossStreak, lossStreak)) {
+      const summary = adaptiveStrategyService.getAdjustmentSummary(this.currentAdaptiveParams);
+      console.info(`🔄 ESTRATÉGIA ADAPTATIVA: ${this.currentAdaptiveParams.mode.toUpperCase()}`);
+      console.info(`📊 Loss Streak: ${lossStreak} | Ajustes: ${summary}`);
+      
+      const { logService } = await import("./botService");
+      await logService.addLog(
+        this.config.userId,
+        'INFO',
+        `Estratégia adaptativa ativada: ${this.currentAdaptiveParams.mode}`,
+        {
+          lossStreak,
+          mode: this.currentAdaptiveParams.mode,
+          reason: this.currentAdaptiveParams.reason,
+          adjustments: summary,
+        }
+      );
+    }
+    this.lastLossStreak = lossStreak;
+
+    // ===== CIRCUIT BREAKER (após ajustes adaptativos) =====
     const now = Date.now();
     if (now < this.circuitBreakerUntil) {
       const minutesLeft = Math.ceil((this.circuitBreakerUntil - now) / 60000);
@@ -196,8 +228,7 @@ class TradingService {
       return; // Não entrar em novas operações
     }
 
-    // Verificar circuit breaker baseado em estatísticas do dia
-    const stats = await operationsStatsService.getTodayOperationsStats(this.config.userId);
+    // 2. Verificar circuit breaker baseado em estatísticas do dia
     const cbCheck = operationsStatsService.shouldActivateCircuitBreaker(stats, this.config.totalCapital);
     
     if (cbCheck.shouldPause) {
@@ -224,6 +255,11 @@ class TradingService {
       
       toast.error(`⚠️ Trading pausado: ${cbCheck.reason}`);
       return;
+    }
+
+    // 3. Log estado da estratégia adaptativa (se ativa)
+    if (this.currentAdaptiveParams && this.currentAdaptiveParams.mode !== 'normal') {
+      console.info(`🛡️ Modo ${this.currentAdaptiveParams.mode.toUpperCase()} ativo | Loss Streak: ${lossStreak}`);
     }
 
     // Verificar se atingimos o limite de posições
@@ -293,12 +329,13 @@ class TradingService {
           }
         }
         
-        // ===== COOLDOWN DINÂMICO (aprende com perdas) =====
+        // ===== COOLDOWN DINÂMICO com parâmetros adaptativos =====
         const lastSellTime = this.pairCooldowns.get(symbol) || 0;
         const lossCount = this.pairLossCount.get(symbol) || 0;
         
-        // Cooldown base + adicional por perdas recentes
-        const baseCooldownMs = RISK_SETTINGS.PAIR_COOLDOWN_SECONDS * 1000;
+        // Cooldown adaptativo (aumenta em modo defensivo)
+        const adaptiveCooldownSeconds = this.currentAdaptiveParams?.pairCooldownSeconds || RISK_SETTINGS.PAIR_COOLDOWN_SECONDS;
+        const baseCooldownMs = adaptiveCooldownSeconds * 1000;
         const lossCooldownMs = lossCount * RISK_SETTINGS.LOSS_COOLDOWN_BASE_MINUTES * 60000;
         const totalCooldownMs = baseCooldownMs + lossCooldownMs;
         
@@ -321,10 +358,27 @@ class TradingService {
           candles // CORREÇÃO: usar candles frescos (50) ao invés de pairMonitor.lastCandles (20)
         );
         
-        // Aplicar filtros inteligentes (liquidez + volatilidade)
+        // Aplicar filtros adaptativos (liquidez + volatilidade)
         const quoteVolume = marketData?.volume && marketData?.price 
           ? marketData.volume * marketData.price 
           : undefined;
+        
+        // Filtro 1: Liquidez com parâmetros adaptativos
+        const minQuoteVolumeAdaptive = this.currentAdaptiveParams?.minQuoteVolume24hUsdt || RISK_SETTINGS.MIN_QUOTE_VOLUME_24H_USDT;
+        if (quoteVolume && quoteVolume < minQuoteVolumeAdaptive) {
+          console.log(`❌ ${symbol}: Volume insuficiente (${(quoteVolume / 1_000_000).toFixed(1)}M < ${(minQuoteVolumeAdaptive / 1_000_000).toFixed(1)}M) [${this.currentAdaptiveParams?.mode || 'normal'}]`);
+          continue;
+        }
+        
+        // Filtro 2: Volatilidade com parâmetros adaptativos
+        const recentPrices = pairMonitor.lastPrices.slice(-RISK_SETTINGS.VOLATILITY_WINDOW_TICKS);
+        const volatility = momentumStrategyService.calculateShortTermVolatility(recentPrices);
+        const minVolatilityAdaptive = this.currentAdaptiveParams?.minVolatilityPercent || RISK_SETTINGS.MIN_VOLATILITY_PERCENT;
+        if (volatility < minVolatilityAdaptive) {
+          console.log(`❌ ${symbol}: Volatilidade baixa (${volatility.toFixed(3)}% < ${minVolatilityAdaptive.toFixed(3)}%) [${this.currentAdaptiveParams?.mode || 'normal'}]`);
+          continue;
+        }
+        
         const signal = momentumStrategyService.generateBuySignal(
           symbol, 
           momentum,
@@ -349,12 +403,18 @@ class TradingService {
         // Sanidade: Confirmar que estamos usando os candles corretos
         console.log(`🧪 Candles usados p/ sinal ${symbol}: fresh=${candles.length}, monitor=${pairMonitor.lastCandles?.length ?? 0}`);
 
-        // Verificar sinal de compra da nova estratégia
+        // Verificar sinal de compra com alocação adaptativa
         if (signal.shouldBuy && this.openPositions.size < maxPositions) {
           const allocation = this.capitalAllocations.get(symbol);
           if (allocation) {
-            console.log(`🎯 Sinal de compra: ${signal.reason}`);
-            await this.executeBuy(symbol, currentPrice, allocation.quantity);
+            // Ajustar quantidade baseado em alocação adaptativa
+            const adaptiveAllocationPercent = this.currentAdaptiveParams?.maxAllocationPerPairPercent || RISK_SETTINGS.MAX_ALLOCATION_PER_PAIR_PERCENT;
+            const originalAllocationPercent = RISK_SETTINGS.MAX_ALLOCATION_PER_PAIR_PERCENT;
+            const allocationFactor = adaptiveAllocationPercent / originalAllocationPercent;
+            const adjustedQuantity = allocation.quantity * allocationFactor;
+            
+            console.log(`🎯 Sinal de compra: ${signal.reason} | Alocação: ${adaptiveAllocationPercent}% (${this.currentAdaptiveParams?.mode || 'normal'})`);
+            await this.executeBuy(symbol, currentPrice, adjustedQuantity);
           }
         }
       } catch (error) {
@@ -417,18 +477,18 @@ class TradingService {
         const avgMaximas = momentum.avgHighs || 0;
         console.log(`📊 ${position.symbol} | Compra: $${position.buyPrice.toFixed(2)} | Atual: $${currentPrice.price.toFixed(2)} | P/L: ${profitPercent.toFixed(2)}% | Média Máximas: $${avgMaximas.toFixed(2)}`);
 
-        // Check take profit (usar valor configurável do banco)
-        const takeProfitThreshold = this.config?.takeProfitPercent || RISK_SETTINGS.TAKE_PROFIT_PERCENT;
-        if (profitPercent >= takeProfitThreshold) {
-          console.log(`✅ Take profit atingido: ${profitPercent.toFixed(2)}% (limite: ${takeProfitThreshold}%)`);
+        // Check take profit com parâmetros adaptativos
+        const adaptiveTakeProfit = this.currentAdaptiveParams?.takeProfitPercent || this.config?.takeProfitPercent || RISK_SETTINGS.TAKE_PROFIT_PERCENT;
+        if (profitPercent >= adaptiveTakeProfit) {
+          console.log(`✅ Take profit atingido: ${profitPercent.toFixed(2)}% (limite adaptativo: ${adaptiveTakeProfit.toFixed(2)}%)`);
           await this.executeSell(position, currentPrice.price, "TAKE_PROFIT");
           continue;
         }
 
-        // Check stop loss (usar valor configurável do banco)
-        const stopLossThreshold = this.config?.stopLossPercent || RISK_SETTINGS.STOP_LOSS_PERCENT;
-        if (profitPercent <= -stopLossThreshold) {
-          console.log(`🛑 Stop loss atingido: ${profitPercent.toFixed(2)}% (limite: -${stopLossThreshold}%)`);
+        // Check stop loss com parâmetros adaptativos
+        const adaptiveStopLoss = this.currentAdaptiveParams?.stopLossPercent || this.config?.stopLossPercent || RISK_SETTINGS.STOP_LOSS_PERCENT;
+        if (profitPercent <= -adaptiveStopLoss) {
+          console.log(`🛑 Stop loss atingido: ${profitPercent.toFixed(2)}% (limite adaptativo: -${adaptiveStopLoss.toFixed(2)}%)`);
           await this.executeSell(position, currentPrice.price, "STOP_LOSS");
           continue;
         }
@@ -440,9 +500,10 @@ class TradingService {
           continue;
         }
 
-        // Proteção de lucro parcial: se subiu 1.5%+ mas preço está próximo da média das máximas
-        if (profitPercent >= RISK_SETTINGS.PROFIT_PROTECT_THRESHOLD && currentPrice.price >= avgMaximas * 0.98) {
-          console.log(`💰 Protegendo lucro parcial: ${profitPercent.toFixed(2)}% (próximo à média das máximas)`);
+        // Proteção de lucro parcial com threshold adaptativo
+        const adaptiveProfitProtect = this.currentAdaptiveParams?.profitProtectThreshold || RISK_SETTINGS.PROFIT_PROTECT_THRESHOLD;
+        if (profitPercent >= adaptiveProfitProtect && currentPrice.price >= avgMaximas * 0.98) {
+          console.log(`💰 Protegendo lucro parcial: ${profitPercent.toFixed(2)}% (threshold adaptativo: ${adaptiveProfitProtect.toFixed(2)}%)`);
           await this.executeSell(position, currentPrice.price, "PROFIT_PROTECT");
           continue;
         }
