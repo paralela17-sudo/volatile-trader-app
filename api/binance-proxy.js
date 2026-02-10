@@ -1,10 +1,8 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-
 /**
- * Binance API Proxy - Serverless Function for Vercel
+ * Binance API Proxy - Serverless Function for Vercel (Javascript Version)
  * Bypasses regional geoblocks by routing requests through Vercel's US-based infrastructure.
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
     // Configurar CORS
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -40,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const data = await response.json();
 
         return res.status(response.status).json(data);
-    } catch (error: any) {
+    } catch (error) {
         console.error('[Proxy Error]', error);
         return res.status(500).json({
             error: 'Proxy Error',
