@@ -1,11 +1,18 @@
-// Note: In browser environment, we don't use fs/path. 
-// Vite will skip these Node-only modules if they are not used in the bundle paths.
-
 const isBrowser = typeof window !== 'undefined';
 
 // No Navegador, buscamos dados injetados via script externo dashboard_data.js
 const getBrowserData = () => {
     return (window as any).BOT_DATA || { config: {}, trades: [], logs: [] };
+};
+
+// Helper for Node-only imports that Vite should ignore
+const nodeRequire = (mod: string) => {
+    if (isBrowser) return null;
+    try {
+        return require(mod);
+    } catch (e) {
+        return null;
+    }
 };
 
 export const localDb = {
@@ -15,9 +22,10 @@ export const localDb = {
             return getBrowserData().config || {};
         }
 
-        // Use dynamic require for Node modules to avoid Vite bundling them
-        const fs = require('fs');
-        const path = require('path');
+        const fs = nodeRequire('fs');
+        const path = nodeRequire('path');
+        if (!fs || !path) return {};
+
         const DATA_DIR = path.resolve(process.cwd(), 'data');
         const filePath = path.join(DATA_DIR, 'config.json');
 
@@ -43,8 +51,10 @@ export const localDb = {
             return false;
         }
 
-        const fs = require('fs');
-        const path = require('path');
+        const fs = nodeRequire('fs');
+        const path = nodeRequire('path');
+        if (!fs || !path) return false;
+
         const DATA_DIR = path.resolve(process.cwd(), 'data');
         const filePath = path.join(DATA_DIR, 'config.json');
         fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
@@ -58,8 +68,10 @@ export const localDb = {
             return [...trades].reverse().slice(0, limit);
         }
 
-        const fs = require('fs');
-        const path = require('path');
+        const fs = nodeRequire('fs');
+        const path = nodeRequire('path');
+        if (!fs || !path) return [];
+
         const DATA_DIR = path.resolve(process.cwd(), 'data');
         const filePath = path.join(DATA_DIR, 'trades.json');
         if (!fs.existsSync(filePath)) return [];
@@ -70,8 +82,10 @@ export const localDb = {
     addTrade: (trade: any) => {
         if (isBrowser) return false;
 
-        const fs = require('fs');
-        const path = require('path');
+        const fs = nodeRequire('fs');
+        const path = nodeRequire('path');
+        if (!fs || !path) return false;
+
         const DATA_DIR = path.resolve(process.cwd(), 'data');
         const filePath = path.join(DATA_DIR, 'trades.json');
         let trades = [];
@@ -91,8 +105,10 @@ export const localDb = {
     addLog: (level: string, message: string, details?: any) => {
         if (isBrowser) return false;
 
-        const fs = require('fs');
-        const path = require('path');
+        const fs = nodeRequire('fs');
+        const path = nodeRequire('path');
+        if (!fs || !path) return false;
+
         const DATA_DIR = path.resolve(process.cwd(), 'data');
         const filePath = path.join(DATA_DIR, 'logs.json');
         let logs = [];
@@ -117,8 +133,10 @@ export const localDb = {
             return [...logs].reverse().slice(0, limit);
         }
 
-        const fs = require('fs');
-        const path = require('path');
+        const fs = nodeRequire('fs');
+        const path = nodeRequire('path');
+        if (!fs || !path) return [];
+
         const DATA_DIR = path.resolve(process.cwd(), 'data');
         const filePath = path.join(DATA_DIR, 'logs.json');
         if (!fs.existsSync(filePath)) return [];

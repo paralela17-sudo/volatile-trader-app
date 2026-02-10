@@ -1,6 +1,3 @@
-// Note: Node-only imports removed to support Vite browser builds.
-import { RISK_SETTINGS } from './riskService';
-
 const isBrowser = typeof window !== 'undefined';
 
 interface MoltBotIntel {
@@ -21,17 +18,29 @@ interface MoltBotIntel {
     date: string;
 }
 
+// Helper for Node-only imports that Vite should ignore
+const nodeRequire = (mod: string) => {
+    if (isBrowser) return null;
+    try {
+        return require(mod);
+    } catch (e) {
+        return null;
+    }
+};
+
 class MoltBotIntelService {
     private intelPath: string | null = null;
 
     constructor() {
         if (!isBrowser) {
-            const path = require('path');
-            // Caminho relativo ao MoltBot no projeto pai
-            this.intelPath = path.resolve(
-                process.cwd(),
-                '../../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
-            );
+            const path = nodeRequire('path');
+            if (path) {
+                // Caminho relativo ao MoltBot no projeto pai
+                this.intelPath = path.resolve(
+                    process.cwd(),
+                    '../../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
+                );
+            }
         }
     }
 
@@ -39,10 +48,8 @@ class MoltBotIntelService {
         if (isBrowser) return null;
 
         try {
-            const fs = require('fs');
-            if (!this.intelPath || !fs.existsSync(this.intelPath)) {
-                // Silenced warning in dashboard to avoid spam
-                // console.warn(`[MoltBot] Relatório não encontrado em: ${this.intelPath}`);
+            const fs = nodeRequire('fs');
+            if (!this.intelPath || !fs || !fs.existsSync(this.intelPath)) {
                 return null;
             }
 
