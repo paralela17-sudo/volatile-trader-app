@@ -1,7 +1,24 @@
 import { createClient } from "@supabase/supabase-js";
 import { Database } from "./types";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// Universal environment variable access (Vite or Node.js)
+const getEnvVar = (key: string): string => {
+    // Browser/Vite environment
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+        return import.meta.env[key] || '';
+    }
+    // Node.js environment
+    if (typeof process !== 'undefined' && process.env) {
+        return process.env[key] || '';
+    }
+    return '';
+};
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+const SUPABASE_URL = getEnvVar('VITE_SUPABASE_URL');
+const SUPABASE_PUBLISHABLE_KEY = getEnvVar('VITE_SUPABASE_PUBLISHABLE_KEY');
+const SUPABASE_SERVICE_ROLE_KEY = getEnvVar('VITE_SUPABASE_SERVICE_ROLE_KEY');
+
+// Use Service Role Key if available (admin mode), otherwise use Publishable Key
+const FINAL_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_PUBLISHABLE_KEY;
+
+export const supabase = createClient<Database>(SUPABASE_URL, FINAL_KEY);

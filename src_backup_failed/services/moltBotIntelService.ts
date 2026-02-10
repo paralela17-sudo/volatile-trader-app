@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { RISK_SETTINGS } from './riskService';
+
+const isBrowser = typeof window !== 'undefined';
 
 interface MoltBotIntel {
     networkAnalysis: {
@@ -21,20 +22,23 @@ interface MoltBotIntel {
 }
 
 class MoltBotIntelService {
-    private intelPath: string;
+    private intelPath: string | null = null;
 
     constructor() {
-        // Caminho relativo ao MoltBot no projeto pai
-        this.intelPath = path.resolve(
-            process.cwd(),
-            '../../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
-        );
+        if (!isBrowser) {
+            // Caminho relativo ao MoltBot no projeto pai
+            this.intelPath = path.resolve(
+                process.cwd(),
+                '../../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
+            );
+        }
     }
 
     public getLatestIntel(): MoltBotIntel | null {
+        if (isBrowser) return null;
+
         try {
-            if (!fs.existsSync(this.intelPath)) {
-                console.warn(`[MoltBot] Relatório não encontrado em: ${this.intelPath}`);
+            if (!this.intelPath || !fs.existsSync(this.intelPath)) {
                 return null;
             }
 

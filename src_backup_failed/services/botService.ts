@@ -114,9 +114,10 @@ export const tradeService = {
 
     const { symbol: finalSymbol, side: finalSide, quantity: finalQuantity, type: finalType } = parsed.data;
 
-    // LOCAL EXECUTION (Bypass Supabase)
-    const apiKey = process.env.BINANCE_API_KEY || localDb.getConfig().api_key_encrypted;
-    const apiSecret = process.env.BINANCE_API_SECRET || localDb.getConfig().api_secret_encrypted;
+    // LOCAL EXECUTION (Bypass Supabase) - Use safely guarded environment or config
+    const safeEnv = (typeof process !== 'undefined' && process.env) ? process.env : (import.meta as any).env || {};
+    const apiKey = safeEnv.BINANCE_API_KEY || localDb.getConfig().api_key_encrypted;
+    const apiSecret = safeEnv.BINANCE_API_SECRET || localDb.getConfig().api_secret_encrypted;
 
     console.log(`[TradeService] Executando ordem LOCAL: ${finalSide} ${finalQuantity} ${finalSymbol}`);
 
