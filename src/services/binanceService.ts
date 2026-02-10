@@ -24,20 +24,71 @@ export interface Candle {
   timestamp: number;
 }
 
+const BINANCE_BASE_URLS = [
+  'https://api.binance.com',
+  'https://api1.binance.com',
+  'https://api2.binance.com',
+  'https://api3.binance.com'
+];
+
+// Vercel Proxy Fallback (Bypass Geoblock)
+// Note: This URL will be active once you deploy to Vercel
+const VERCEL_PROXY = '/api/binance-proxy';
+
 // Serviço para interação com a Binance API
 export const binanceService = {
+  async fetchWithRetry(path: string): Promise<any> {
+    // 1. Try direct mirrors
+    for (const baseUrl of BINANCE_BASE_URLS) {
+      try {
+        const response = await fetch(`${baseUrl}${path}`);
+        if (response.ok) return await response.json();
+
+        // If 451, don't even try other direct mirrors, go straight to proxy
+        if (response.status === 451) {
+          console.warn(`🛡️ Regional block detected (451) on ${baseUrl}. Switching to Vercel Proxy fallback...`);
+          break;
+        }
+      } catch (error) {
+        console.warn(`❌ Binance mirror ${baseUrl} unreachable.`);
+      }
+    }
+
+    // 2. Proxy Fallback (Serverless Bridge)
+    try {
+      const [apiPath, query] = path.split('?');
+      const proxyUrl = `${VERCEL_PROXY}?path=${apiPath}${query ? '&' + query : ''}`;
+
+      console.log(`📡 Fetching through local Proxy endpoint: ${proxyUrl}`);
+      const response = await fetch(proxyUrl);
+      if (response.ok) return await response.json();
+      console.error(`❌ Vercel Proxy fallback failed: ${response.status}`);
+    } catch (error) {
+      console.error(`❌ Vercel Proxy fallback unreachable: ${error}`);
+    }
+
+    throw new Error('All Binance API mirrors and Proxy failed');
+  },
+
   async getPrice(symbol: string): Promise<PriceData | null> {
     try {
-      const { data, error } = await supabase.functions.invoke('binance-get-price', {
-        body: { symbol }
-      });
-
-      if (error) {
-        console.error('Error fetching price:', error);
-        return null;
+      // Primary: Use Supabase Edge Function (Original Logic)
+      try {
+        const { data, error } = await supabase.functions.invoke('binance-get-price', {
+          body: { symbol }
+        });
+        if (!error && data) return data;
+      } catch (e) {
+        console.warn('Supabase function failed, falling back to direct/proxy...');
       }
 
-      return data;
+      // Secondary: Try direct/proxy fallback
+      const data = await this.fetchWithRetry(`/api/v3/ticker/price?symbol=${symbol}`);
+      return {
+        symbol: data.symbol,
+        price: parseFloat(data.price),
+        timestamp: Date.now()
+      };
     } catch (error) {
       console.error('Exception in getPrice:', error);
       return null;
@@ -46,14 +97,7 @@ export const binanceService = {
 
   async getMarketData(symbol: string): Promise<MarketData | null> {
     try {
-      // Usar API pública da Binance para dados de 24h
-      const response = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch market data');
-      }
-
-      const data = await response.json();
+      const data = await this.fetchWithRetry(`/api/v3/ticker/24hr?symbol=${symbol}`);
 
       return {
         symbol: data.symbol,
@@ -72,15 +116,9 @@ export const binanceService = {
 
   async getCandles(symbol: string, interval: string = '1m', limit: number = 20): Promise<Candle[]> {
     try {
-      const response = await fetch(
-        `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+      const data = await this.fetchWithRetry(
+        `/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
       );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch candles');
-      }
-
-      const data = await response.json();
 
       return data.map((candle: any) => ({
         timestamp: candle[0],
