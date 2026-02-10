@@ -16,8 +16,11 @@ class SupabaseSyncService {
 
     async initialize() {
         try {
+            // Safe process check
+            const safeProcess = typeof process !== 'undefined' ? process : { env: {} as any, versions: {} as any };
+
             // Check if we have a Service Role Key (Admin Mode)
-            const serviceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+            const serviceKey = safeProcess.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
             if (serviceKey && isNode) {
                 console.log('📡 Supabase sync: Initializing in ADMIN mode.');
@@ -58,10 +61,12 @@ class SupabaseSyncService {
     async heartbeat() {
         if (!this.syncEnabled || !this.userId) return;
 
+        const safeProcess = typeof process !== 'undefined' ? process : { platform: 'browser', uptime: () => 0 };
+
         await this.syncLog('INFO', 'Bot Heartbeat: System is healthy and monitoring.', {
             timestamp: new Date().toISOString(),
-            platform: process.platform,
-            uptime: Math.floor(process.uptime())
+            platform: safeProcess.platform,
+            uptime: Math.floor(typeof safeProcess.uptime === 'function' ? safeProcess.uptime() : 0)
         });
     }
 
