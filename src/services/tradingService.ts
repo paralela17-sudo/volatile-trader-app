@@ -1,13 +1,13 @@
-import { supabase } from "@/integrations/supabase/client";
 import { binanceService } from "./binanceService";
-import { tradeService } from "./botService";
-import { toast } from "sonner";
+import { tradeService, logService } from "./botService";
+import { localDb } from "./localDbService";
 import { multiPairService } from "./multiPairService";
 import { capitalDistributionService, type CapitalAllocation } from "./capitalDistributionService";
 import { momentumStrategyService } from "./momentumStrategyService";
 import { RISK_SETTINGS } from "./riskService";
 import { operationsStatsService } from "./operationsStatsService";
 import { adaptiveStrategyService, type AdaptiveRiskParams } from "./adaptiveStrategyService";
+import { moltBotIntelService } from "./moltBotIntelService";
 
 export interface TradingConfig {
   userId: string;
@@ -42,10 +42,10 @@ class TradingService {
   private lastCBLogTime: number = 0; // Track last circuit breaker log time
   private currentAdaptiveParams: AdaptiveRiskParams | null = null; // Parâmetros adaptativos atuais
   private lastLossStreak: number = 0; // Loss streak anterior (para detectar mudanças)
-  
+
   // FASE 3: Zona de recompra rápida
   private lastProfitableSells: Map<string, { price: number; time: number }> = new Map();
-  
+
   // Momentum Trading Strategy Parameters (SSOT via RISK_SETTINGS)
   private readonly PRICE_CHECK_INTERVAL = 3000; // 3 segundos (mais rápido)
   private readonly POSITION_CHECK_INTERVAL = 2000; // 2 segundos (mais rápido)
@@ -60,12 +60,12 @@ class TradingService {
 
     this.config = config;
     this.isRunning = true;
-    
+
     console.log("Starting multi-pair automated trading...", config);
-    
+
     // Iniciar serviço de múltiplos pares com os símbolos configurados
     await multiPairService.start(config.symbols);
-    
+
     // Distribuir capital entre os pares
     this.capitalAllocations = await capitalDistributionService.distributeCapital(
       config.userId,
@@ -73,8 +73,8 @@ class TradingService {
       config.symbols,
       config.testMode
     );
-    
-    toast.success(`🚀 Momentum Trading ativado! Usando 20% do capital em ${config.symbols.length} pares.`);
+
+    // multiPairService.start já loga internamente
 
     // Load existing open positions
     await this.loadOpenPositions();
@@ -82,21 +82,51 @@ class TradingService {
     // Start monitoring market and positions
     this.startMarketMonitoring();
     this.startPositionMonitoring();
-    
+
     // Start auto-reinvestment monitoring
     if (RISK_SETTINGS.AUTO_REINVEST) {
       this.startReinvestmentMonitoring();
     }
   }
 
+  public getIsRunning(): boolean {
+    return this.isRunning;
+  }
+
+  /**
+   * Updates trading parameters at runtime (from AI or Remote)
+   */
+  public updateParameters(params: Partial<AdaptiveRiskParams>): void {
+    if (!this.isRunning) return;
+
+    if (params.stopLossPercent !== undefined) RISK_SETTINGS.STOP_LOSS_PERCENT = params.stopLossPercent;
+    if (params.takeProfitPercent !== undefined) RISK_SETTINGS.TAKE_PROFIT_PERCENT = params.takeProfitPercent;
+    if (params.momentumBuyThreshold !== undefined) RISK_SETTINGS.MOMENTUM_BUY_THRESHOLD = params.momentumBuyThreshold;
+
+    console.log('🧠 [TradingService] Parameters updated:', {
+      SL: RISK_SETTINGS.STOP_LOSS_PERCENT,
+      TP: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+      Threshold: RISK_SETTINGS.MOMENTUM_BUY_THRESHOLD
+    });
+
+    // Mirror to Supabase if config is available
+    if (this.config) {
+      logService.addLog('INFO', 'AI/Remote updated trading parameters', { params });
+    }
+  }
+
+  public getSettings() {
+    return RISK_SETTINGS;
+  }
+
   async stop(): Promise<void> {
     this.isRunning = false;
-    
+
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
     }
-    
+
     if (this.priceCheckInterval) {
       clearInterval(this.priceCheckInterval);
       this.priceCheckInterval = null;
@@ -111,33 +141,19 @@ class TradingService {
     multiPairService.stop();
 
     console.log("Stopped Momentum Trading");
-    toast.info("Trading automático pausado");
   }
 
   private async loadOpenPositions(): Promise<void> {
     if (!this.config) return;
 
     try {
-      const { data: trades } = await supabase
-        .from("trades")
-        .select("*")
-        .eq("user_id", this.config.userId)
-        .eq("status", "PENDING")
-        .eq("side", "BUY");
+      const trades = localDb.getTrades(200);
+      const openTrades = trades.filter((t: any) => t.status === 'PENDING' && t.side === 'BUY');
 
-      if (trades) {
-        console.log(`📂 Carregadas ${trades.length} posições abertas do banco`);
-        
-        // Log detalhes de PENDING
-        if (trades.length > 0) {
-          console.log(`⏳ ${trades.length} ordens PENDING encontradas:`);
-          trades.forEach(t => {
-            const ageMinutes = Math.floor((Date.now() - new Date(t.created_at).getTime()) / 60000);
-            console.log(`  - ${t.symbol}: ${ageMinutes} min (criada em ${new Date(t.created_at).toLocaleTimeString()})`);
-          });
-        }
-        
-        trades.forEach((trade) => {
+      if (openTrades.length > 0) {
+        console.log(`📂 Carregadas ${openTrades.length} posições abertas do banco local`);
+
+        openTrades.forEach((trade: any) => {
           this.openPositions.set(trade.id, {
             tradeId: trade.id,
             symbol: trade.symbol,
@@ -196,16 +212,15 @@ class TradingService {
 
     // Aplicar ajuste adaptativo baseado em loss streak
     this.currentAdaptiveParams = adaptiveStrategyService.getAdaptiveParams(lossStreak);
-    
+
     // Detectar mudança de modo e logar
     if (adaptiveStrategyService.hasStrategyChanged(this.lastLossStreak, lossStreak)) {
       const summary = adaptiveStrategyService.getAdjustmentSummary(this.currentAdaptiveParams);
       console.info(`🔄 ESTRATÉGIA ADAPTATIVA: ${this.currentAdaptiveParams.mode.toUpperCase()}`);
       console.info(`📊 Loss Streak: ${lossStreak} | Ajustes: ${summary}`);
-      
+
       const { logService } = await import("./botService");
       await logService.addLog(
-        this.config.userId,
         'INFO',
         `Estratégia adaptativa ativada: ${this.currentAdaptiveParams.mode}`,
         {
@@ -217,6 +232,15 @@ class TradingService {
       );
     }
     this.lastLossStreak = lossStreak;
+
+    // ===== INTEGRAÇÃO MOLTBOT INTEL (Gemini/Groq) =====
+    // Aplicar ajustes sugeridos pela inteligência externa
+    const intel = moltBotIntelService.getLatestIntel();
+    if (intel) {
+      console.info(`🧠 [MoltBot Intel] Relatório de ${new Date(intel.date).toLocaleTimeString()} carregado.`);
+      // O moltBotIntelService.applyIntelToRisk ajusta parâmetros em tempo real
+      // Aqui poderíamos injetar modificadores na estratégia adaptive
+    }
 
     // ===== CIRCUIT BREAKER (após ajustes adaptativos) =====
     const now = Date.now();
@@ -230,17 +254,16 @@ class TradingService {
 
     // 2. Verificar circuit breaker baseado em estatísticas do dia
     const cbCheck = operationsStatsService.shouldActivateCircuitBreaker(stats, this.config.totalCapital);
-    
+
     if (cbCheck.shouldPause) {
       this.circuitBreakerUntil = cbCheck.pauseUntil;
       const minutesLeft = Math.ceil((cbCheck.pauseUntil - now) / 60000);
       console.log(`⚠️ Circuit breaker ativado: ${cbCheck.reason}`);
-      
+
       // Registrar log persistente na primeira vez que detectar
       if (!this.lastCBLogTime || now - this.lastCBLogTime > 300000) { // Log a cada 5min
         const { logService } = await import("./botService");
         await logService.addLog(
-          this.config.userId,
           'WARNING',
           `Circuit Breaker Ativado: ${cbCheck.reason}`,
           {
@@ -252,8 +275,8 @@ class TradingService {
         );
         this.lastCBLogTime = now;
       }
-      
-      toast.error(`⚠️ Trading pausado: ${cbCheck.reason}`);
+
+      logService.addLog('ERROR', `Trading pausado: ${cbCheck.reason}`);
       return;
     }
 
@@ -301,13 +324,13 @@ class TradingService {
         // Verificar se já temos posição aberta neste par
         const hasOpenPosition = Array.from(this.openPositions.values())
           .some(pos => pos.symbol === symbol);
-        
+
         if (hasOpenPosition) continue;
 
         // ===== FASE 3: ZONA DE RECOMPRA RÁPIDA =====
         const lastProfitSell = this.lastProfitableSells.get(symbol);
         const now = Date.now();
-        
+
         // Se vendeu com lucro nos últimos 30s e preço voltou para zona de compra
         if (lastProfitSell && now - lastProfitSell.time < 30000) {
           const momentum = momentumStrategyService.analyzeMomentum(
@@ -317,7 +340,7 @@ class TradingService {
           );
           const avgLows = momentum.avgLows || 0;
           const rebuyZone = avgLows * 1.003; // +0.3% de tolerância
-          
+
           if (currentPrice <= rebuyZone) {
             console.log(`🔄 ${symbol} RECOMPRA RÁPIDA: Preço voltou para $${currentPrice.toFixed(2)} (zona: $${rebuyZone.toFixed(2)})`);
             const allocation = this.capitalAllocations.get(symbol);
@@ -328,17 +351,17 @@ class TradingService {
             }
           }
         }
-        
+
         // ===== COOLDOWN DINÂMICO com parâmetros adaptativos =====
         const lastSellTime = this.pairCooldowns.get(symbol) || 0;
         const lossCount = this.pairLossCount.get(symbol) || 0;
-        
+
         // Cooldown adaptativo (aumenta em modo defensivo)
         const adaptiveCooldownSeconds = this.currentAdaptiveParams?.pairCooldownSeconds || RISK_SETTINGS.PAIR_COOLDOWN_SECONDS;
         const baseCooldownMs = adaptiveCooldownSeconds * 1000;
         const lossCooldownMs = lossCount * RISK_SETTINGS.LOSS_COOLDOWN_BASE_MINUTES * 60000;
         const totalCooldownMs = baseCooldownMs + lossCooldownMs;
-        
+
         if (now - lastSellTime < totalCooldownMs) {
           const remainingMinutes = Math.ceil((totalCooldownMs - (now - lastSellTime)) / 60000);
           if (lossCount > 0) {
@@ -353,23 +376,23 @@ class TradingService {
         // Analisar momentum do par com candles FRESCOS (50 candles)
         const volumes = pairMonitor.lastVolumes.length > 0 ? pairMonitor.lastVolumes : undefined;
         const momentum = momentumStrategyService.analyzeMomentum(
-          pairMonitor.lastPrices, 
+          pairMonitor.lastPrices,
           volumes,
           candles // CORREÇÃO: usar candles frescos (50) ao invés de pairMonitor.lastCandles (20)
         );
-        
+
         // Aplicar filtros adaptativos (liquidez + volatilidade)
-        const quoteVolume = marketData?.volume && marketData?.price 
-          ? marketData.volume * marketData.price 
+        const quoteVolume = marketData?.volume && marketData?.price
+          ? marketData.volume * marketData.price
           : undefined;
-        
+
         // Filtro 1: Liquidez com parâmetros adaptativos
         const minQuoteVolumeAdaptive = this.currentAdaptiveParams?.minQuoteVolume24hUsdt || RISK_SETTINGS.MIN_QUOTE_VOLUME_24H_USDT;
         if (quoteVolume && quoteVolume < minQuoteVolumeAdaptive) {
           console.log(`❌ ${symbol}: Volume insuficiente (${(quoteVolume / 1_000_000).toFixed(1)}M < ${(minQuoteVolumeAdaptive / 1_000_000).toFixed(1)}M) [${this.currentAdaptiveParams?.mode || 'normal'}]`);
           continue;
         }
-        
+
         // Filtro 2: Volatilidade com parâmetros adaptativos
         const recentPrices = pairMonitor.lastPrices.slice(-RISK_SETTINGS.VOLATILITY_WINDOW_TICKS);
         const volatility = momentumStrategyService.calculateShortTermVolatility(recentPrices);
@@ -378,9 +401,9 @@ class TradingService {
           console.log(`❌ ${symbol}: Volatilidade baixa (${volatility.toFixed(3)}% < ${minVolatilityAdaptive.toFixed(3)}%) [${this.currentAdaptiveParams?.mode || 'normal'}]`);
           continue;
         }
-        
+
         const signal = momentumStrategyService.generateBuySignal(
-          symbol, 
+          symbol,
           momentum,
           quoteVolume,
           pairMonitor.lastPrices,
@@ -389,7 +412,7 @@ class TradingService {
 
         const avgLows = momentum.avgLows || 0;
         const avgHighs = momentum.avgHighs || 0;
-        
+
         // Log detalhado com razão do sinal
         if (signal.confidence > 0) {
           console.log(`🎯 ${symbol} | Preço: $${currentPrice.toFixed(2)} | Confiança: ${(signal.confidence * 100).toFixed(0)}% | ${signal.reason}`);
@@ -399,7 +422,7 @@ class TradingService {
 
         // Debug: Verificar por que sinais não estão sendo aceitos
         console.log(`🔍 DEBUG ${symbol}: shouldBuy=${signal.shouldBuy}, confidence=${signal.confidence.toFixed(2)}, openPositions=${this.openPositions.size}/${maxPositions}, candles=${candles.length}`);
-        
+
         // Sanidade: Confirmar que estamos usando os candles corretos
         console.log(`🧪 Candles usados p/ sinal ${symbol}: fresh=${candles.length}, monitor=${pairMonitor.lastCandles?.length ?? 0}`);
 
@@ -412,7 +435,7 @@ class TradingService {
             const originalAllocationPercent = RISK_SETTINGS.MAX_ALLOCATION_PER_PAIR_PERCENT;
             const allocationFactor = adaptiveAllocationPercent / originalAllocationPercent;
             const adjustedQuantity = allocation.quantity * allocationFactor;
-            
+
             console.log(`🎯 Sinal de compra: ${signal.reason} | Alocação: ${adaptiveAllocationPercent}% (${this.currentAdaptiveParams?.mode || 'normal'})`);
             await this.executeBuy(symbol, currentPrice, adjustedQuantity);
           }
@@ -429,26 +452,14 @@ class TradingService {
     for (const [tradeId, position] of this.openPositions.entries()) {
       const now = Date.now();
       const elapsedMinutes = (now - position.timestamp) / 60000;
-      
-      // Verificar se é PENDING congelada (muito antiga sem execução)
-      const { data: tradeData } = await supabase
-        .from('trades')
-        .select('status')
-        .eq('id', position.tradeId)
-        .single();
-      
-      if (tradeData?.status === 'PENDING' && elapsedMinutes > RISK_SETTINGS.MAX_HOLD_MINUTES) {
-        console.log(`⚠️ Marcando PENDING congelada como FAILED: ${position.symbol} (${elapsedMinutes.toFixed(0)} min)`);
-        
-        await supabase
-          .from('trades')
-          .update({ status: 'FAILED' })
-          .eq('id', position.tradeId);
-        
-        this.openPositions.delete(tradeId);
+
+      // Verificar se posição está expirada (hold time)
+      if (elapsedMinutes > RISK_SETTINGS.MAX_HOLD_MINUTES) {
+        console.log(`⚠️ Marcando posição expirada como TIMEOUT_EXIT: ${position.symbol} (${elapsedMinutes.toFixed(0)} min)`);
+        await this.executeSell(position, position.buyPrice, "TIMEOUT_EXIT");
         continue;
       }
-      
+
       const currentPrice = await binanceService.getPrice(position.symbol);
       if (!currentPrice) continue;
 
@@ -458,7 +469,7 @@ class TradingService {
       const holdMs = Date.now() - position.timestamp;
       const maxHoldMs = RISK_SETTINGS.MAX_HOLD_MINUTES * 60 * 1000;
       if (holdMs >= maxHoldMs) {
-        console.log(`⏱️ Tempo máximo atingido para ${position.symbol} (${(holdMs/60000).toFixed(1)}min). Encerrando posição.`);
+        console.log(`⏱️ Tempo máximo atingido para ${position.symbol} (${(holdMs / 60000).toFixed(1)}min). Encerrando posição.`);
         await this.executeSell(position, currentPrice.price, "TIMEOUT_EXIT");
         continue;
       }
@@ -466,14 +477,14 @@ class TradingService {
       // Obter candles atuais para decisão de venda (necessário 21+ para BB+RSI)
       const candles = await binanceService.getCandles(position.symbol, '1m', 50);
       const pairMonitor = multiPairService.getPair(position.symbol);
-      
+
       if (candles && candles.length >= 3) {
         const momentum = momentumStrategyService.analyzeMomentum(
           pairMonitor?.lastPrices || [],
           undefined,
           candles
         );
-        
+
         const avgMaximas = momentum.avgHighs || 0;
         console.log(`📊 ${position.symbol} | Compra: $${position.buyPrice.toFixed(2)} | Atual: $${currentPrice.price.toFixed(2)} | P/L: ${profitPercent.toFixed(2)}% | Média Máximas: $${avgMaximas.toFixed(2)}`);
 
@@ -536,7 +547,7 @@ class TradingService {
 
     try {
       console.log(`🟢 Executando COMPRA: ${symbol} @ $${price.toFixed(2)} (qty: ${quantity})`);
-      
+
       const result = await tradeService.executeTrade(
         symbol,
         "BUY",
@@ -553,11 +564,11 @@ class TradingService {
           timestamp: Date.now(),
         });
 
-        toast.success(`🚀 Compra: ${symbol} @ $${price.toFixed(2)}`);
+        logService.addLog('SUCCESS', `🚀 Compra: ${symbol} @ $${price.toFixed(2)}`);
       }
     } catch (error) {
       console.error("Error executing buy:", error);
-      toast.error("Erro ao executar compra");
+      logService.addLog('ERROR', "Erro ao executar compra");
     }
   }
 
@@ -567,9 +578,9 @@ class TradingService {
     try {
       const profitPercent = ((price - position.buyPrice) / position.buyPrice) * 100;
       const reasonEmoji = reason === "TAKE_PROFIT" ? "✅" : reason === "STOP_LOSS" ? "🛑" : "⚠️";
-      
+
       console.log(`🔴 Executando VENDA: ${position.symbol} @ $${price.toFixed(2)} | ${reason} (${profitPercent.toFixed(2)}%)`);
-      
+
       const result = await tradeService.executeTrade(
         position.symbol,
         "SELL",
@@ -585,21 +596,12 @@ class TradingService {
           position.quantity
         );
 
-        // Update the original buy trade with profit/loss
-        await supabase
-          .from("trades")
-          .update({
-            status: "EXECUTED",
-            profit_loss: profitLoss,
-            executed_at: new Date().toISOString(),
-          })
-          .eq("id", position.tradeId);
-
+        // Update localDb trade (simulado via lógica do addTrade no executeTrade)
         this.openPositions.delete(position.tradeId);
 
         // Registrar cooldown do par
         this.pairCooldowns.set(position.symbol, Date.now());
-        
+
         // ===== COOLDOWN DINÂMICO: Atualizar contador de perdas =====
         if (reason === "STOP_LOSS") {
           const currentCount = this.pairLossCount.get(position.symbol) || 0;
@@ -609,7 +611,7 @@ class TradingService {
           // Reset contador de perdas ao ter sucesso
           this.pairLossCount.set(position.symbol, 0);
           console.log(`✅ Contador de perdas resetado para ${position.symbol}`);
-          
+
           // FASE 3: Registrar venda lucrativa para zona de recompra
           this.lastProfitableSells.set(position.symbol, {
             price: price,
@@ -618,7 +620,7 @@ class TradingService {
           console.log(`🔄 Zona de recompra ativada para ${position.symbol} (30s)`);
         }
 
-        toast.success(
+        logService.addLog('SUCCESS',
           `${reasonEmoji} Venda: ${position.symbol} @ $${price.toFixed(2)} | ${profitPercent > 0 ? "Lucro" : "Perda"}: ${profitPercent.toFixed(2)}%`
         );
 
@@ -627,7 +629,7 @@ class TradingService {
       }
     } catch (error) {
       console.error("Error executing sell:", error);
-      toast.error("Erro ao executar venda");
+      logService.addLog('ERROR', `Erro ao executar venda: ${position.symbol}`);
     }
   }
 
@@ -677,7 +679,7 @@ class TradingService {
    */
   async clearCircuitBreaker(): Promise<boolean> {
     if (!this.config) return false;
-    
+
     // Apenas permitido em modo teste
     if (!this.config.testMode) {
       console.warn('⚠️ Clear circuit breaker só permitido em modo teste');
@@ -687,16 +689,15 @@ class TradingService {
     console.log('✅ Circuit breaker limpo manualmente (modo teste)');
     this.lastCBLogTime = 0;
     this.circuitBreakerUntil = 0;
-    
+
     // Log da ação
     const { logService } = await import("./botService");
     await logService.addLog(
-      this.config.userId,
       'INFO',
       'Circuit Breaker limpo manualmente (modo teste)',
       { timestamp: new Date().toISOString() }
     );
-    
+
     return true;
   }
 }

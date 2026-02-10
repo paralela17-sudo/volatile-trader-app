@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { localDb } from "./localDbService";
 import { RISK_SETTINGS } from "./riskService";
 
 export interface TradeDetail {
@@ -48,29 +48,15 @@ class LastRoundAnalysisService {
    */
   async fetchLastRoundTrades(): Promise<TradeDetail[]> {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user?.id) {
-        console.log("Usuário não autenticado");
-        return [];
-      }
+      // Busca trades das últimas 24 horas do banco local
+      const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const trades = localDb.getTrades(200);
 
-      // Busca trades das últimas 24 horas, ordenados por data de execução
-      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      
-      const { data, error } = await supabase
-        .from('trades')
-        .select('*')
-        .eq('user_id', session.session.user.id)
-        .gte('executed_at', twentyFourHoursAgo)
-        .order('executed_at', { ascending: false })
-        .limit(100);
+      const lastRoundTrades = trades.filter((t: any) =>
+        new Date(t.executed_at || t.created_at).getTime() >= twentyFourHoursAgo
+      );
 
-      if (error) {
-        console.error("Erro ao buscar trades da última rodada:", error);
-        return [];
-      }
-
-      return data as TradeDetail[];
+      return lastRoundTrades as unknown as TradeDetail[];
     } catch (error) {
       console.error("Erro ao buscar trades:", error);
       return [];
@@ -100,13 +86,13 @@ class LastRoundAnalysisService {
     const losingTrades = trades.filter(t => (t.profit_loss || 0) < 0);
     const totalPnL = trades.reduce((sum, t) => sum + (t.profit_loss || 0), 0);
     const avgPnL = totalPnL / trades.length;
-    
+
     const allProfits = trades.map(t => t.profit_loss || 0);
     const maxGain = allProfits.length > 0 ? Math.max(...allProfits) : 0;
     const maxLoss = allProfits.length > 0 ? Math.min(...allProfits) : 0;
 
-    const winRate = trades.length > 0 
-      ? (winningTrades.length / trades.length) * 100 
+    const winRate = trades.length > 0
+      ? (winningTrades.length / trades.length) * 100
       : 0;
 
     return {
@@ -212,9 +198,9 @@ class LastRoundAnalysisService {
     const recommendations = this.generateRecommendations(metrics);
     const suggestedChanges = this.generateSuggestedChanges(metrics, recommendations);
 
-    const needsAttention = 
-      metrics.winRate < 50 || 
-      metrics.totalPnL < 0 || 
+    const needsAttention =
+      metrics.winRate < 50 ||
+      metrics.totalPnL < 0 ||
       recommendations.some(r => r.type === 'danger');
 
     return {

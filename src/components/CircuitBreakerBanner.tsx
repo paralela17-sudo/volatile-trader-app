@@ -1,69 +1,36 @@
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { operationsStatsService } from "@/services/operationsStatsService";
+import { operationsStatsService, type OperationStats } from "@/services/operationsStatsService";
 
 export const CircuitBreakerBanner = () => {
-  const [isActive, setIsActive] = useState(false);
-  const [minutesLeft, setMinutesLeft] = useState(0);
-  const [reason, setReason] = useState("");
+  const [stats, setStats] = useState<OperationStats | null>(null);
 
   useEffect(() => {
-    checkCircuitBreaker();
-    
-    // Check every 10 seconds
-    const interval = setInterval(() => {
-      checkCircuitBreaker();
-    }, 10000);
-
+    loadStatus();
+    const interval = setInterval(loadStatus, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  const checkCircuitBreaker = async () => {
+  const loadStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: config } = await supabase
-        .from('bot_configurations')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (!config) return;
-
-      const stats = await operationsStatsService.getTodayOperationsStats(user.id);
-      const cbCheck = operationsStatsService.shouldActivateCircuitBreaker(
-        stats,
-        config.test_mode ? Number(config.test_balance) : 1000
-      );
-
-      setIsActive(cbCheck.shouldPause);
-      setReason(cbCheck.reason);
-      
-      if (cbCheck.shouldPause && cbCheck.pauseUntil) {
-        const minutes = Math.ceil((cbCheck.pauseUntil - Date.now()) / 60000);
-        setMinutesLeft(Math.max(0, minutes));
-      } else {
-        setMinutesLeft(0);
-      }
+      // Local mode bypass
+      const currentStats = await operationsStatsService.getTodayOperationsStats("local-user");
+      setStats(currentStats);
     } catch (error) {
-      console.error('Error checking circuit breaker:', error);
+      console.error("Error loading circuit breaker status:", error);
     }
   };
 
-  if (!isActive || minutesLeft <= 0) return null;
+  if (!stats?.circuitBreakerActive) return null;
 
   return (
-    <Alert variant="destructive" className="border-orange-500/50 bg-orange-500/10">
+    <Alert variant="destructive" className="bg-destructive/10 border-destructive animation-pulse">
       <AlertCircle className="h-4 w-4" />
-      <AlertDescription className="flex items-center justify-between">
-        <span className="font-semibold">
-          🚫 Circuit Breaker Ativo: {reason}
-        </span>
-        <span className="text-sm">
-          Retomada em: {minutesLeft} minuto{minutesLeft !== 1 ? 's' : ''}
+      <AlertDescription className="font-bold flex items-center justify-between">
+        <span>
+          ⚠️ CIRCUIT BREAKER ATIVADO: O bot parou temporariamente após sequência de perdas.
+          {stats.circuitBreakerUntil && ` Reativação automática: ${new Date(stats.circuitBreakerUntil).toLocaleTimeString()}`}
         </span>
       </AlertDescription>
     </Alert>

@@ -10,6 +10,7 @@ import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut,
 import { StatsCard } from "./StatsCard";
 import { TradeHistory } from "./TradeHistory";
 import { AdminPanel } from "./AdminPanel";
+import { supabase } from "@/integrations/supabase/client";
 
 import { MultiPairMonitor } from "./MultiPairMonitor";
 import { LastRoundPerformance } from "./LastRoundPerformance";
@@ -17,7 +18,7 @@ import { TradeAdjustments } from "./TradeAdjustments";
 import { CircuitBreakerBanner } from "./CircuitBreakerBanner";
 import { CircuitBreakerReset } from "./CircuitBreakerReset";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { localDb } from "@/services/localDbService";
 import { pairSelectionService } from "@/services/pairSelectionService";
 import { statsService, type AccountStats } from "@/services/statsService";
 import { tradingService } from "@/services/tradingService";
@@ -112,40 +113,30 @@ export const Dashboard = () => {
   useEffect(() => {
     loadBotConfiguration();
     loadAccountStats();
-    
+
     // Auto-refresh stats every 30 seconds
     const statsInterval = setInterval(() => {
       loadAccountStats();
     }, 30000);
-    
+
     return () => clearInterval(statsInterval);
   }, []);
 
   const loadAccountStats = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: config } = await supabase
-        .from("bot_configurations")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!config) return;
-
+      // Bypassing Supabase for local mode
       const stats = await statsService.getAccountStats(
-        user.id,
-        config.test_mode,
-        config.test_balance
+        "local-user",
+        settings.testMode,
+        settings.testBalance
       );
       setAccountStats(stats);
 
       // Buscar estatísticas de operações
-      const opStats = await operationsStatsService.getTodayOperationsStats(user.id);
+      const opStats = await operationsStatsService.getTodayOperationsStats("local-user");
       setOperationStats(opStats);
 
-      // Atualiza o Profit Diário com base no capital inicial do dia
+      // Atualiza o Profit Diário
       const today = new Date().toLocaleDateString('pt-BR');
       const todayProfit = stats.profitHistory.find((p) => p.date === today)?.profit || 0;
       setDailyProfitPercent(computeDailyProfitPercent(stats.initialCapital, todayProfit));
@@ -156,43 +147,25 @@ export const Dashboard = () => {
 
   const loadBotConfiguration = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.warn("No authenticated user found");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("bot_configurations")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (data) {
-        setConfigId(data.id);
-        setSettings({
-          apiKey: "", // Don't load actual keys for security
-          apiSecret: "",
-          testMode: data.test_mode,
-          pairWith: data.trading_pair || "USDT",
-          quantity: Number(data.quantity) || 100,
-          timeDifference: 5,
-          changeInPrice: 3,
-          stopLoss: RISK_SETTINGS.STOP_LOSS_PERCENT,
-          takeProfit: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
-          testBalance: Number(data.test_balance) || 1000,
-          dailyProfitGoal: Number(data.daily_profit_goal) || 50,
-        });
-        setTradingMode(data.test_mode ? "test" : "real");
-        setBotRunning(data.is_running || false);
-        setBotPoweredOff(!data.is_powered_on);
-      }
+      // Mock loading config in browser (actual config managed by .env and local files in VPS)
+      setSettings({
+        apiKey: "CONFIGURED_IN_ENV",
+        apiSecret: "CONFIGURED_IN_ENV",
+        testMode: true,
+        pairWith: "USDT",
+        quantity: 100,
+        timeDifference: 5,
+        changeInPrice: 3,
+        stopLoss: RISK_SETTINGS.STOP_LOSS_PERCENT,
+        takeProfit: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+        testBalance: 1000,
+        dailyProfitGoal: 50,
+      });
+      setTradingMode("test");
+      setBotRunning(false);
+      setBotPoweredOff(false);
     } catch (error: any) {
       console.error("Error loading configuration:", error);
-      toast.error("Erro ao carregar configurações");
     } finally {
       setLoading(false);
     }
@@ -264,7 +237,7 @@ export const Dashboard = () => {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.warn("No authenticated user found");
+        navigate("/auth");
         return;
       }
 
@@ -276,8 +249,8 @@ export const Dashboard = () => {
         test_balance: settings.testBalance,
         trading_pair: optimalPair,
         quantity: settings.quantity,
-        take_profit_percent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
-        stop_loss_percent: RISK_SETTINGS.STOP_LOSS_PERCENT,
+        take_profit_percent: settings.takeProfit,
+        stop_loss_percent: settings.stopLoss,
         daily_profit_goal: settings.dailyProfitGoal,
         is_running: botRunning,
         is_powered_on: !botPoweredOff,
@@ -307,7 +280,7 @@ export const Dashboard = () => {
       // Clear API key fields after saving
       setSettings({ ...settings, apiKey: "", apiSecret: "" });
       toast.success("Configurações salvas com sucesso!");
-      
+
       // Reload account stats after saving
       loadAccountStats();
     } catch (error: any) {
@@ -351,6 +324,8 @@ export const Dashboard = () => {
         testMode: config.test_mode,
         maxPositions: 5,
       });
+
+      toast.success("Trading iniciado (Local Mode)");
     } catch (error) {
       console.error("Error starting trading:", error);
       toast.error("Erro ao iniciar trading automático");
@@ -363,6 +338,7 @@ export const Dashboard = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    navigate("/auth");
     toast.success("Logout realizado com sucesso!");
   };
 
@@ -373,7 +349,7 @@ export const Dashboard = () => {
     }
 
     setResetting(true);
-    
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -424,7 +400,7 @@ export const Dashboard = () => {
         });
 
         setDailyProfitPercent(0);
-        
+
         // Atualizar settings com novo balance
         setSettings(prev => ({
           ...prev,
@@ -432,13 +408,13 @@ export const Dashboard = () => {
         }));
 
         toast.success("🔄 Bot resetado! Capital inicial: $1,000.00");
-        
+
         // Recarregar dados do banco com delay para garantir propagação
         setTimeout(async () => {
           await loadAccountStats();
           await loadBotConfiguration();
         }, 500);
-        
+
         setShowResetDialog(false);
       } else {
         toast.error("Erro ao resetar bot");
@@ -493,13 +469,12 @@ export const Dashboard = () => {
                   Modo Real
                 </Button>
               </div>
-              <Badge 
-                variant={botPoweredOff ? "destructive" : (botRunning ? "default" : "secondary")} 
-                className={`text-sm px-4 py-2 ${
-                  botPoweredOff 
-                    ? "bg-destructive/20 text-destructive border-destructive/50" 
-                    : "bg-primary/10 text-primary border-primary/20"
-                }`}
+              <Badge
+                variant={botPoweredOff ? "destructive" : (botRunning ? "default" : "secondary")}
+                className={`text-sm px-4 py-2 ${botPoweredOff
+                  ? "bg-destructive/20 text-destructive border-destructive/50"
+                  : "bg-primary/10 text-primary border-primary/20"
+                  }`}
               >
                 <Activity className="w-4 h-4 mr-2" />
                 {botPoweredOff ? "🔴 DESLIGADO" : (botRunning ? "Ativo" : "Pausado")}
@@ -585,9 +560,9 @@ export const Dashboard = () => {
 
           {/* Circuit Breaker Banner */}
           <CircuitBreakerBanner />
-          
+
           {/* Circuit Breaker Reset (Test Mode Only) */}
-          <CircuitBreakerReset 
+          <CircuitBreakerReset
             testMode={settings.testMode}
             onReset={() => {
               loadAccountStats();
@@ -614,15 +589,13 @@ export const Dashboard = () => {
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Lucro Total do Dia</p>
                 <div className="flex items-end gap-2">
-                  <p className={`text-3xl font-bold tracking-tight ${
-                    accountStats.dailyProfit >= 0 ? 'text-success' : 'text-destructive'
-                  }`}>
+                  <p className={`text-3xl font-bold tracking-tight ${accountStats.dailyProfit >= 0 ? 'text-success' : 'text-destructive'
+                    }`}>
                     ${accountStats.dailyProfit.toFixed(2)}
                   </p>
                 </div>
-                <p className={`text-xs ${
-                  accountStats.dailyProfitPercent >= 0 ? 'text-success' : 'text-destructive'
-                }`}>
+                <p className={`text-xs ${accountStats.dailyProfitPercent >= 0 ? 'text-success' : 'text-destructive'
+                  }`}>
                   {accountStats.dailyProfitPercent >= 0 ? '+' : ''}{accountStats.dailyProfitPercent.toFixed(2)}% hoje
                 </p>
               </div>
@@ -672,9 +645,8 @@ export const Dashboard = () => {
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Lucro Acumulado no Mês</p>
                 <div className="flex items-end gap-2">
-                  <p className={`text-3xl font-bold tracking-tight ${
-                    accountStats.monthlyProfit >= 0 ? 'text-success' : 'text-destructive'
-                  }`}>
+                  <p className={`text-3xl font-bold tracking-tight ${accountStats.monthlyProfit >= 0 ? 'text-success' : 'text-destructive'
+                    }`}>
                     ${accountStats.monthlyProfit.toFixed(2)}
                   </p>
                 </div>
@@ -702,7 +674,7 @@ export const Dashboard = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="h-64 rounded-lg border border-border bg-card p-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={accountStats.profitHistory.length > 0 ? accountStats.profitHistory : [
@@ -713,17 +685,17 @@ export const Dashboard = () => {
                     { date: "Day 5", profit: 0 }
                   ]}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                    <XAxis 
-                      dataKey="date" 
+                    <XAxis
+                      dataKey="date"
                       tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                       tickLine={false}
                     />
-                    <YAxis 
+                    <YAxis
                       tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                       tickLine={false}
                       axisLine={false}
                     />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{
                         backgroundColor: "hsl(var(--background))",
                         border: "1px solid hsl(var(--border))",
@@ -731,10 +703,10 @@ export const Dashboard = () => {
                       }}
                       formatter={(value: number) => [`$${value.toFixed(2)}`, "Profit"]}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="profit" 
-                      stroke="hsl(var(--primary))" 
+                    <Line
+                      type="monotone"
+                      dataKey="profit"
+                      stroke="hsl(var(--primary))"
                       strokeWidth={2}
                       dot={{ fill: "hsl(var(--primary))", r: 4 }}
                     />
@@ -769,8 +741,8 @@ export const Dashboard = () => {
                   <Badge variant={tradingMode === "real" ? "destructive" : "secondary"} className="text-base px-4 py-2">
                     {tradingMode === "real" ? "🔴 MODO REAL ATIVO" : "Modo Teste"}
                   </Badge>
-                  <Badge 
-                    variant={dailyProfitPercent >= settings.takeProfit ? "default" : (dailyProfitPercent <= -settings.stopLoss ? "destructive" : "secondary")} 
+                  <Badge
+                    variant={dailyProfitPercent >= settings.takeProfit ? "default" : (dailyProfitPercent <= -settings.stopLoss ? "destructive" : "secondary")}
                     className="text-base px-4 py-2"
                   >
                     Profit Diário: {dailyProfitPercent > 0 ? "+" : ""}{dailyProfitPercent.toFixed(2)}%
@@ -891,7 +863,7 @@ export const Dashboard = () => {
                       <p className="text-xs text-muted-foreground">
                         Valor inicial para simulação de trades no modo teste
                       </p>
-                      
+
                       <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
                         <DialogTrigger asChild>
                           <Button

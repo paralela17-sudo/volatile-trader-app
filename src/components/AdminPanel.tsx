@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle2, XCircle, AlertCircle, ExternalLink, Key, Database, Settings, Lock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+// Supabase removed for local VPS execution
 import { botConfigService } from "@/services/botService";
 import { statusService } from "@/services/statusService";
 
@@ -22,11 +22,11 @@ export const AdminPanel = () => {
 
   const checkApiKeysStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
-      const config = await botConfigService.getConfig(user.id);
-      if (config && config.api_key_encrypted && config.api_secret_encrypted) {
+      // In local mode, we check config.json via botConfigService
+      const config = await botConfigService.getConfig("local-user");
+      if (config &&
+        (config.api_key_encrypted || process.env.BINANCE_API_KEY) &&
+        (config.api_secret_encrypted || process.env.BINANCE_API_SECRET)) {
         setApiKeysConfigured(true);
       }
     } catch (error) {
@@ -38,10 +38,9 @@ export const AdminPanel = () => {
 
   const testBinanceConnection = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       setLoadingConnection(true);
-      const result = await statusService.checkBinanceConnectivity(user.id);
+      // Mode simulation connectivity test
+      const result = await statusService.checkBinanceConnectivity("local-user");
       setBinanceConnected(result.ok);
     } catch (error) {
       console.error("Erro ao testar conexão com a Binance:", error);
@@ -76,8 +75,8 @@ export const AdminPanel = () => {
     },
     {
       id: 3,
-      title: "Banco de Dados Configurado",
-      description: "Tabelas criadas: trades, bot_logs, price_alerts",
+      title: "Persistência Local Configurada",
+      description: "Arquivos JSON: config.json, trades.json, logs.json",
       status: "complete" as const,
       icon: Database,
     },
@@ -100,14 +99,13 @@ export const AdminPanel = () => {
   const technicalDetails = {
     backend: {
       tables: [
-        { name: "bot_configurations", description: "Armazena configurações do bot por usuário" },
-        { name: "trades", description: "Histórico de todas as operações executadas" },
-        { name: "bot_logs", description: "Logs de atividades e erros do bot" },
-        { name: "price_alerts", description: "Alertas de preço configurados" }
+        { name: "config.json", description: "Armazena configurações do bot localmente" },
+        { name: "trades.json", description: "Histórico local de todas as operações executadas" },
+        { name: "logs.json", description: "Logs locais de atividades e erros do bot" }
       ],
       edgeFunctions: [
-        { name: "binance-get-price", description: "Busca preços em tempo real da Binance (API pública)" },
-        { name: "binance-execute-trade", description: "Executa trades na Binance (requer credenciais)" }
+        { name: "Binance API Direct", description: "Busca preços em tempo real via REST/WebSocket" },
+        { name: "Local Signed Orders", description: "Executa trades assinados localmente via HMAC" }
       ]
     },
     services: [
@@ -167,7 +165,7 @@ export const AdminPanel = () => {
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{step.description}</p>
-                  
+
                   {step.instructions && (
                     <div className="mt-3 space-y-2 rounded-lg bg-muted p-4">
                       <p className="text-sm font-medium">Instruções:</p>
@@ -178,9 +176,9 @@ export const AdminPanel = () => {
                       </ul>
                       {step.id === 2 && (
                         <Button variant="outline" size="sm" className="mt-2" asChild>
-                          <a 
-                            href="https://www.binance.com/en/my/settings/api-management" 
-                            target="_blank" 
+                          <a
+                            href="https://www.binance.com/en/my/settings/api-management"
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2"
                           >

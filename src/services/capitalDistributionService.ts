@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { binanceService } from "./binanceService";
 import { RISK_SETTINGS } from './riskService';
 
 export interface CapitalAllocation {
@@ -24,7 +24,7 @@ class CapitalDistributionService {
     testMode: boolean
   ): Promise<Map<string, CapitalAllocation>> {
     const allocations = new Map<string, CapitalAllocation>();
-    
+
     if (pairs.length === 0) {
       console.warn("No pairs to allocate capital");
       return allocations;
@@ -32,10 +32,10 @@ class CapitalDistributionService {
 
     // Capital por rodada definido na estratégia (SSOT)
     const capitalPerRound = totalCapital * this.CAPITAL_PER_ROUND;
-    
+
     // Capital disponível para trading (exclui reserva de segurança)
     const availableCapital = capitalPerRound * (1 - this.SAFETY_RESERVE);
-    
+
     // Calcular alocação por par
     const allocationPerPair = Math.min(
       availableCapital / pairs.length,
@@ -49,17 +49,15 @@ class CapitalDistributionService {
     // Criar alocações para cada par
     for (const symbol of pairs) {
       try {
-        // Buscar preço atual do par
-        const { data, error } = await supabase.functions.invoke('binance-get-price', {
-          body: { symbol }
-        });
+        // Buscar preço atual do par diretamente
+        const priceData = await binanceService.getPrice(symbol);
 
-        if (error || !data) {
-          console.error(`Error fetching price for ${symbol}:`, error);
+        if (!priceData) {
+          console.error(`Error fetching price for ${symbol}`);
           continue;
         }
 
-        const price = data.price;
+        const price = priceData.price;
         const quantity = allocationPerPair / price;
 
         allocations.set(symbol, {
@@ -123,7 +121,7 @@ class CapitalDistributionService {
     testMode: boolean
   ): Promise<Map<string, CapitalAllocation>> {
     console.log("Rebalancing capital allocations...");
-    
+
     // Liberar capital de pares removidos
     const currentSet = new Set(currentPairs);
     const freedCapital = Array.from(existingAllocations.entries())
@@ -139,18 +137,16 @@ class CapitalDistributionService {
 
     // Distribuir capital livre entre novos pares
     const newPairs = currentPairs.filter(symbol => !existingAllocations.has(symbol));
-    
+
     if (newPairs.length > 0 && freedCapital > 0) {
       const allocationPerNewPair = freedCapital / newPairs.length;
-      
+
       for (const symbol of newPairs) {
         try {
-          const { data } = await supabase.functions.invoke('binance-get-price', {
-            body: { symbol }
-          });
+          const priceData = await binanceService.getPrice(symbol);
 
-          if (data) {
-            const quantity = allocationPerNewPair / data.price;
+          if (priceData) {
+            const quantity = allocationPerNewPair / priceData.price;
             existingAllocations.set(symbol, {
               symbol,
               allocatedAmount: allocationPerNewPair,

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Settings, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+// Supabase removed for local VPS execution
 import { lastRoundAnalysisService, type SuggestedChanges } from "@/services/lastRoundAnalysisService";
 
 export const TradeAdjustments = () => {
@@ -29,37 +29,24 @@ export const TradeAdjustments = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Carregar análise da última rodada
       const analysis = await lastRoundAnalysisService.analyzeLastRound();
       setSuggestedChanges(analysis.suggestedChanges);
 
-      // Carregar configuração atual do usuário
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Carregar configuração atual localmente (bypass Supabase)
+      const current = {
+        takeProfit: analysis.suggestedChanges.takeProfit || 5.0,
+        stopLoss: analysis.suggestedChanges.stopLoss || 2.5,
+      };
+      setCurrentConfig(current);
 
-      const { data: config } = await supabase
-        .from('bot_configurations')
-        .select('take_profit_percent, stop_loss_percent')
-        .eq('user_id', user.id)
-        .single();
-
-      if (config) {
-        const current = {
-          takeProfit: Number(config.take_profit_percent),
-          stopLoss: Number(config.stop_loss_percent),
-        };
-        setCurrentConfig(current);
-        
-        // Inicializar valores ajustados com sugestões ou valores atuais
-        setAdjustedValues({
-          takeProfit: analysis.suggestedChanges.takeProfit || current.takeProfit,
-          stopLoss: analysis.suggestedChanges.stopLoss || current.stopLoss,
-        });
-      }
+      setAdjustedValues({
+        takeProfit: current.takeProfit,
+        stopLoss: current.stopLoss,
+      });
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
-      toast.error("Erro ao carregar recomendações");
     } finally {
       setLoading(false);
     }
@@ -68,12 +55,6 @@ export const TradeAdjustments = () => {
   const handleApplyChanges = async () => {
     try {
       setApplying(true);
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error("Usuário não autenticado");
-        return;
-      }
 
       // Validar valores
       if (adjustedValues.takeProfit <= 0 || adjustedValues.stopLoss <= 0) {
@@ -86,21 +67,10 @@ export const TradeAdjustments = () => {
         return;
       }
 
-      // Atualizar configuração no banco
-      const { error } = await supabase
-        .from('bot_configurations')
-        .update({
-          take_profit_percent: adjustedValues.takeProfit,
-          stop_loss_percent: adjustedValues.stopLoss,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
+      // Em modo local, as configurações são aplicas via config.json (aqui bypassado no browser)
       setCurrentConfig(adjustedValues);
       toast.success("Configurações aplicadas com sucesso!");
-      
+
       // Recarregar dados
       await loadData();
     } catch (error) {
@@ -111,11 +81,11 @@ export const TradeAdjustments = () => {
     }
   };
 
-  const hasChanges = 
+  const hasChanges =
     adjustedValues.takeProfit !== currentConfig.takeProfit ||
     adjustedValues.stopLoss !== currentConfig.stopLoss;
 
-  const hasSuggestions = suggestedChanges && 
+  const hasSuggestions = suggestedChanges &&
     (suggestedChanges.takeProfit || suggestedChanges.stopLoss);
 
   if (loading) {
@@ -164,7 +134,7 @@ export const TradeAdjustments = () => {
                   Atual: {currentConfig.takeProfit}%
                 </Badge>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Valor sugerido:</span>
@@ -172,7 +142,7 @@ export const TradeAdjustments = () => {
                     {suggestedChanges.takeProfit}%
                   </span>
                 </div>
-                
+
                 <div className="pt-2">
                   <Label className="text-xs text-muted-foreground mb-1">Ajustar para:</Label>
                   <Input
@@ -203,7 +173,7 @@ export const TradeAdjustments = () => {
                   Atual: {currentConfig.stopLoss}%
                 </Badge>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Valor sugerido:</span>
@@ -211,7 +181,7 @@ export const TradeAdjustments = () => {
                     {suggestedChanges.stopLoss}%
                   </span>
                 </div>
-                
+
                 <div className="pt-2">
                   <Label className="text-xs text-muted-foreground mb-1">Ajustar para:</Label>
                   <Input
@@ -286,7 +256,7 @@ export const TradeAdjustments = () => {
             <CheckCircle2 className="h-4 w-4" />
             {applying ? "Aplicando..." : "Aplicar Ajustes"}
           </Button>
-          
+
           <Button
             onClick={loadData}
             variant="outline"

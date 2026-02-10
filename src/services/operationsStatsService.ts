@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { localDb } from "./localDbService";
 import { RISK_SETTINGS } from "./riskService";
 export interface OperationStats {
   lastOperationTime: string | null;
@@ -27,28 +27,18 @@ export const operationsStatsService = {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Buscar todas as trades do dia ordenadas por tempo
-      const { data: trades, error } = await supabase
-        .from('trades')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('created_at', today.toISOString())
-        .order('executed_at', { ascending: true });
+      // Buscar todas as trades locais
+      const allTrades = localDb.getTrades(1000).filter((t: any) => {
+        return new Date(t.created_at).getTime() >= today.getTime();
+      });
 
-      if (error) {
-        console.error('Error fetching operations stats:', error);
-        return this.getEmptyStats();
-      }
-
-      const allTrades = trades || [];
-      
       // Última operação executada
       const executedTrades = allTrades.filter((t: any) => t.status === 'EXECUTED');
       const lastOperation = executedTrades[executedTrades.length - 1];
-      
+
       // Parear BUY→SELL para calcular round trips realizados
       const roundTrips = this.calculateRoundTrips(allTrades);
-      
+
       // Calcular loss streak baseado em round trips
       let lossStreak = 0;
       for (let i = roundTrips.length - 1; i >= 0; i--) {
@@ -87,7 +77,7 @@ export const operationsStatsService = {
   calculateRoundTrips(trades: any[]): Array<{ symbol: string; pnl: number; executedAt: string }> {
     const roundTrips: Array<{ symbol: string; pnl: number; executedAt: string }> = [];
     const executedTrades = trades.filter((t: any) => t.status === 'EXECUTED');
-    
+
     // Agrupar por símbolo
     const tradesBySymbol = new Map<string, any[]>();
     executedTrades.forEach((trade: any) => {
@@ -130,7 +120,7 @@ export const operationsStatsService = {
             const sellPrice = Number(sell.price);
             const quantity = Number(sell.quantity);
             const pnl = (sellPrice - buyPrice) * quantity;
-            
+
             roundTrips.push({
               symbol,
               pnl,
@@ -142,7 +132,7 @@ export const operationsStatsService = {
     });
 
     // Ordenar por tempo de execução
-    return roundTrips.sort((a, b) => 
+    return roundTrips.sort((a, b) =>
       new Date(a.executedAt).getTime() - new Date(b.executedAt).getTime()
     );
   },
@@ -173,7 +163,7 @@ export const operationsStatsService = {
     pauseUntil: number;
   } {
     const now = Date.now();
-    
+
     // Verificar se já está em pausa
     if (stats.circuitBreakerActive && stats.circuitBreakerUntil) {
       if (now < stats.circuitBreakerUntil) {

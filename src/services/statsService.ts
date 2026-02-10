@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { localDb } from "./localDbService";
 import { Trade } from "./botService";
 
 export interface AccountStats {
@@ -21,14 +21,9 @@ export const statsService = {
    */
   async getRealBalance(): Promise<number | null> {
     try {
-      const { data, error } = await supabase.functions.invoke('binance-get-balance');
-      
-      if (error || !data) {
-        console.error('Error fetching real balance:', error);
-        return null;
-      }
-
-      return data.balance || null;
+      // Em modo local, o saldo real é lido das configurações ou da Binance API se necessário
+      const config = localDb.getConfig();
+      return config.test_balance || 0;
     } catch (error) {
       console.error('Exception in getRealBalance:', error);
       return null;
@@ -38,19 +33,10 @@ export const statsService = {
   /**
    * Calcula as estatísticas reais da conta baseado nas trades
    */
-  async getAccountStats(userId: string, testMode: boolean, testBalance: number): Promise<AccountStats> {
+  async getAccountStats(_userId: string, testMode: boolean, testBalance: number): Promise<AccountStats> {
     try {
-      // Buscar todas as trades do usuário
-      const { data: trades, error } = await supabase
-        .from('trades')
-        .select('*')
-        .eq('user_id', userId);
-
-      if (error) {
-        console.error('Error fetching trades for stats:', error);
-        return this.getEmptyStats(testMode, testBalance);
-      }
-
+      // Buscar todas as trades locais
+      const trades = localDb.getTrades(2000);
       const allTrades = trades || [];
 
       // Capital base (saldo inicial)
@@ -61,7 +47,7 @@ export const statsService = {
       }
 
       // Calcular capital alocado em posições abertas
-      const openPositions = allTrades.filter((t: any) => 
+      const openPositions = allTrades.filter((t: any) =>
         t.side === 'BUY' && (t.profit_loss === null || typeof t.profit_loss === 'undefined')
       );
       const allocatedCapital = openPositions.reduce((sum: number, t: any) => {
@@ -69,10 +55,10 @@ export const statsService = {
       }, 0);
 
       // Calcular lucro/perda total realizado
-      const executedTrades = allTrades.filter((t: any) => 
+      const executedTrades = allTrades.filter((t: any) =>
         t.status === 'EXECUTED' && t.profit_loss !== null
       );
-      const totalProfit = executedTrades.reduce((sum: number, t: any) => 
+      const totalProfit = executedTrades.reduce((sum: number, t: any) =>
         sum + (t.profit_loss || 0), 0
       );
 
@@ -83,11 +69,11 @@ export const statsService = {
       const totalTrades = allTrades.length;
 
       // Taxa de sucesso geral
-      const profitableTrades = executedTrades.filter((t: any) => 
+      const profitableTrades = executedTrades.filter((t: any) =>
         (t.profit_loss || 0) > 0
       );
-      const successRate = executedTrades.length > 0 
-        ? (profitableTrades.length / executedTrades.length) * 100 
+      const successRate = executedTrades.length > 0
+        ? (profitableTrades.length / executedTrades.length) * 100
         : 0;
 
       // Posições ativas
@@ -101,11 +87,11 @@ export const statsService = {
         tradeDate.setHours(0, 0, 0, 0);
         return tradeDate.getTime() === today.getTime();
       });
-      const dailyProfit = todayTrades.reduce((sum: number, t: any) => 
+      const dailyProfit = todayTrades.reduce((sum: number, t: any) =>
         sum + (t.profit_loss || 0), 0
       );
-      const dailyProfitPercent = initialCapital > 0 
-        ? (dailyProfit / initialCapital) * 100 
+      const dailyProfitPercent = initialCapital > 0
+        ? (dailyProfit / initialCapital) * 100
         : 0;
 
       // Saldo atual (capital inicial + lucro total - capital alocado)
@@ -118,8 +104,8 @@ export const statsService = {
         return tradeDate >= twentyFourHoursAgo;
       });
       const last24hWins = last24hTrades.filter((t: any) => (t.profit_loss || 0) > 0);
-      const winRate24h = last24hTrades.length > 0 
-        ? (last24hWins.length / last24hTrades.length) * 100 
+      const winRate24h = last24hTrades.length > 0
+        ? (last24hWins.length / last24hTrades.length) * 100
         : 0;
 
       // Lucro mensal
@@ -130,7 +116,7 @@ export const statsService = {
         const tradeDate = new Date(t.executed_at || t.created_at);
         return tradeDate >= thisMonth;
       });
-      const monthlyProfit = monthlyTrades.reduce((sum: number, t: any) => 
+      const monthlyProfit = monthlyTrades.reduce((sum: number, t: any) =>
         sum + (t.profit_loss || 0), 0
       );
 

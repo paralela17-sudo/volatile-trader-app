@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { localDb } from "./localDbService";
 
 export interface VolatilityData {
   symbol: string;
@@ -14,17 +14,17 @@ export const pairSelectionService = {
   async getTopVolatilePairs(limit = 10): Promise<VolatilityData[]> {
     try {
       const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-      
+
       if (!response.ok) {
         throw new Error(`Binance API error: ${response.statusText}`);
       }
 
       const data = await response.json();
-      
+
       // Filtrar apenas pares USDT com volume significativo (reduzido para 5M)
       const usdtPairs = data
-        .filter((ticker: any) => 
-          ticker.symbol.endsWith('USDT') && 
+        .filter((ticker: any) =>
+          ticker.symbol.endsWith('USDT') &&
           parseFloat(ticker.quoteVolume) > 5000000 // Volume mínimo de 5M USDT
         )
         .map((ticker: any) => ({
@@ -33,7 +33,7 @@ export const pairSelectionService = {
           volume: parseFloat(ticker.quoteVolume),
           lastPrice: parseFloat(ticker.lastPrice)
         }))
-        .sort((a: VolatilityData, b: VolatilityData) => 
+        .sort((a: VolatilityData, b: VolatilityData) =>
           b.priceChangePercent - a.priceChangePercent
         )
         .slice(0, limit);
@@ -54,7 +54,7 @@ export const pairSelectionService = {
   async selectOptimalPair(): Promise<string> {
     try {
       const volatilePairs = await this.getTopVolatilePairs(10);
-      
+
       if (volatilePairs.length === 0) {
         return 'BTCUSDT'; // Fallback seguro
       }
@@ -78,14 +78,14 @@ export const pairSelectionService = {
   async selectMultipleOptimalPairs(count: number = 5): Promise<string[]> {
     try {
       const volatilePairs = await this.getTopVolatilePairs(count * 3); // Buscar mais opções
-      
+
       if (volatilePairs.length === 0) {
         return ['BTCUSDT']; // Fallback seguro
       }
 
       // Momentum Trading: Priorizar pares em ALTA (momentum positivo)
       const momentumPairs = volatilePairs
-        .filter(pair => 
+        .filter(pair =>
           pair.priceChangePercent >= 0.5 && // Em alta
           pair.priceChangePercent <= 15 && // Não extremo
           pair.volume > 10000000 // Volume significativo
@@ -100,7 +100,7 @@ export const pairSelectionService = {
           .slice(0, count)
           .map(pair => pair.symbol)
           .filter(symbol => !momentumPairs.includes(symbol));
-        
+
         return [...momentumPairs, ...additionalPairs].slice(0, count);
       }
 
@@ -115,19 +115,15 @@ export const pairSelectionService = {
   /**
    * Atualiza o par de negociação do bot baseado na volatilidade
    */
-  async updateBotTradingPair(userId: string): Promise<string> {
+  async updateBotTradingPair(_userId: string): Promise<string> {
     try {
       const optimalPair = await this.selectOptimalPair();
-      
-      const { error } = await supabase
-        .from('bot_configurations')
-        .update({ trading_pair: optimalPair })
-        .eq('user_id', userId);
 
-      if (error) {
-        console.error('Erro ao atualizar par de negociação:', error);
-        return 'BTCUSDT';
-      }
+      const currentConfig = localDb.getConfig();
+      localDb.saveConfig({
+        ...currentConfig,
+        trading_pair: optimalPair
+      });
 
       return optimalPair;
     } catch (error) {

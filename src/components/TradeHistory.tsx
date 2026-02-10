@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Trade {
   id: string;
@@ -18,9 +18,9 @@ interface Trade {
 
 const calculateRelativeTime = (date: string) => {
   try {
-    return formatDistanceToNow(new Date(date), { 
+    return formatDistanceToNow(new Date(date), {
       addSuffix: true,
-      locale: ptBR 
+      locale: ptBR
     });
   } catch {
     return "agora";
@@ -33,7 +33,7 @@ export const TradeHistory = () => {
 
   useEffect(() => {
     loadTrades();
-    
+
     // Atualizar a cada 30 segundos
     const interval = setInterval(loadTrades, 30000);
     return () => clearInterval(interval);
@@ -41,41 +41,23 @@ export const TradeHistory = () => {
 
   const loadTrades = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       const { data, error } = await supabase
-        .from("trades")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("executed_at", { ascending: false })
+        .from('trades')
+        .select('*')
+        .order('closed_at', { ascending: false })
         .limit(10);
 
       if (error) throw error;
-
-      if (data) {
-        const formattedTrades: Trade[] = data.map((trade) => {
-          let profit: number | undefined;
-          
-          // Calcular profit em porcentagem se houver profit_loss
-          if (trade.profit_loss !== null && trade.profit_loss !== undefined) {
-            const cost = Number(trade.price) * Number(trade.quantity);
-            profit = (Number(trade.profit_loss) / cost) * 100;
-          }
-
-          return {
-            id: trade.id,
-            symbol: trade.symbol,
-            type: trade.side.toLowerCase() as "buy" | "sell",
-            price: Number(trade.price),
-            profit,
-            quantity: Number(trade.quantity),
-            time: calculateRelativeTime(trade.executed_at || trade.created_at),
-          };
-        });
-
-        setTrades(formattedTrades);
-      }
+      // Map Supabase data to the Trade interface
+      setTrades(data.map((t: any) => ({
+        id: t.id,
+        symbol: t.symbol,
+        type: (t.side || 'BUY').toLowerCase() as "buy" | "sell",
+        price: Number(t.price),
+        profit: t.profit_loss,
+        time: new Date(t.created_at || new Date()).toLocaleTimeString(), // Assuming created_at from Supabase
+        quantity: Number(t.quantity || 0)
+      })) || []);
     } catch (error) {
       console.error("Erro ao carregar histórico de trades:", error);
     } finally {
@@ -86,7 +68,7 @@ export const TradeHistory = () => {
   return (
     <div className="space-y-4 h-full flex flex-col">
       <h2 className="text-2xl font-bold">Histórico de Trades</h2>
-      
+
       <ScrollArea className="flex-1 pr-4">
         {loading ? (
           <div className="flex items-center justify-center py-8 text-muted-foreground">
@@ -114,7 +96,7 @@ export const TradeHistory = () => {
                       </Badge>
                       <span className="font-bold">{trade.symbol}</span>
                     </div>
-                    
+
                     <div className="text-sm text-muted-foreground">
                       {trade.time}
                     </div>
@@ -124,11 +106,10 @@ export const TradeHistory = () => {
                     <div className="font-mono font-bold">
                       ${trade.price.toFixed(2)}
                     </div>
-                    
+
                     {trade.profit !== undefined && (
-                      <div className={`flex items-center gap-1 text-sm font-medium ${
-                        trade.profit >= 0 ? 'text-success' : 'text-danger'
-                      }`}>
+                      <div className={`flex items-center gap-1 text-sm font-medium ${trade.profit >= 0 ? 'text-success' : 'text-danger'
+                        }`}>
                         {trade.profit >= 0 ? (
                           <TrendingUp className="w-3 h-3" />
                         ) : (

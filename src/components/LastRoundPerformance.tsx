@@ -1,301 +1,142 @@
 import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { RefreshCcw, TrendingUp, TrendingDown, Activity } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
+import { lastRoundAnalysisService, type RoundAnalysis } from "@/services/lastRoundAnalysisService";
 
 interface OpenPosition {
   id: string;
   symbol: string;
-  side: string;
+  side: "BUY" | "SELL";
+  price: number;
   quantity: number;
-  entryPrice: number;
-  currentPrice: number;
-  unrealizedPnL: number;
-  priceChange: number;
-  executedAt: string;
-  status: string;
+  created_at: string;
 }
 
 export const LastRoundPerformance = () => {
-  const [positions, setPositions] = useState<OpenPosition[]>([]);
+  const [analysis, setAnalysis] = useState<RoundAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [openPositions, setOpenPositions] = useState<OpenPosition[]>([]);
 
-  const loadOpenPositions = async () => {
+  const loadData = async () => {
     try {
-      setRefreshing(true);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      setLoading(true);
+      // Local mode bypass
+      const result = await lastRoundAnalysisService.analyzeLastRound();
+      setAnalysis(result);
 
-      // Buscar trades com status 'open'
-      const { data: trades, error } = await supabase
-        .from('trades')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'open')
-        .order('executed_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Para cada posição aberta, buscar preço atual (simulado por agora)
-      const openPositions: OpenPosition[] = (trades || []).map(trade => {
-        const entryPrice = Number(trade.price);
-        // Simular preço atual com pequena variação (em produção, buscar de API)
-        const currentPrice = entryPrice * (1 + (Math.random() * 0.02 - 0.01));
-        const quantity = Number(trade.quantity);
-        const unrealizedPnL = trade.side === 'BUY' 
-          ? (currentPrice - entryPrice) * quantity
-          : (entryPrice - currentPrice) * quantity;
-        const priceChange = ((currentPrice - entryPrice) / entryPrice) * 100;
-
-        return {
-          id: trade.id,
-          symbol: trade.symbol,
-          side: trade.side,
-          quantity,
-          entryPrice,
-          currentPrice,
-          unrealizedPnL,
-          priceChange,
-          executedAt: trade.executed_at || trade.created_at,
-          status: trade.status,
-        };
-      });
-
-      setPositions(openPositions);
+      // MOCK or fetch open positions via localDb in a real scenario
+      setOpenPositions([]);
     } catch (error) {
-      console.error("Erro ao carregar posições abertas:", error);
+      console.error("Error loading analysis:", error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    loadOpenPositions();
-    
-    // Atualiza a cada 30 segundos
-    const interval = setInterval(loadOpenPositions, 30000);
+    loadData();
+    const interval = setInterval(loadData, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  const formatDateTime = (dateStr: string) => {
-    try {
-      return format(new Date(dateStr), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-    } catch {
-      return "N/A";
-    }
-  };
-
-  const formatTime = (dateStr: string) => {
-    try {
-      return format(new Date(dateStr), "HH:mm:ss", { locale: ptBR });
-    } catch {
-      return "N/A";
-    }
-  };
-
-  // Calcular métricas das posições abertas
-  const totalUnrealizedPnL = positions.reduce((sum, pos) => sum + pos.unrealizedPnL, 0);
-  const avgPnL = positions.length > 0 ? totalUnrealizedPnL / positions.length : 0;
-  const maxGain = positions.length > 0 ? Math.max(...positions.map(p => p.unrealizedPnL)) : 0;
-  const maxLoss = positions.length > 0 ? Math.min(...positions.map(p => p.unrealizedPnL)) : 0;
-  const inProfit = totalUnrealizedPnL > 0;
-
-  if (loading) {
+  if (loading && !analysis) {
     return (
-      <Card className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCcw className="h-5 w-5 animate-spin" />
+            Analisando Performance...
+          </CardTitle>
+        </CardHeader>
       </Card>
     );
   }
 
+  const metrics = analysis?.metrics;
+
   return (
-    <Card className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-2xl font-bold">Posições Abertas Atualmente</h3>
-          <div className="flex items-center gap-3 mt-2 text-sm text-muted-foreground">
-            <span>{formatDateTime(new Date().toISOString())}</span>
-            <Badge variant="outline">{positions.length} posições</Badge>
-            {positions.length > 0 && (
-              <Badge 
-                variant="secondary" 
-                className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/30"
-              >
-                ⏳ Aguardando fechamento
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+      {/* Resumo da Rodada */}
+      <Card className="md:col-span-2">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
+              Última Rodada (24h)
+            </CardTitle>
+            {metrics?.winRate !== undefined && (
+              <Badge variant={metrics.winRate >= 50 ? "default" : "destructive"}>
+                Win Rate: {metrics.winRate.toFixed(1)}%
               </Badge>
             )}
           </div>
-        </div>
-        <Button
-          onClick={loadOpenPositions}
-          disabled={refreshing}
-          variant="outline"
-          size="sm"
-        >
-          <RefreshCcw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          Atualizar
-        </Button>
-      </div>
-
-      {/* Status Lucro Atual */}
-      {positions.length > 0 && (
-        <div className={`p-4 rounded-lg border ${
-          inProfit 
-            ? 'bg-green-500/10 border-green-500/30' 
-            : 'bg-red-500/10 border-red-500/30'
-        }`}>
-          <div className="flex items-center gap-3">
-            <TrendingUp className={`h-6 w-6 ${inProfit ? 'text-green-500' : 'text-red-500'}`} />
-            <div>
-              <p className="text-sm text-muted-foreground">Lucro Atual (Não Realizado)</p>
-              <p className={`text-xl font-bold ${inProfit ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {inProfit ? 'Em Lucro' : 'Em Perda'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Metrics Grid */}
-      {positions.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Win Rate - buscar das últimas 24h */}
-          <div className="p-4 rounded-lg border bg-card">
-            <p className="text-xs text-muted-foreground mb-1">Win Rate</p>
-            <div className="flex items-end gap-2">
-              <p className="text-3xl font-bold">75.0%</p>
-              <Badge variant="default" className="mb-1">Bom</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">3W / 1L</p>
-          </div>
-
-          {/* P&L Não Realizado */}
-          <div className="p-4 rounded-lg border bg-card">
-            <p className="text-xs text-muted-foreground mb-1">P&L Não Realizado</p>
-            <div className="flex items-center gap-2">
-              {totalUnrealizedPnL >= 0 ? (
-                <TrendingUp className="h-5 w-5 text-green-500" />
-              ) : (
-                <TrendingDown className="h-5 w-5 text-red-500" />
-              )}
-              <p className={`text-3xl font-bold ${totalUnrealizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                {totalUnrealizedPnL >= 0 ? '+' : ''}{totalUnrealizedPnL.toFixed(2)}
-              </p>
-            </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              USDT <span className="text-yellow-600 dark:text-yellow-400">(provisório)</span>
-            </p>
-          </div>
-
-          {/* P&L Médio */}
-          <div className="p-4 rounded-lg border bg-card">
-            <p className="text-xs text-muted-foreground mb-1">P&L Médio</p>
-            <p className={`text-3xl font-bold ${avgPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-              {avgPnL >= 0 ? '+' : ''}{avgPnL.toFixed(2)}
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">USDT/trade</p>
-          </div>
-
-          {/* Maior Ganho/Perda */}
-          <div className="p-4 rounded-lg border bg-card">
-            <p className="text-xs text-muted-foreground mb-1">Maior Ganho/Perda</p>
+          <CardDescription>
+            {metrics?.lastRoundTime
+              ? `Último trade: ${format(new Date(metrics.lastRoundTime), "HH:mm 'de' d 'de' MMM", { locale: ptBR })}`
+              : "Nenhum trade nas últimas 24h"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="space-y-1">
-              <p className="text-lg font-bold text-green-500">
-                +{maxGain.toFixed(2)} USDT
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Total PnL</p>
+              <p className={`text-xl font-bold ${(metrics?.totalPnL || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                ${metrics?.totalPnL.toFixed(2) || "0.00"}
               </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Trades</p>
+              <p className="text-xl font-bold">{metrics?.totalTrades || 0}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Máx Ganho</p>
+              <p className="text-lg font-bold text-green-500">
+                {metrics?.maxGain ? `+$${metrics.maxGain.toFixed(2)}` : "-"}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Máx Perda</p>
               <p className="text-lg font-bold text-red-500">
-                {maxLoss.toFixed(2)} USDT
+                {metrics?.maxLoss ? `$${metrics.maxLoss.toFixed(2)}` : "-"}
               </p>
             </div>
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
 
-      {/* Posições Abertas */}
-      {positions.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-primary" />
-            <h4 className="text-sm font-semibold">Posições Abertas</h4>
-          </div>
-
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {positions.map((position) => (
-              <div
-                key={position.id}
-                className="p-4 rounded-lg border bg-card hover:bg-card/80 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <Badge 
-                      variant="default" 
-                      className="bg-purple-500 hover:bg-purple-600"
-                    >
-                      {position.side}
-                    </Badge>
-                    <div>
-                      <p className="font-bold text-lg">{position.symbol}</p>
-                      <Badge 
-                        variant="outline"
-                        className="text-xs bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/50"
-                      >
-                        ABERTA
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-2xl font-bold ${position.unrealizedPnL >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {position.unrealizedPnL >= 0 ? '+' : ''}{position.unrealizedPnL.toFixed(2)} USDT
-                    </p>
-                    <p className="text-xs text-muted-foreground">{formatTime(position.executedAt)}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground text-xs">Quantidade</p>
-                    <p className="font-semibold">{position.quantity.toFixed(4)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Preço Entrada</p>
-                    <p className="font-semibold">${position.entryPrice.toFixed(4)}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground text-xs">Preço Atual</p>
-                    <div className="flex items-center gap-1">
-                      <p className="font-semibold">${position.currentPrice.toFixed(4)}</p>
-                      <span className={`text-xs ${position.priceChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        ({position.priceChange >= 0 ? '+' : ''}{position.priceChange.toFixed(2)}%)
-                      </span>
-                    </div>
-                  </div>
-                </div>
+      {/* Recomendações */}
+      <Card className="bg-secondary/10 border-primary/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-bold flex items-center gap-2">
+            💡 IA MoltBot Intel
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {analysis?.recommendations && analysis.recommendations.length > 0 ? (
+            analysis.recommendations.slice(0, 2).map((rec, i) => (
+              <div key={i} className={`p-2 rounded text-xs border ${rec.type === 'danger' ? 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400' :
+                  rec.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400' :
+                    'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400'
+                }`}>
+                {rec.message}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* No Positions Message */}
-      {positions.length === 0 && (
-        <div className="text-center py-12">
-          <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-muted-foreground font-semibold">Nenhuma posição aberta no momento</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            As posições aparecerão aqui quando o bot executar operações de compra
-          </p>
-        </div>
-      )}
-    </Card>
+            ))
+          ) : (
+            <p className="text-xs text-muted-foreground italic">
+              Performance estável. Nenhuma recomendação crítica no momento.
+            </p>
+          )}
+          {analysis?.suggestedChanges?.minConfidence && (
+            <div className="flex items-center justify-between text-[10px] pt-2 border-t">
+              <span className="text-muted-foreground">Filtro Sugerido:</span>
+              <span className="font-bold text-primary">{analysis.suggestedChanges.minConfidence}% Confiança</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };

@@ -1,5 +1,7 @@
-import { supabase } from "@/integrations/supabase/client";
+import { localDb } from "./localDbService";
+import { supabaseSync } from "./supabaseSyncService";
 import { z } from "zod";
+import { generateBinanceSignature } from "@/utils/binance-auth";
 
 export interface BotConfig {
   id: string;
@@ -28,6 +30,7 @@ export interface Trade {
   profit_loss?: number;
   executed_at?: string;
   created_at: string;
+  binance_order_id?: string;
 }
 
 export interface BotLog {
@@ -60,93 +63,42 @@ function normalizeSymbol(symbol: string): string {
 
 // Serviço para gerenciar configurações do bot
 export const botConfigService = {
-  async getConfig(userId: string): Promise<BotConfig | null> {
-    const { data, error } = await supabase
-      .from('bot_configurations')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-
-    if (error) {
-      console.error('Error fetching bot config:', error);
-      return null;
-    }
-
-    return data;
+  async getConfig(_userId?: string): Promise<BotConfig | null> {
+    return localDb.getConfig();
   },
 
-  async updateConfig(userId: string, updates: Partial<BotConfig>): Promise<boolean> {
-    const { error } = await supabase
-      .from('bot_configurations')
-      .update(updates)
-      .eq('user_id', userId);
-
-    if (error) {
-      console.error('Error updating bot config:', error);
-      return false;
-    }
-
+  async updateConfig(_userId: string, updates: Partial<BotConfig>): Promise<boolean> {
+    const current = localDb.getConfig();
+    localDb.saveConfig({ ...current, ...updates });
     return true;
   },
 
-  async saveApiCredentials(userId: string, apiKey: string, apiSecret: string): Promise<boolean> {
-    // Call server-side edge function to handle encryption securely
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        console.error('User not authenticated');
-        return false;
-      }
+  async saveApiCredentials(_userId: string, apiKey: string, apiSecret: string): Promise<boolean> {
+    // In local mode, we store directly in .env or config.json
+    const current = localDb.getConfig();
+    localDb.saveConfig({
+      ...current,
+      api_key_encrypted: apiKey,
+      api_secret_encrypted: apiSecret
+    });
+    return true;
+  },
 
-      const { data, error } = await supabase.functions.invoke('store-api-credentials', {
-        body: { apiKey, apiSecret }
-      });
-
-      if (error) {
-        console.error('Error saving API credentials:', error);
-        return false;
-      }
-
-      return data?.success === true;
-    } catch (error) {
-      console.error('Error calling store-api-credentials function:', error);
-      return false;
-    }
+  async createConfig(userId: string, config: Partial<BotConfig>): Promise<boolean> {
+    const current = localDb.getConfig();
+    localDb.saveConfig({ ...current, ...config, user_id: userId });
+    return true;
   }
 };
 
 // Serviço para gerenciar trades
 export const tradeService = {
-  async getTrades(userId: string, limit = 50): Promise<Trade[]> {
-    const { data, error } = await supabase
-      .from('trades')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error('Error fetching trades:', error);
-      return [];
-    }
-
-    return (data || []).map(trade => ({
-      ...trade,
-      side: trade.side as 'BUY' | 'SELL',
-      type: trade.type as 'MARKET' | 'LIMIT',
-      status: trade.status as 'PENDING' | 'EXECUTED' | 'FAILED' | 'CANCELLED'
-    }));
+  async getTrades(_userId: string, limit = 50): Promise<Trade[]> {
+    return localDb.getTrades(limit);
   },
 
   async executeTrade(symbol: string, side: 'BUY' | 'SELL', quantity: number, testMode = true): Promise<any> {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      throw new Error('User not authenticated');
-    }
-
-    // Normalize and validate input on client before network call (Fail Fast)
+    // Normalize and validate input
     const bodyCandidate = {
       symbol: normalizeSymbol(symbol),
       side,
@@ -157,22 +109,84 @@ export const tradeService = {
 
     const parsed = TradeRequestSchema.safeParse(bodyCandidate);
     if (!parsed.success) {
-      const first = parsed.error.issues[0];
-      const msg = first?.message || 'Invalid trade parameters';
-      console.error('Client validation failed:', parsed.error.flatten());
-      throw new Error(msg);
+      throw new Error(parsed.error.issues[0]?.message || 'Invalid trade parameters');
     }
 
-    const { data, error } = await supabase.functions.invoke('binance-execute-trade', {
-      body: parsed.data
+    const { symbol: finalSymbol, side: finalSide, quantity: finalQuantity, type: finalType } = parsed.data;
+
+    // LOCAL EXECUTION (Bypass Supabase)
+    const apiKey = process.env.BINANCE_API_KEY || localDb.getConfig().api_key_encrypted;
+    const apiSecret = process.env.BINANCE_API_SECRET || localDb.getConfig().api_secret_encrypted;
+
+    console.log(`[TradeService] Executando ordem LOCAL: ${finalSide} ${finalQuantity} ${finalSymbol}`);
+
+    // Obter preço atual para registro
+    const responsePrice = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${finalSymbol}`);
+    const priceData = await responsePrice.json();
+    const currentPrice = parseFloat(priceData.price);
+
+    if (testMode) {
+      const simulatedTrade: Trade = {
+        id: Math.random().toString(36).substr(2, 9),
+        symbol: finalSymbol,
+        side: finalSide,
+        type: finalType,
+        quantity: finalQuantity,
+        price: parseFloat(currentPrice.toString()), // Ensure currentPrice is a number
+        status: finalSide === 'BUY' ? 'PENDING' : 'EXECUTED',
+        created_at: new Date().toISOString(),
+      };
+
+      await supabaseSync.syncTrade(simulatedTrade);
+      await supabaseSync.syncLog('SUCCESS', `Simulated trade executed: ${finalSide} ${finalQuantity} ${finalSymbol}`);
+      return { success: true, testMode: true, trade: simulatedTrade };
+    }
+
+    if (!apiKey || !apiSecret) {
+      throw new Error('API credentials not configured for real trading');
+    }
+
+    const timestamp = Date.now();
+    const params: any = {
+      symbol: finalSymbol,
+      side: finalSide,
+      type: finalType,
+      quantity: finalQuantity.toString(),
+      timestamp: timestamp.toString(),
+    };
+
+    const queryString = Object.entries(params).map(([k, v]) => `${k}=${v}`).join('&');
+    const signature = generateBinanceSignature(queryString, apiSecret);
+    const signedQuery = `${queryString}&signature=${signature}`;
+
+    const response = await fetch(`https://api.binance.com/api/v3/order?${signedQuery}`, {
+      method: 'POST',
+      headers: { 'X-MBX-APIKEY': apiKey }
     });
 
-    if (error) {
-      console.error('Error executing trade:', error);
-      throw error;
+    const data = await response.json();
+    if (!response.ok) {
+      await supabaseSync.syncLog('ERROR', `Binance Trade Failed: ${data.msg || 'Unknown error'}`, { data });
+      throw new Error(data.msg || 'Binance Trade Error');
     }
 
-    return data;
+    const realTrade: Trade = {
+      id: data.orderId?.toString() || Math.random().toString(36).substr(2, 9),
+      symbol: finalSymbol,
+      side: finalSide,
+      type: finalType,
+      quantity: finalQuantity,
+      price: parseFloat(data.price || currentPrice),
+      status: finalSide === 'BUY' ? 'PENDING' : 'EXECUTED',
+      binance_order_id: data.orderId?.toString(),
+      executed_at: finalSide === 'SELL' ? new Date().toISOString() : undefined,
+      created_at: new Date().toISOString()
+    };
+
+    await supabaseSync.syncTrade(realTrade);
+    await supabaseSync.syncLog('SUCCESS', `Trade executed: ${finalSide} ${finalQuantity} ${finalSymbol}`, { testMode: false, trade: realTrade });
+
+    return { success: true, testMode: false, trade: realTrade };
   },
 
   async calculateProfit(trades: Trade[]): Promise<number> {
@@ -184,40 +198,13 @@ export const tradeService = {
 
 // Serviço para gerenciar logs
 export const logService = {
-  async getLogs(userId: string, limit = 100): Promise<BotLog[]> {
-    const { data, error } = await supabase
-      .from('bot_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error('Error fetching logs:', error);
-      return [];
-    }
-
-    return (data || []).map(log => ({
-      ...log,
-      level: log.level as 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS'
-    }));
+  async getLogs(_userId: string, _limit = 100): Promise<BotLog[]> {
+    // In local mode, logs can be read from files as well
+    // For now returning empty or implementing a local file logger
+    return [];
   },
 
-  async addLog(userId: string, level: BotLog['level'], message: string, details?: any): Promise<boolean> {
-    const { error } = await supabase
-      .from('bot_logs')
-      .insert({
-        user_id: userId,
-        level,
-        message,
-        details
-      });
-
-    if (error) {
-      console.error('Error adding log:', error);
-      return false;
-    }
-
-    return true;
+  async addLog(level: 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS', message: string, details?: any): Promise<void> {
+    await supabaseSync.syncLog(level, message, details);
   }
 };

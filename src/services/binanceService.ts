@@ -1,5 +1,3 @@
-import { supabase } from "@/integrations/supabase/client";
-
 export interface PriceData {
   symbol: string;
   price: number;
@@ -31,58 +29,48 @@ const BINANCE_BASE_URLS = [
   'https://api3.binance.com'
 ];
 
-// Vercel Proxy Fallback (Bypass Geoblock)
-// Note: This URL will be active once you deploy to Vercel
-const VERCEL_PROXY = '/api/binance-proxy';
+// Vercel Proxy Bridge (Bypass Geoblock)
+const VERCEL_PROXY = 'https://volatile-trader-app.vercel.app/api/binance-proxy';
 
 // Serviço para interação com a Binance API
 export const binanceService = {
   async fetchWithRetry(path: string): Promise<any> {
-    // 1. Try direct mirrors
+    // Try mirrors first
     for (const baseUrl of BINANCE_BASE_URLS) {
       try {
         const response = await fetch(`${baseUrl}${path}`);
         if (response.ok) return await response.json();
+        console.warn(`⚠️ Binance mirror ${baseUrl} returned ${response.status}`);
 
         // If 451, don't even try other direct mirrors, go straight to proxy
         if (response.status === 451) {
-          console.warn(`🛡️ Regional block detected (451) on ${baseUrl}. Switching to Vercel Proxy fallback...`);
+          console.log('🛡️ Regional block detected (451). Switching to Vercel Proxy...');
           break;
         }
       } catch (error) {
-        console.warn(`❌ Binance mirror ${baseUrl} unreachable.`);
+        console.warn(`❌ Binance mirror ${baseUrl} unreachable: ${error}`);
       }
     }
 
-    // 2. Proxy Fallback (Serverless Bridge)
+    // Proxy Fallback (Safe Bridge)
     try {
+      // The proxy expects ?path=/api/v3/...&param1=val1
       const [apiPath, query] = path.split('?');
       const proxyUrl = `${VERCEL_PROXY}?path=${apiPath}${query ? '&' + query : ''}`;
 
-      console.log(`📡 Fetching through local Proxy endpoint: ${proxyUrl}`);
+      console.log(`📡 Fetching through Proxy: ${proxyUrl}`);
       const response = await fetch(proxyUrl);
       if (response.ok) return await response.json();
-      console.error(`❌ Vercel Proxy fallback failed: ${response.status}`);
+      console.error(`❌ Vercel Proxy failed: ${response.status}`);
     } catch (error) {
-      console.error(`❌ Vercel Proxy fallback unreachable: ${error}`);
+      console.error(`❌ Vercel Proxy unreachable: ${error}`);
     }
 
-    throw new Error('All Binance API mirrors and Proxy failed');
+    throw new Error('All Binance API mirrors and Vercel Proxy failed');
   },
 
   async getPrice(symbol: string): Promise<PriceData | null> {
     try {
-      // Primary: Use Supabase Edge Function (Original Logic)
-      try {
-        const { data, error } = await supabase.functions.invoke('binance-get-price', {
-          body: { symbol }
-        });
-        if (!error && data) return data;
-      } catch (e) {
-        console.warn('Supabase function failed, falling back to direct/proxy...');
-      }
-
-      // Secondary: Try direct/proxy fallback
       const data = await this.fetchWithRetry(`/api/v3/ticker/price?symbol=${symbol}`);
       return {
         symbol: data.symbol,
@@ -97,6 +85,7 @@ export const binanceService = {
 
   async getMarketData(symbol: string): Promise<MarketData | null> {
     try {
+      // Usar API pública da Binance para dados de 24h
       const data = await this.fetchWithRetry(`/api/v3/ticker/24hr?symbol=${symbol}`);
 
       return {
@@ -117,7 +106,7 @@ export const binanceService = {
   async getCandles(symbol: string, interval: string = '1m', limit: number = 20): Promise<Candle[]> {
     try {
       const data = await this.fetchWithRetry(
-        `/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
+        `/api/v3/klines?symbol=${symbol}\u0026interval=${interval}\u0026limit=${limit}`
       );
 
       return data.map((candle: any) => ({
