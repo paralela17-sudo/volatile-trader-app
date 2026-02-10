@@ -159,7 +159,7 @@ export const Dashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        navigate("/auth");
+        console.warn("No authenticated user found");
         return;
       }
 
@@ -264,7 +264,7 @@ export const Dashboard = () => {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        navigate("/auth");
+        console.warn("No authenticated user found");
         return;
       }
 
@@ -363,7 +363,6 @@ export const Dashboard = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/auth");
     toast.success("Logout realizado com sucesso!");
   };
 
