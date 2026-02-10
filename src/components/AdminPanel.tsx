@@ -24,9 +24,9 @@ export const AdminPanel = () => {
     try {
       // In local mode, we check config.json via botConfigService
       const config = await botConfigService.getConfig("local-user");
-      if (config &&
-        (config.api_key_encrypted || process.env.BINANCE_API_KEY) &&
-        (config.api_secret_encrypted || process.env.BINANCE_API_SECRET)) {
+      // Environment variables are typically handled in the backend or via safe browser-exposed keys.
+      // Here we check if the local config has the necessary keys.
+      if (config && config.api_key_encrypted && config.api_secret_encrypted) {
         setApiKeysConfigured(true);
       }
     } catch (error) {
