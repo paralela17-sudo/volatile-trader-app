@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+
 const isBrowser = typeof window !== 'undefined';
 
 interface MoltBotIntel {
@@ -18,29 +21,16 @@ interface MoltBotIntel {
     date: string;
 }
 
-// Helper for Node-only imports that Vite should ignore
-const nodeRequire = (mod: string) => {
-    if (isBrowser) return null;
-    try {
-        return require(mod);
-    } catch (e) {
-        return null;
-    }
-};
-
 class MoltBotIntelService {
     private intelPath: string | null = null;
 
     constructor() {
         if (!isBrowser) {
-            const path = nodeRequire('path');
-            if (path) {
-                // Caminho relativo ao MoltBot no projeto pai
-                this.intelPath = path.resolve(
-                    process.cwd(),
-                    '../../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
-                );
-            }
+            // Caminho relativo ao MoltBot no projeto pai
+            this.intelPath = path.resolve(
+                process.cwd(),
+                '../../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
+            );
         }
     }
 
@@ -48,8 +38,7 @@ class MoltBotIntelService {
         if (isBrowser) return null;
 
         try {
-            const fs = nodeRequire('fs');
-            if (!this.intelPath || !fs || !fs.existsSync(this.intelPath)) {
+            if (!this.intelPath || !fs.existsSync(this.intelPath)) {
                 return null;
             }
 

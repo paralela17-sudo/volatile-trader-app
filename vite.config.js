@@ -10,10 +10,21 @@ export default defineConfig({
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src"),
+            // Shims para módulos Node que não devem ir para o navegador
+            "fs": path.resolve(__dirname, "src/shims/node-shim.js"),
+            "path": path.resolve(__dirname, "src/shims/node-shim.js"),
+            "crypto": path.resolve(__dirname, "src/shims/node-shim.js"),
+            "os": path.resolve(__dirname, "src/shims/node-shim.js"),
         },
     },
     build: {
         outDir: "dist",
-        emptyOutDir: true
+        emptyOutDir: true,
+        rollupOptions: {
+            external: [], // Deixe vazio para que os aliases funcionem
+        }
+    },
+    optimizeDeps: {
+        exclude: ["fs", "path", "crypto"]
     }
 });

@@ -1,14 +1,6 @@
-const isBrowser = typeof window !== 'undefined';
+import * as crypto from 'crypto';
 
-// Helper for Node-only imports that Vite should ignore
-const nodeRequire = (mod: string) => {
-    if (isBrowser) return null;
-    try {
-        return require(mod);
-    } catch (e) {
-        return null;
-    }
-};
+const isBrowser = typeof window !== 'undefined';
 
 export function generateBinanceSignature(queryString: string, apiSecret: string): string {
     if (isBrowser) {
@@ -16,11 +8,13 @@ export function generateBinanceSignature(queryString: string, apiSecret: string)
         return 'browser-mock-signature';
     }
 
-    const crypto = nodeRequire('crypto');
-    if (!crypto) return 'no-crypto-available';
-
-    return crypto
-        .createHmac('sha256', apiSecret)
-        .update(queryString)
-        .digest('hex');
+    try {
+        return crypto
+            .createHmac('sha256', apiSecret)
+            .update(queryString)
+            .digest('hex');
+    } catch (e) {
+        console.error('Error generating signature:', e);
+        return 'error-signature';
+    }
 }

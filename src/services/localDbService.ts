@@ -1,18 +1,12 @@
+// Note: Imports are aliased to src/shims/node-shim.js in Vite for browser builds
+import * as fs from 'fs';
+import * as path from 'path';
+
 const isBrowser = typeof window !== 'undefined';
 
 // No Navegador, buscamos dados injetados via script externo dashboard_data.js
 const getBrowserData = () => {
     return (window as any).BOT_DATA || { config: {}, trades: [], logs: [] };
-};
-
-// Helper for Node-only imports that Vite should ignore
-const nodeRequire = (mod: string) => {
-    if (isBrowser) return null;
-    try {
-        return require(mod);
-    } catch (e) {
-        return null;
-    }
 };
 
 export const localDb = {
@@ -22,43 +16,46 @@ export const localDb = {
             return getBrowserData().config || {};
         }
 
-        const fs = nodeRequire('fs');
-        const path = nodeRequire('path');
-        if (!fs || !path) return {};
+        try {
+            const DATA_DIR = path.resolve(process.cwd(), 'data');
+            const filePath = path.join(DATA_DIR, 'config.json');
 
-        const DATA_DIR = path.resolve(process.cwd(), 'data');
-        const filePath = path.join(DATA_DIR, 'config.json');
-
-        if (!fs.existsSync(filePath)) {
-            return {
-                is_powered_on: false,
-                is_running: false,
-                test_mode: true,
-                test_balance: 1000,
-                quantity: 100,
-                take_profit_percent: 5,
-                stop_loss_percent: 2.5,
-                daily_profit_goal: 50,
-                trading_pair: 'BTCUSDT'
-            };
+            if (!fs.existsSync(filePath)) {
+                return {
+                    is_powered_on: false,
+                    is_running: false,
+                    test_mode: true,
+                    test_balance: 1000,
+                    quantity: 100,
+                    take_profit_percent: 5,
+                    stop_loss_percent: 2.5,
+                    daily_profit_goal: 50,
+                    trading_pair: 'BTCUSDT'
+                };
+            }
+            return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+        } catch (e) {
+            return {};
         }
-        return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     },
 
     saveConfig: (config: any) => {
-        if (isBrowser) {
-            console.warn('Escrita de arquivos não disponível no navegador direto.');
+        if (isBrowser) return false;
+
+        try {
+            const DATA_DIR = path.resolve(process.cwd(), 'data');
+            const filePath = path.join(DATA_DIR, 'config.json');
+
+            // Ensure data dir exists
+            if (!fs.existsSync(DATA_DIR)) {
+                fs.mkdirSync(DATA_DIR, { recursive: true });
+            }
+
+            fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
+            return true;
+        } catch (e) {
             return false;
         }
-
-        const fs = nodeRequire('fs');
-        const path = nodeRequire('path');
-        if (!fs || !path) return false;
-
-        const DATA_DIR = path.resolve(process.cwd(), 'data');
-        const filePath = path.join(DATA_DIR, 'config.json');
-        fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
-        return true;
     },
 
     // Histórico de Trades
@@ -68,63 +65,73 @@ export const localDb = {
             return [...trades].reverse().slice(0, limit);
         }
 
-        const fs = nodeRequire('fs');
-        const path = nodeRequire('path');
-        if (!fs || !path) return [];
-
-        const DATA_DIR = path.resolve(process.cwd(), 'data');
-        const filePath = path.join(DATA_DIR, 'trades.json');
-        if (!fs.existsSync(filePath)) return [];
-        const trades = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        return (trades as any[]).slice(-limit).reverse();
+        try {
+            const DATA_DIR = path.resolve(process.cwd(), 'data');
+            const filePath = path.join(DATA_DIR, 'trades.json');
+            if (!fs.existsSync(filePath)) return [];
+            const trades = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            return (trades as any[]).slice(-limit).reverse();
+        } catch (e) {
+            return [];
+        }
     },
 
     addTrade: (trade: any) => {
         if (isBrowser) return false;
 
-        const fs = nodeRequire('fs');
-        const path = nodeRequire('path');
-        if (!fs || !path) return false;
+        try {
+            const DATA_DIR = path.resolve(process.cwd(), 'data');
+            const filePath = path.join(DATA_DIR, 'trades.json');
 
-        const DATA_DIR = path.resolve(process.cwd(), 'data');
-        const filePath = path.join(DATA_DIR, 'trades.json');
-        let trades = [];
-        if (fs.existsSync(filePath)) {
-            trades = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            if (!fs.existsSync(DATA_DIR)) {
+                fs.mkdirSync(DATA_DIR, { recursive: true });
+            }
+
+            let trades = [];
+            if (fs.existsSync(filePath)) {
+                trades = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            }
+            trades.push({
+                id: Math.random().toString(36).substr(2, 9),
+                created_at: new Date().toISOString(),
+                ...trade
+            });
+            fs.writeFileSync(filePath, JSON.stringify(trades, null, 2));
+            return true;
+        } catch (e) {
+            return false;
         }
-        trades.push({
-            id: Math.random().toString(36).substr(2, 9),
-            created_at: new Date().toISOString(),
-            ...trade
-        });
-        fs.writeFileSync(filePath, JSON.stringify(trades, null, 2));
-        return true;
     },
 
     // Logs do Bot
     addLog: (level: string, message: string, details?: any) => {
         if (isBrowser) return false;
 
-        const fs = nodeRequire('fs');
-        const path = nodeRequire('path');
-        if (!fs || !path) return false;
+        try {
+            const DATA_DIR = path.resolve(process.cwd(), 'data');
+            const filePath = path.join(DATA_DIR, 'logs.json');
 
-        const DATA_DIR = path.resolve(process.cwd(), 'data');
-        const filePath = path.join(DATA_DIR, 'logs.json');
-        let logs = [];
-        if (fs.existsSync(filePath)) {
-            logs = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            if (!fs.existsSync(DATA_DIR)) {
+                fs.mkdirSync(DATA_DIR, { recursive: true });
+            }
+
+            let logs = [];
+            if (fs.existsSync(filePath)) {
+                logs = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            }
+            logs.push({
+                id: Math.random().toString(36).substr(2, 9),
+                created_at: new Date().toISOString(),
+                level,
+                message,
+                details
+            });
+            if (logs.length > 500) logs = logs.slice(-500);
+            fs.writeFileSync(filePath, JSON.stringify(logs, null, 2));
+            return true;
+        } catch (e) {
+            return false;
         }
-        logs.push({
-            id: Math.random().toString(36).substr(2, 9),
-            created_at: new Date().toISOString(),
-            level,
-            message,
-            details
-        });
-        if (logs.length > 500) logs = logs.slice(-500);
-        fs.writeFileSync(filePath, JSON.stringify(logs, null, 2));
-        return true;
     },
 
     getLogs: (limit = 100) => {
@@ -133,14 +140,14 @@ export const localDb = {
             return [...logs].reverse().slice(0, limit);
         }
 
-        const fs = nodeRequire('fs');
-        const path = nodeRequire('path');
-        if (!fs || !path) return [];
-
-        const DATA_DIR = path.resolve(process.cwd(), 'data');
-        const filePath = path.join(DATA_DIR, 'logs.json');
-        if (!fs.existsSync(filePath)) return [];
-        const logs = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-        return (logs as any[]).slice(-limit).reverse();
+        try {
+            const DATA_DIR = path.resolve(process.cwd(), 'data');
+            const filePath = path.join(DATA_DIR, 'logs.json');
+            if (!fs.existsSync(filePath)) return [];
+            const logs = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            return (logs as any[]).slice(-limit).reverse();
+        } catch (e) {
+            return [];
+        }
     }
 };
