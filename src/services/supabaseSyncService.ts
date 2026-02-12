@@ -28,14 +28,9 @@ class SupabaseSyncService {
                 const localConfig = localDb.getConfig();
                 this.userId = localConfig.user_id || '00000000-0000-0000-0000-000000000000';
             } else {
-                // Browser or No Service Key: Use Session
-                const { data, error } = await supabase.auth.getSession();
-                if (error || !data.session) {
-                    console.log('📡 Supabase sync: No active session, using local-only mode');
-                    this.syncEnabled = false;
-                    return false;
-                }
-                this.userId = data.session.user.id;
+                // Browser or No Service Key: Use Default ID (Auth Disabled)
+                console.log('📡 Supabase sync: Using default local-user (Auth Disabled)');
+                this.userId = 'default-local-user';
                 this.syncEnabled = true;
             }
 

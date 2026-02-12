@@ -204,8 +204,7 @@ export const Dashboard = () => {
 
   const saveBotState = async (isRunning: boolean, isPoweredOff: boolean) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const userId = "default-local-user"; // Autenticação removida permanentemente
 
       if (configId) {
         await supabase
@@ -235,9 +234,7 @@ export const Dashboard = () => {
         testBalance: settings.testBalance,
       });
 
-      const { data: { user } } = await supabase.auth.getUser();
-      // Allow dashboard to work without authentication
-      const userId = user?.id || "anonymous-user";
+      const userId = "default-local-user"; // Autenticação removida permanentemente
 
       const optimalPair = await pairSelectionService.selectOptimalPair();
 
@@ -294,9 +291,7 @@ export const Dashboard = () => {
 
   const startAutomatedTrading = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || "anonymous-user";
-      if (!userId) return;
+      const userId = "default-local-user"; // Autenticação removida permanentemente
 
       const { data: config } = await supabase
         .from("bot_configurations")
@@ -336,10 +331,7 @@ export const Dashboard = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    // Reload page instead of navigating to /auth
-    window.location.reload();
-    toast.success("Logout realizado com sucesso!");
+    toast.info("Autenticação está desativada para este robô.");
   };
 
   const handleResetBot = async () => {
@@ -351,12 +343,7 @@ export const Dashboard = () => {
     setResetting(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || "anonymous-user";
-      if (!userId) {
-        toast.error("Usuário não autenticado");
-        return;
-      }
+      const userId = "default-local-user"; // Autenticação removida permanentemente
 
       // Parar bot se estiver rodando
       if (botRunning) {
