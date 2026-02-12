@@ -468,11 +468,11 @@ export const Dashboard = () => {
                 variant={botPoweredOff ? "destructive" : (botRunning ? "default" : "secondary")}
                 className={`text-sm px-4 py-2 ${botPoweredOff
                   ? "bg-destructive/20 text-destructive border-destructive/50"
-                  : "bg-primary/10 text-primary border-primary/20"
+                  : (tradingMode === "test" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" : "bg-primary/10 text-primary border-primary/20")
                   }`}
               >
                 <Activity className="w-4 h-4 mr-2" />
-                {botPoweredOff ? "🔴 DESLIGADO" : (botRunning ? "Ativo" : "Pausado")}
+                {botPoweredOff ? "🔴 DESLIGADO" : (botRunning ? (tradingMode === "test" ? "⚡ Simulação Ativa" : "Ativo") : "Pausado")}
               </Badge>
               {pausedUntilMidnight && !botPoweredOff && (
                 <Badge variant="secondary" className="text-sm px-4 py-2 bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
@@ -556,6 +556,31 @@ export const Dashboard = () => {
           {/* Circuit Breaker Banner */}
           <CircuitBreakerBanner />
 
+          {/* Test Mode Persistent Banner */}
+          {tradingMode === "test" && (
+            <div className="w-full bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-center justify-between animate-pulse">
+              <div className="flex items-center gap-3 text-amber-600 font-semibold">
+                <span className="text-xl">⚠️</span>
+                <span>MODO TESTE ATIVO - Simulação em Tempo Real (Saldo Virtual)</span>
+              </div>
+              <Badge variant="outline" className="border-amber-500/50 text-amber-600 bg-amber-500/5">
+                Sem Risco Financeiro
+              </Badge>
+            </div>
+          )}
+
+          {tradingMode === "real" && (
+            <div className="w-full bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 flex items-center justify-between">
+              <div className="flex items-center gap-3 text-emerald-600 font-semibold">
+                <span className="text-xl">🛡️</span>
+                <span>MODO REAL ATIVO - Operações Reais na Binance</span>
+              </div>
+              <Badge variant="outline" className="border-emerald-500/50 text-emerald-600 bg-emerald-500/5">
+                Risco Real Ativado
+              </Badge>
+            </div>
+          )}
+
           {/* Circuit Breaker Reset (Test Mode Only) */}
           <CircuitBreakerReset
             onReset={() => {
@@ -566,15 +591,17 @@ export const Dashboard = () => {
           {/* Top Metrics Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Saldo Inicial */}
-            <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
+            <Card className={`p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300 ${tradingMode === "test" ? "border-amber-500/30" : ""}`}>
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Saldo Inicial</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                  {tradingMode === "test" ? "Saldo Virtual Inicial" : "Saldo Inicial"}
+                </p>
                 <div className="flex items-end gap-2">
-                  <p className="text-3xl font-bold text-primary tracking-tight">
+                  <p className={`text-3xl font-bold tracking-tight ${tradingMode === "test" ? "text-amber-600" : "text-primary"}`}>
                     ${accountStats.initialCapital.toFixed(2)}
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground">Saldo do dia</p>
+                <p className="text-xs text-muted-foreground">Configurado para o dia</p>
               </div>
             </Card>
 

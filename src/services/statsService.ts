@@ -94,7 +94,8 @@ export const statsService = {
         ? (dailyProfit / initialCapital) * 100
         : 0;
 
-      // Saldo atual (capital inicial + lucro total - capital alocado)
+      // Saldo atual (capital inicial + lucro total acumulado)
+      // Em modo teste, o lucro total vem das trades simuladas anteriores
       const currentBalance = initialCapital + totalProfit;
 
       // Win Rate últimas 24h

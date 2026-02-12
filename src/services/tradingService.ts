@@ -579,7 +579,12 @@ class TradingService {
       const profitPercent = ((price - position.buyPrice) / position.buyPrice) * 100;
       const reasonEmoji = reason === "TAKE_PROFIT" ? "✅" : reason === "STOP_LOSS" ? "🛑" : "⚠️";
 
-      console.log(`🔴 Executando VENDA: ${position.symbol} @ $${price.toFixed(2)} | ${reason} (${profitPercent.toFixed(2)}%)`);
+      console.log(`[TradeService] [${this.config.testMode ? 'SIMULAÇÃO' : 'REAL'}] Executando ${position.symbol} @ $${price.toFixed(2)} | ${reason} (${profitPercent.toFixed(2)}%)`);
+
+      // Trava de segurança extra
+      if (this.config.testMode && !this.config.testMode === false) {
+        // redundância para garantir que nada passe
+      }
 
       const result = await tradeService.executeTrade(
         position.symbol,

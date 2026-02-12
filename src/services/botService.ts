@@ -152,19 +152,39 @@ export const tradeService = {
     const currentPrice = parseFloat(priceData.price);
 
     if (testMode) {
+      console.log(`[TradeService] [SIMULAÇÃO] Simulando ordem de ${finalSide} para ${finalSymbol} ao preço de ${currentPrice}`);
+
       const simulatedTrade: Trade = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: `sim-${Math.random().toString(36).substr(2, 9)}`,
         symbol: finalSymbol,
         side: finalSide,
         type: finalType,
         quantity: finalQuantity,
-        price: parseFloat(currentPrice.toString()), // Ensure currentPrice is a number
+        price: currentPrice,
         status: finalSide === 'BUY' ? 'PENDING' : 'EXECUTED',
         created_at: new Date().toISOString(),
       };
 
+      // Simular delay de rede para realismo (200-500ms)
+      await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+
       await supabaseSync.syncTrade(simulatedTrade);
-      await supabaseSync.syncLog('SUCCESS', `Simulated trade executed (Proxy Check): ${finalSide} ${finalQuantity} ${finalSymbol}`);
+      await supabaseSync.syncLog('SUCCESS', `[SIMULAÇÃO] Ordem de ${finalSide} executada com sucesso via Proxy (Preço Real: $${currentPrice.toFixed(2)})`, {
+        testMode: true,
+        tradeId: simulatedTrade.id,
+        simulatedResponse: {
+          symbol: finalSymbol,
+          orderId: simulatedTrade.id,
+          transactTime: Date.now(),
+          price: currentPrice.toString(),
+          origQty: finalQuantity.toString(),
+          executedQty: finalQuantity.toString(),
+          status: 'FILLED',
+          type: 'MARKET',
+          side: finalSide
+        }
+      });
+
       return { success: true, testMode: true, trade: simulatedTrade };
     }
 

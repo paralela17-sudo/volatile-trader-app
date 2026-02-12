@@ -89,12 +89,20 @@ export const localDb = {
         }
 
         const DATA_DIR = path.resolve(process.cwd(), 'data');
-        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+        if (!fs.existsSync(DATA_DIR)) {
+            console.log('📁 Criando diretório data para trades...');
+            fs.mkdirSync(DATA_DIR, { recursive: true });
+        }
 
         const filePath = path.join(DATA_DIR, 'trades.json');
         let trades = [];
         if (fs.existsSync(filePath)) {
-            trades = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            try {
+                trades = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            } catch (e) {
+                console.error('❌ Erro ao ler trades.json, resetando...', e);
+                trades = [];
+            }
         }
         trades.push({
             id: Math.random().toString(36).substr(2, 9),
@@ -123,12 +131,20 @@ export const localDb = {
         }
 
         const DATA_DIR = path.resolve(process.cwd(), 'data');
-        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+        if (!fs.existsSync(DATA_DIR)) {
+            console.log('📁 Criando diretório data para logs...');
+            fs.mkdirSync(DATA_DIR, { recursive: true });
+        }
 
         const filePath = path.join(DATA_DIR, 'logs.json');
         let logs = [];
         if (fs.existsSync(filePath)) {
-            logs = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            try {
+                logs = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            } catch (e) {
+                console.error('❌ Erro ao ler logs.json, resetando...', e);
+                logs = [];
+            }
         }
         logs.push({
             id: Math.random().toString(36).substr(2, 9),
