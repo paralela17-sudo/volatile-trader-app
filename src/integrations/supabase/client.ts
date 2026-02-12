@@ -21,4 +21,8 @@ const SUPABASE_SERVICE_ROLE_KEY = getEnvVar('VITE_SUPABASE_SERVICE_ROLE_KEY');
 // Use Service Role Key if available (admin mode), otherwise use Publishable Key
 const FINAL_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_PUBLISHABLE_KEY;
 
-export const supabase = createClient<Database>(SUPABASE_URL, FINAL_KEY);
+// Safe initialization to avoid app crash if env vars are missing
+const safeSupabaseUrl = SUPABASE_URL || "https://placeholder.supabase.co";
+const safeSupabaseKey = FINAL_KEY || "placeholder";
+
+export const supabase = createClient<Database>(safeSupabaseUrl, safeSupabaseKey);
