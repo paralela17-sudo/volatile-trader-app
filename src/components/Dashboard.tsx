@@ -366,7 +366,7 @@ export const Dashboard = () => {
 
       // Resetar bot no banco de dados
       const success = await resetService.resetBot({
-        userId: user.id,
+        userId: userId,
         resetTrades: true,
         resetBalance: true,
         newBalance: 1000
