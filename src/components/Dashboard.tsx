@@ -10,7 +10,9 @@ import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut,
 import { StatsCard } from "./StatsCard";
 import { TradeHistory } from "./TradeHistory";
 import { AdminPanel } from "./AdminPanel";
+// Auth disabled
 import { supabase } from "@/integrations/supabase/client";
+const userId = "default-local-user";
 
 import { MultiPairMonitor } from "./MultiPairMonitor";
 import { LastRoundPerformance } from "./LastRoundPerformance";
@@ -51,7 +53,7 @@ const botConfigSchema = z.object({
 
 export const Dashboard = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start as not loading to avoid stuck states
   const [configId, setConfigId] = useState<string | null>(null);
   const [botRunning, setBotRunning] = useState(false);
   const [tradingMode, setTradingMode] = useState<"test" | "real">("test");
@@ -164,6 +166,7 @@ export const Dashboard = () => {
       setTradingMode("test");
       setBotRunning(false);
       setBotPoweredOff(false);
+      console.log("Configuração carregada em modo local (Auth desativada)");
     } catch (error: any) {
       console.error("Error loading configuration:", error);
     } finally {
