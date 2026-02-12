@@ -57,6 +57,7 @@ export const Dashboard = () => {
   const [botRunning, setBotRunning] = useState(false);
   const [tradingMode, setTradingMode] = useState<"test" | "real">("test");
   const [botPoweredOff, setBotPoweredOff] = useState(false);
+  const [apiKeysConfigured, setApiKeysConfigured] = useState(false);
   const [dailyProfitPercent, setDailyProfitPercent] = useState(0);
   const [pausedUntilMidnight, setPausedUntilMidnight] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
@@ -148,24 +149,34 @@ export const Dashboard = () => {
 
   const loadBotConfiguration = async () => {
     try {
-      // Mock loading config in browser (actual config managed by .env and local files in VPS)
-      setSettings({
-        apiKey: "CONFIGURED_IN_ENV",
-        apiSecret: "CONFIGURED_IN_ENV",
-        testMode: true,
-        pairWith: "USDT",
-        quantity: 100,
-        timeDifference: 5,
-        changeInPrice: 3,
-        stopLoss: RISK_SETTINGS.STOP_LOSS_PERCENT,
-        takeProfit: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
-        testBalance: 1000,
-        dailyProfitGoal: 50,
-      });
-      setTradingMode("test");
-      setBotRunning(false);
-      setBotPoweredOff(false);
-      console.log("Configuração carregada em modo local (Auth desativada)");
+      setLoading(true);
+      const config = await botConfigService.getConfig(userId);
+
+      if (config) {
+        setSettings({
+          apiKey: "", // Nunca mostramos a chave real por segurança
+          apiSecret: "",
+          testMode: config.test_mode,
+          pairWith: "USDT",
+          quantity: Number(config.quantity) || 100,
+          timeDifference: 5,
+          changeInPrice: 3,
+          stopLoss: config.stop_loss_percent || RISK_SETTINGS.STOP_LOSS_PERCENT,
+          takeProfit: config.take_profit_percent || RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+          testBalance: config.test_balance || 1000,
+          dailyProfitGoal: config.daily_profit_goal || 50,
+        });
+
+        setTradingMode(config.test_mode ? "test" : "real");
+        setBotRunning(config.is_running);
+        setBotPoweredOff(!config.is_powered_on);
+        setConfigId(config.id);
+
+        if (config.api_key_encrypted && config.api_secret_encrypted) {
+          setApiKeysConfigured(true);
+        }
+      }
+      console.log("Configuração carregada via serviço centralizado");
     } catch (error: any) {
       console.error("Error loading configuration:", error);
     } finally {
@@ -742,13 +753,13 @@ export const Dashboard = () => {
                     </Label>
                     <Input
                       type="password"
-                      placeholder="Digite para atualizar a API Key"
+                      placeholder={apiKeysConfigured ? "●●●●●●●●●●●●●●●●" : "Digite para atualizar a API Key"}
                       value={settings.apiKey}
                       onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })}
                       className="font-mono"
                     />
                     <p className="text-xs text-muted-foreground">
-                      {configId ? "Deixe em branco para manter a chave atual" : "Obrigatório para operar"}
+                      {apiKeysConfigured ? "✅ Chave configurada no banco de dados" : "⚠️ Necessário para operar"}
                     </p>
                   </div>
 

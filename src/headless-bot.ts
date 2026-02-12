@@ -92,13 +92,36 @@ async function startHeadlessBot() {
     setInterval(async () => {
         const remoteConfig = await supabaseSync.fetchRemoteConfig();
         if (remoteConfig) {
+            // Sincronizar chaves API se mudaram
+            const currentConfig = localDb.getConfig();
+            if (remoteConfig.api_key_encrypted !== currentConfig.api_key_encrypted ||
+                remoteConfig.api_secret_encrypted !== currentConfig.api_secret_encrypted) {
+                console.log('🔄 [Remote] Novas chaves API detectadas. Reiniciando motor...');
+                localDb.saveConfig(remoteConfig);
+                if (tradingService.getIsRunning()) {
+                    await tradingService.stop();
+                    // O motor vai reiniciar no próximo check de is_powered_on
+                }
+            }
+
             // Apply powered on/off switch
             if (remoteConfig.is_powered_on === false && tradingService.getIsRunning()) {
                 console.log('🛑 [Remote] Shutdown command received from cloud.');
                 await tradingService.stop();
             } else if (remoteConfig.is_powered_on === true && !tradingService.getIsRunning()) {
-                console.log('🚀 [Remote] Startup command received from cloud.');
-                // Re-start logic here if needed
+                console.log('🚀 [Remote] Startup command received from cloud. Starting trading...');
+
+                const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'];
+                await tradingService.start({
+                    userId: 'default-local-user',
+                    configId: remoteConfig.id,
+                    symbols: symbols,
+                    totalCapital: remoteConfig.test_balance || 1000,
+                    takeProfitPercent: remoteConfig.take_profit_percent || 5,
+                    stopLossPercent: remoteConfig.stop_loss_percent || 2.5,
+                    testMode: remoteConfig.test_mode,
+                    maxPositions: 5
+                });
             }
         }
     }, 30000); // Check every 30 seconds
@@ -116,18 +139,21 @@ async function startHeadlessBot() {
     // 4. Iniciar Trading Service
     try {
         // Mocking do par de trading (No futuro buscar do pairSelectionService)
-        const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'];
+        const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'];
 
         console.log(`🚀 Iniciando monitoramento para: ${symbols.join(', ')}`);
 
+        // Tentar buscar config do Supabase primeiro
+        const remote = await supabaseSync.fetchRemoteConfig();
+
         await tradingService.start({
-            userId: 'local-admin', // ID estático para bypass de DB
-            configId: 'local-config',
+            userId: 'default-local-user',
+            configId: remote?.id || 'default-config-id',
             symbols: symbols,
-            totalCapital: initialBalance,
-            takeProfitPercent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
-            stopLossPercent: RISK_SETTINGS.STOP_LOSS_PERCENT,
-            testMode: isTestMode,
+            totalCapital: remote?.test_balance || initialBalance,
+            takeProfitPercent: remote?.take_profit_percent || RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+            stopLossPercent: remote?.stop_loss_percent || RISK_SETTINGS.STOP_LOSS_PERCENT,
+            testMode: remote?.test_mode !== undefined ? remote.test_mode : isTestMode,
             maxPositions: RISK_SETTINGS.MAX_POSITIONS
         });
 
