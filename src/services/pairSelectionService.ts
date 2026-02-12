@@ -13,7 +13,7 @@ export const pairSelectionService = {
    */
   async getTopVolatilePairs(limit = 10): Promise<VolatilityData[]> {
     try {
-      const response = await fetch('https://api.binance.com/api/v3/ticker/24hr');
+      const response = await fetch('/api/binance-proxy?path=/api/v3/ticker/24hr');
 
       if (!response.ok) {
         throw new Error(`Binance API error: ${response.statusText}`);

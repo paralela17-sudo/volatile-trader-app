@@ -69,18 +69,26 @@ export const botConfigService = {
 
   async updateConfig(_userId: string, updates: Partial<BotConfig>): Promise<boolean> {
     const current = localDb.getConfig();
-    localDb.saveConfig({ ...current, ...updates });
+    const newConfig = { ...current, ...updates };
+    localDb.saveConfig(newConfig);
+
+    // Sync to Supabase for VPS/Cloud
+    await supabaseSync.syncConfig(newConfig);
     return true;
   },
 
   async saveApiCredentials(_userId: string, apiKey: string, apiSecret: string): Promise<boolean> {
-    // In local mode, we store directly in .env or config.json
     const current = localDb.getConfig();
-    localDb.saveConfig({
+    const newConfig = {
       ...current,
       api_key_encrypted: apiKey,
       api_secret_encrypted: apiSecret
-    });
+    };
+
+    localDb.saveConfig(newConfig);
+
+    // Sync to Supabase for VPS/Cloud
+    await supabaseSync.syncConfig(newConfig);
     return true;
   },
 

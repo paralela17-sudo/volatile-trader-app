@@ -69,7 +69,7 @@ export const BotSettings = () => {
   };
 
   const handleSave = async () => {
-    const userId = "local-user";
+    const userId = "default-local-user";
 
     if (!settings.apiKey && !apiKeysConfigured) {
       toast.error("Por favor, preencha a API Key");
