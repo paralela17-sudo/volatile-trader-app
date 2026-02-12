@@ -236,15 +236,13 @@ export const Dashboard = () => {
       });
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
+      // Allow dashboard to work without authentication
+      const userId = user?.id || "anonymous-user";
 
       const optimalPair = await pairSelectionService.selectOptimalPair();
 
       const configData = {
-        user_id: user.id,
+        user_id: userId,
         test_mode: settings.testMode,
         test_balance: settings.testBalance,
         trading_pair: optimalPair,
@@ -297,12 +295,13 @@ export const Dashboard = () => {
   const startAutomatedTrading = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const userId = user?.id || "anonymous-user";
+      if (!userId) return;
 
       const { data: config } = await supabase
         .from("bot_configurations")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("user_id", userId)
         .single();
 
       if (!config) {
@@ -315,7 +314,7 @@ export const Dashboard = () => {
       const symbols = await pairSelectionService.selectMultipleOptimalPairs(5);
 
       await tradingService.start({
-        userId: user.id,
+        userId: userId,
         configId: config.id,
         symbols: symbols,
         totalCapital: config.test_mode ? Number(config.test_balance) : accountStats.initialCapital,
@@ -338,7 +337,8 @@ export const Dashboard = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    navigate("/auth");
+    // Reload page instead of navigating to /auth
+    window.location.reload();
     toast.success("Logout realizado com sucesso!");
   };
 
@@ -352,7 +352,8 @@ export const Dashboard = () => {
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const userId = user?.id || "anonymous-user";
+      if (!userId) {
         toast.error("Usuário não autenticado");
         return;
       }
