@@ -7,19 +7,15 @@ export interface VolatilityData {
   lastPrice: number;
 }
 
+import { binanceService } from "./binanceService";
+
 export const pairSelectionService = {
   /**
    * Busca pares de negociação populares na Binance
    */
   async getTopVolatilePairs(limit = 10): Promise<VolatilityData[]> {
     try {
-      const response = await fetch('/api/binance-proxy?path=/api/v3/ticker/24hr');
-
-      if (!response.ok) {
-        throw new Error(`Binance API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await binanceService.fetchWithRetry('/api/v3/ticker/24hr');
 
       // Filtrar apenas pares USDT com volume significativo (reduzido para 5M)
       const usdtPairs = data

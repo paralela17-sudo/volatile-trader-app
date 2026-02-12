@@ -9,8 +9,10 @@ const isNode = typeof process !== 'undefined' && process.versions && process.ver
  * Supabase Sync Service
  * Automatically syncs local bot data to Supabase for cloud monitoring
  */
+export const DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000";
+
 class SupabaseSyncService {
-    private userId: string | null = null;
+    private userId: string | null = DEFAULT_USER_ID;
     private configId: string | null = null;
     private syncEnabled: boolean = false;
 

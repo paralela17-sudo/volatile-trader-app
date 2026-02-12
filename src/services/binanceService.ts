@@ -32,11 +32,19 @@ const BINANCE_BASE_URLS = [
 // Vercel Proxy Bridge (Bypass Geoblock)
 const VERCEL_PROXY = 'https://volatile-trader-app.vercel.app/api/binance-proxy';
 
+const isBrowser = typeof window !== 'undefined';
+const API_BASE_URL = isBrowser ? '' : 'https://api.binance.com';
+
 // Serviço para interação com a Binance API
 export const binanceService = {
   async fetchWithRetry(path: string): Promise<any> {
+    const fullPath = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
+
     // Try mirrors first
     for (const baseUrl of BINANCE_BASE_URLS) {
+      if (!isBrowser && baseUrl === 'https://api.binance.com') {
+        // Na VPS (Node), tentamos o mirror direto se não for bloqueado
+      }
       try {
         const response = await fetch(`${baseUrl}${path}`);
         if (response.ok) return await response.json();

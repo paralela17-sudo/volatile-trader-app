@@ -27,10 +27,10 @@ class MoltBotIntelService {
 
     constructor() {
         if (!isBrowser) {
-            // Caminho relativo ao MoltBot no projeto pai (Apenas Node/VPS)
+            // Caminho relativo ao MoltBot na raiz do projeto (Apenas Node/VPS)
             this.intelPath = path.resolve(
                 process.cwd(),
-                '../../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
+                '../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
             );
         }
     }

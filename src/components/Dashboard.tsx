@@ -9,8 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut, Settings, RotateCcw } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { TradeHistory } from "./TradeHistory";
-import { AdminPanel } from "./AdminPanel";
-const userId = "default-local-user";
+// UUID estático para o usuário local (compatível com Supabase Auth/UUID)
+export const DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000";
+const userId = DEFAULT_USER_ID;
 import { botConfigService } from "@/services/botService";
 
 import { MultiPairMonitor } from "./MultiPairMonitor";
