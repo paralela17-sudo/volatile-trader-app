@@ -10,9 +10,8 @@ import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut,
 import { StatsCard } from "./StatsCard";
 import { TradeHistory } from "./TradeHistory";
 import { AdminPanel } from "./AdminPanel";
-// Auth disabled
-import { supabase } from "@/integrations/supabase/client";
 const userId = "default-local-user";
+import { botConfigService } from "@/services/botService";
 
 import { MultiPairMonitor } from "./MultiPairMonitor";
 import { LastRoundPerformance } from "./LastRoundPerformance";
@@ -225,6 +224,9 @@ export const Dashboard = () => {
 
   const handleSaveSettings = async () => {
     try {
+      setLoading(true);
+      console.log("[Dashboard] Iniciando salvamento de configurações...");
+
       // Validate inputs
       botConfigSchema.parse({
         apiKey: settings.apiKey || "placeholder", // Allow empty if not changed
@@ -237,12 +239,11 @@ export const Dashboard = () => {
         testBalance: settings.testBalance,
       });
 
-      const userId = "default-local-user"; // Autenticação removida permanentemente
-
+      const userId = "default-local-user";
       const optimalPair = await pairSelectionService.selectOptimalPair();
 
-      const configData = {
-        user_id: userId,
+      // USAR O SERVIÇO CENTRALIZADO (Isso garante sincronização com Supabase e VPS)
+      const success = await botConfigService.updateConfig(userId, {
         test_mode: settings.testMode,
         test_balance: settings.testBalance,
         trading_pair: optimalPair,
@@ -250,45 +251,35 @@ export const Dashboard = () => {
         take_profit_percent: settings.takeProfit,
         stop_loss_percent: settings.stopLoss,
         daily_profit_goal: settings.dailyProfitGoal,
-        is_running: botRunning,
         is_powered_on: !botPoweredOff,
-        // Only update API credentials if they were entered
-        ...(settings.apiKey && { api_key_encrypted: settings.apiKey }),
-        ...(settings.apiSecret && { api_secret_encrypted: settings.apiSecret }),
-      };
+      });
 
-      if (configId) {
-        const { error } = await supabase
-          .from("bot_configurations")
-          .update(configData)
-          .eq("id", configId);
+      if (success) {
+        // Salvar credenciais APENAS se foram digitadas
+        if (settings.apiKey && settings.apiSecret) {
+          console.log("[Dashboard] Salvando novas credenciais API...");
+          await botConfigService.saveApiCredentials(userId, settings.apiKey, settings.apiSecret);
+        }
 
-        if (error) throw error;
+        // Limpar campos de senha após salvar
+        setSettings({ ...settings, apiKey: "", apiSecret: "" });
+        toast.success("Configurações salvas e sincronizadas com sucesso!");
+
+        // Recarregar dados
+        loadAccountStats();
       } else {
-        const { data, error } = await supabase
-          .from("bot_configurations")
-          .insert([configData])
-          .select()
-          .single();
-
-        if (error) throw error;
-        if (data) setConfigId(data.id);
+        toast.error("Erro ao salvar configurações no serviço");
       }
-
-      // Clear API key fields after saving
-      setSettings({ ...settings, apiKey: "", apiSecret: "" });
-      toast.success("Configurações salvas com sucesso!");
-
-      // Reload account stats after saving
-      loadAccountStats();
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const firstError = error.issues[0];
         toast.error(firstError.message);
       } else {
-        console.error("Error saving settings:", error);
-        toast.error("Erro ao salvar configurações");
+        console.error("[Dashboard] Erro fatal no salvamento:", error);
+        toast.error(`Erro ao salvar: ${error.message || "Erro desconhecido"}`);
       }
+    } finally {
+      setLoading(false);
     }
   };
 

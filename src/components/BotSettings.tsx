@@ -78,6 +78,7 @@ export const BotSettings = () => {
 
     setLoading(true);
     try {
+      console.log("[BotSettings] Iniciando salvamento...", { userId, settings });
       const optimalPairs = await pairSelectionService.selectMultipleOptimalPairs(settings.multiPairCount);
       setCurrentPairs(optimalPairs);
 
@@ -89,8 +90,12 @@ export const BotSettings = () => {
         take_profit_percent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
       });
 
+      console.log("[BotSettings] Resultado updateConfig:", success);
+
       if (success && settings.apiKey && settings.apiSecret) {
-        await botConfigService.saveApiCredentials(userId, settings.apiKey, settings.apiSecret);
+        console.log("[BotSettings] Salvando credenciais API...");
+        const apiSuccess = await botConfigService.saveApiCredentials(userId, settings.apiKey, settings.apiSecret);
+        console.log("[BotSettings] Resultado saveApiCredentials:", apiSuccess);
         setApiKeysConfigured(true);
       }
 
@@ -99,11 +104,12 @@ export const BotSettings = () => {
         setSettings(prev => ({ ...prev, apiKey: "", apiSecret: "" }));
         setTradingPair(optimalPairs[0]);
       } else {
+        console.error("[BotSettings] Falha no salvamento: success flag é false");
         toast.error("Erro ao salvar configurações");
       }
-    } catch (error) {
-      console.error("Erro ao salvar:", error);
-      toast.error("Erro ao salvar configurações");
+    } catch (error: any) {
+      console.error("[BotSettings] Erro fatal ao salvar:", error);
+      toast.error(`Erro ao salvar: ${error.message || "Erro desconhecido"}`);
     } finally {
       setLoading(false);
     }
