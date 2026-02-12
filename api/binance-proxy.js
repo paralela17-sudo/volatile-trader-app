@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader(
         'Access-Control-Allow-Headers',
-        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, X-MBX-APIKEY'
     );
 
     if (req.method === 'OPTIONS') {
@@ -20,28 +20,58 @@ export default async function handler(req, res) {
     try {
         const { path, ...params } = req.query;
 
+        // Validar path
         if (!path) {
             return res.status(400).json({ error: 'Missing path parameter' });
         }
 
-        // Build Binance URL
+        // Construir URL da Binance
         const baseUrl = 'https://api.binance.com';
         const queryStr = Object.entries(params)
             .map(([key, val]) => `${key}=${val}`)
             .join('&');
 
+        // Se a query string já estiver na URL de origem, não duplicar.
+        // O req.query do Vercel já parseia tudo.
+        // Mas para garantir a ordem da assinatura, em POST, a query string costuma ir na URL.
         const targetUrl = `${baseUrl}${path}${queryStr ? '?' + queryStr : ''}`;
 
-        console.log(`[Proxy] Forwarding to: ${targetUrl}`);
+        console.log(`[Proxy] ${req.method} Forwarding to: ${targetUrl}`);
 
-        const response = await fetch(targetUrl);
-        const data = await response.json();
+        const fetchOptions = {
+            method: req.method,
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        };
 
-        return res.status(response.status).json(data);
+        // Forward API Key header if present
+        if (req.headers['x-mbx-apikey']) {
+            fetchOptions.headers['X-MBX-APIKEY'] = req.headers['x-mbx-apikey'];
+        }
+
+        // Forward body for non-GET/HEAD requests
+        if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+            // Vercel parses JSON body automatically. Need to stringify it back.
+            fetchOptions.body = JSON.stringify(req.body);
+        }
+
+        const response = await fetch(targetUrl, fetchOptions);
+
+        // Tentar parsear JSON, se falhar devolver texto
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.indexOf("application/json") !== -1) {
+            const data = await response.json();
+            return res.status(response.status).json(data);
+        } else {
+            const text = await response.text();
+            return res.status(response.status).send(text);
+        }
+
     } catch (error) {
         console.error('[Proxy Error]', error);
         return res.status(500).json({
-            error: 'Proxy Error',
+            error: 'Proxy Internal Error',
             message: error.message
         });
     }

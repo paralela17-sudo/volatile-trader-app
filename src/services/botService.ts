@@ -115,13 +115,15 @@ export const tradeService = {
     const { symbol: finalSymbol, side: finalSide, quantity: finalQuantity, type: finalType } = parsed.data;
 
     // LOCAL EXECUTION (Bypass Supabase)
-    const apiKey = process.env.BINANCE_API_KEY || localDb.getConfig().api_key_encrypted;
-    const apiSecret = process.env.BINANCE_API_SECRET || localDb.getConfig().api_secret_encrypted;
+    // LOCAL EXECUTION (Bypass Supabase)
+    const apiKey = localDb.getConfig().api_key_encrypted;
+    const apiSecret = localDb.getConfig().api_secret_encrypted;
 
     console.log(`[TradeService] Executando ordem LOCAL: ${finalSide} ${finalQuantity} ${finalSymbol}`);
 
-    // Obter preço atual para registro
-    const responsePrice = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${finalSymbol}`);
+    // Obter preço atual para registro (VIA PROXY)
+    const proxyUrlPrice = `/api/binance-proxy?path=/api/v3/ticker/price&symbol=${finalSymbol}`;
+    const responsePrice = await fetch(proxyUrlPrice);
     const priceData = await responsePrice.json();
     const currentPrice = parseFloat(priceData.price);
 
@@ -138,7 +140,7 @@ export const tradeService = {
       };
 
       await supabaseSync.syncTrade(simulatedTrade);
-      await supabaseSync.syncLog('SUCCESS', `Simulated trade executed: ${finalSide} ${finalQuantity} ${finalSymbol}`);
+      await supabaseSync.syncLog('SUCCESS', `Simulated trade executed (Proxy Check): ${finalSide} ${finalQuantity} ${finalSymbol}`);
       return { success: true, testMode: true, trade: simulatedTrade };
     }
 
@@ -159,7 +161,11 @@ export const tradeService = {
     const signature = generateBinanceSignature(queryString, apiSecret);
     const signedQuery = `${queryString}&signature=${signature}`;
 
-    const response = await fetch(`https://api.binance.com/api/v3/order?${signedQuery}`, {
+    // USAR PROXY PARA ORDEM REAL
+    const proxyUrlOrder = `/api/binance-proxy?path=/api/v3/order&${signedQuery}`;
+    console.log(`[TradeService] Enviando ordem via Proxy: ${proxyUrlOrder}`);
+
+    const response = await fetch(proxyUrlOrder, {
       method: 'POST',
       headers: { 'X-MBX-APIKEY': apiKey }
     });

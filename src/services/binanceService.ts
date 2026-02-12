@@ -106,7 +106,7 @@ export const binanceService = {
   async getCandles(symbol: string, interval: string = '1m', limit: number = 20): Promise<Candle[]> {
     try {
       const data = await this.fetchWithRetry(
-        `/api/v3/klines?symbol=${symbol}\u0026interval=${interval}\u0026limit=${limit}`
+        `/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
       );
 
       return data.map((candle: any) => ({
