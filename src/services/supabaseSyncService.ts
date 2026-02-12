@@ -9,7 +9,7 @@ const isNode = typeof process !== 'undefined' && process.versions && process.ver
  * Supabase Sync Service
  * Automatically syncs local bot data to Supabase for cloud monitoring
  */
-export const DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000";
+import { DEFAULT_USER_ID } from "@/constants";
 
 class SupabaseSyncService {
     private userId: string | null = DEFAULT_USER_ID;
@@ -32,7 +32,7 @@ class SupabaseSyncService {
             } else {
                 // Browser or No Service Key: Use Default ID (Auth Disabled)
                 console.log('📡 Supabase sync: Using default local-user (Auth Disabled)');
-                this.userId = 'default-local-user';
+                this.userId = DEFAULT_USER_ID;
                 this.syncEnabled = true;
             }
 

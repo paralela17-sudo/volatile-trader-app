@@ -113,7 +113,7 @@ async function startHeadlessBot() {
 
                 const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'];
                 await tradingService.start({
-                    userId: 'default-local-user',
+                    userId: '00000000-0000-0000-0000-000000000000',
                     configId: remoteConfig.id,
                     symbols: symbols,
                     totalCapital: remoteConfig.test_balance || 1000,
@@ -147,7 +147,7 @@ async function startHeadlessBot() {
         const remote = await supabaseSync.fetchRemoteConfig();
 
         await tradingService.start({
-            userId: 'default-local-user',
+            userId: '00000000-0000-0000-0000-000000000000',
             configId: remote?.id || 'default-config-id',
             symbols: symbols,
             totalCapital: remote?.test_balance || initialBalance,

@@ -9,11 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut, Settings, RotateCcw } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { TradeHistory } from "./TradeHistory";
-// UUID estático para o usuário local (compatível com Supabase Auth/UUID)
-export const DEFAULT_USER_ID = "00000000-0000-0000-0000-000000000000";
-const userId = DEFAULT_USER_ID;
 import { botConfigService } from "@/services/botService";
-
 import { MultiPairMonitor } from "./MultiPairMonitor";
 import { LastRoundPerformance } from "./LastRoundPerformance";
 import { TradeAdjustments } from "./TradeAdjustments";
@@ -29,7 +25,10 @@ import { resetService } from "@/services/resetService";
 import { z } from "zod";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import evolonLogo from "@/assets/evolon-bot-logo.jpg";
-import { RISK_SETTINGS, computeDailyProfitPercent } from "@/services/riskService";
+import { DEFAULT_USER_ID, RISK_SETTINGS } from "@/constants";
+import { computeDailyProfitPercent } from "@/services/riskService";
+import { supabase } from "@/integrations/supabase/client";
+import { AdminPanel } from "./AdminPanel";
 import {
   Dialog,
   DialogContent,
@@ -38,6 +37,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+
+const userId = DEFAULT_USER_ID;
 
 // Validation schema
 const botConfigSchema = z.object({
@@ -557,7 +558,6 @@ export const Dashboard = () => {
 
           {/* Circuit Breaker Reset (Test Mode Only) */}
           <CircuitBreakerReset
-            testMode={settings.testMode}
             onReset={() => {
               loadAccountStats();
             }}
