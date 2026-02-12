@@ -62,8 +62,4 @@ const App = () => (
       </HashRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
-
-export default App;
-
 export default App;
