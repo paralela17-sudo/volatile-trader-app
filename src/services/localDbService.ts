@@ -3,9 +3,21 @@ import * as path from 'path';
 
 const isBrowser = typeof window !== 'undefined';
 
-// No Navegador, buscamos dados injetados via script externo dashboard_data.js
+// No Navegador, usamos localStorage para persistência local rápida
 const getBrowserData = () => {
-    return (window as any).BOT_DATA || { config: {}, trades: [], logs: [] };
+    if (!isBrowser) return { config: {}, trades: [], logs: [] };
+    try {
+        const data = localStorage.getItem('BOT_DATA');
+        return data ? JSON.parse(data) : { config: {}, trades: [], logs: [] };
+    } catch (e) {
+        return { config: {}, trades: [], logs: [] };
+    }
+};
+
+const saveBrowserData = (data: any) => {
+    if (isBrowser) {
+        localStorage.setItem('BOT_DATA', JSON.stringify(data));
+    }
 };
 
 export const localDb = {
@@ -16,6 +28,8 @@ export const localDb = {
         }
 
         const DATA_DIR = path.resolve(process.cwd(), 'data');
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
         const filePath = path.join(DATA_DIR, 'config.json');
 
         if (!fs.existsSync(filePath)) {
@@ -36,11 +50,15 @@ export const localDb = {
 
     saveConfig: (config: any) => {
         if (isBrowser) {
-            console.warn('Escrita de arquivos não disponível no navegador direto.');
-            return false;
+            const data = getBrowserData();
+            data.config = { ...data.config, ...config };
+            saveBrowserData(data);
+            return true;
         }
 
         const DATA_DIR = path.resolve(process.cwd(), 'data');
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
         const filePath = path.join(DATA_DIR, 'config.json');
         fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
         return true;
@@ -61,9 +79,18 @@ export const localDb = {
     },
 
     addTrade: (trade: any) => {
-        if (isBrowser) return false;
+        if (isBrowser) {
+            const data = getBrowserData();
+            data.trades = data.trades || [];
+            data.trades.push(trade);
+            if (data.trades.length > 500) data.trades.shift();
+            saveBrowserData(data);
+            return true;
+        }
 
         const DATA_DIR = path.resolve(process.cwd(), 'data');
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
         const filePath = path.join(DATA_DIR, 'trades.json');
         let trades = [];
         if (fs.existsSync(filePath)) {
@@ -80,9 +107,24 @@ export const localDb = {
 
     // Logs do Bot
     addLog: (level: string, message: string, details?: any) => {
-        if (isBrowser) return false;
+        if (isBrowser) {
+            const data = getBrowserData();
+            data.logs = data.logs || [];
+            data.logs.push({
+                id: Math.random().toString(36).substr(2, 9),
+                created_at: new Date().toISOString(),
+                level,
+                message,
+                details
+            });
+            if (data.logs.length > 500) data.logs.shift();
+            saveBrowserData(data);
+            return true;
+        }
 
         const DATA_DIR = path.resolve(process.cwd(), 'data');
+        if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
         const filePath = path.join(DATA_DIR, 'logs.json');
         let logs = [];
         if (fs.existsSync(filePath)) {

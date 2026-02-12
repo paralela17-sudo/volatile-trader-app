@@ -63,8 +63,24 @@ function normalizeSymbol(symbol: string): string {
 
 // Serviço para gerenciar configurações do bot
 export const botConfigService = {
-  async getConfig(_userId?: string): Promise<BotConfig | null> {
-    return localDb.getConfig();
+  async getConfig(userId?: string): Promise<BotConfig | null> {
+    const local = localDb.getConfig();
+
+    // Se já temos chaves locais, retornamos o local (mais rápido)
+    if (local && local.api_key_encrypted && local.api_secret_encrypted) {
+      return local;
+    }
+
+    // Caso contrário, tentamos sincronizar do Cloud
+    if (userId) {
+      const cloud = await supabaseSync.getCloudConfig();
+      if (cloud) {
+        localDb.saveConfig(cloud);
+        return cloud;
+      }
+    }
+
+    return local;
   },
 
   async updateConfig(_userId: string, updates: Partial<BotConfig>): Promise<boolean> {
