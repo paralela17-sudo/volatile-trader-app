@@ -31,7 +31,7 @@ async function startHeadlessBot() {
 
     // 2. Health Check Server (para o Guardian/Watchdog)
     const HEALTH_PORT = 8001;
-    http.createServer((req, res) => {
+    const healthServer = http.createServer((req, res) => {
         if (req.url === '/api/status') {
             const stats = {
                 is_running: tradingService.getIsRunning(),
@@ -44,9 +44,19 @@ async function startHeadlessBot() {
             res.writeHead(404);
             res.end();
         }
-    }).listen(HEALTH_PORT);
+    });
 
-    console.log(`🛡️ Guardian Bridge ativo na porta ${HEALTH_PORT}`);
+    healthServer.on('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+            console.warn(`⚠️ Health check port ${HEALTH_PORT} busy. Monitoring will continue without local health check.`);
+        } else {
+            console.error('❌ Health check server error:', err);
+        }
+    });
+
+    healthServer.listen(HEALTH_PORT, () => {
+        console.log(`🛡️ Guardian Bridge ativo na porta ${HEALTH_PORT}`);
+    });
 
     // 2.5. Sincronizador de Dados - Modo Injeção Direta (100% Offline)
     const syncDashboardData = () => {
