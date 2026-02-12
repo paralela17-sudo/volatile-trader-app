@@ -20,18 +20,27 @@ interface MoltBotIntel {
     date: string;
 }
 
+const isBrowser = typeof window !== 'undefined';
+
 class MoltBotIntelService {
-    private intelPath: string;
+    private intelPath: string | null = null;
 
     constructor() {
-        // Caminho relativo ao MoltBot no projeto pai
-        this.intelPath = path.resolve(
-            process.cwd(),
-            '../../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
-        );
+        if (!isBrowser) {
+            // Caminho relativo ao MoltBot no projeto pai (Apenas Node/VPS)
+            this.intelPath = path.resolve(
+                process.cwd(),
+                '../../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
+            );
+        }
     }
 
     public getLatestIntel(): MoltBotIntel | null {
+        if (isBrowser || !this.intelPath) {
+            // No navegador, a inteligência via filesystem não está disponível
+            return null;
+        }
+
         try {
             if (!fs.existsSync(this.intelPath)) {
                 console.warn(`[MoltBot] Relatório não encontrado em: ${this.intelPath}`);
