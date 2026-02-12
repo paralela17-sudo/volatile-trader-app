@@ -61,5 +61,6 @@ const App = () => (
         </Routes>
       </HashRouter>
     </TooltipProvider>
-  </QueryClientProvider>
+  </QueryClientProvider>);
+
 export default App;
