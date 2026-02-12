@@ -1,9 +1,14 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "0.0.0","engines": {
-    "node": "18.x"
-},
+  "version":{
+  "name": "vite_react_shadcn_ts",
+  "private": true,
+  "version": "0.0.0",
+  "engines": {
+    "node": "20.x"
+  },
+  "type": "module",
   "type": "module",
   "scripts": {
     "dev": "vite",
