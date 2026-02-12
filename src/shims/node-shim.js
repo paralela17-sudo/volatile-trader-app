@@ -12,6 +12,13 @@ export const process = {
     env: {}
 };
 
+export const createHmac = () => ({
+    update: () => ({
+        digest: () => ""
+    }),
+    digest: () => ""
+});
+
 export default {
     existsSync,
     readFileSync,
@@ -20,5 +27,6 @@ export default {
     join,
     dirname,
     platform,
-    process
+    process,
+    createHmac
 };
