@@ -220,9 +220,13 @@ class SupabaseSyncService {
                     test_balance: config.test_balance,
                     trading_pair: config.trading_pair,
                     quantity: config.quantity,
+                    take_profit_percent: config.take_profit_percent,
+                    stop_loss_percent: config.stop_loss_percent,
                     daily_profit_goal: config.daily_profit_goal,
                     is_running: config.is_running,
                     is_powered_on: config.is_powered_on,
+                    api_key_encrypted: config.api_key_encrypted,
+                    api_secret_encrypted: config.api_secret_encrypted,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', this.configId);

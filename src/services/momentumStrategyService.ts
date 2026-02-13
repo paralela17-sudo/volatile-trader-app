@@ -24,7 +24,14 @@ export interface MarketMomentum {
 }
 
 class MomentumStrategyService {
-  private readonly MIN_CONFIDENCE = 0.5; // Reduzido para aceitar sinais de Range Trading
+  public MIN_CONFIDENCE = 0.5; // Ajustável dinamicamente pela IA (Default: 0.5)
+
+  public setMinConfidence(value: number) {
+    if (value > 0 && value <= 1) {
+      this.MIN_CONFIDENCE = value;
+      console.log(`🧠 [Momentum] Confiança mínima ajustada para ${(value * 100).toFixed(0)}%`);
+    }
+  }
 
   /**
    * Extrai preços de fechamento dos candles
@@ -67,7 +74,7 @@ class MomentumStrategyService {
     }
 
     const sellSignal = meanReversionStrategy.analyzeSellOpportunity(prices);
-    
+
     if (sellSignal.action === 'sell' && sellSignal.confidence >= this.MIN_CONFIDENCE) {
       return 'vender';
     }
@@ -129,14 +136,14 @@ class MomentumStrategyService {
    */
   calculateShortTermVolatility(prices: number[]): number {
     if (prices.length < 2) return 0;
-    
+
     const returns: number[] = [];
     for (let i = 1; i < prices.length; i++) {
       const prev = prices[i - 1];
       if (prev === 0) continue;
       returns.push(Math.abs(((prices[i] - prev) / prev) * 100));
     }
-    
+
     return this.average(returns);
   }
 
@@ -193,10 +200,10 @@ class MomentumStrategyService {
    */
   shouldSell(candles: Candle[], buyPrice?: number): boolean {
     if (candles.length < 21) return false;
-    
+
     const prices = this.extractClosePrices(candles);
     const signal = meanReversionStrategy.analyzeSellOpportunity(prices, buyPrice);
-    
+
     return signal.action === 'sell' && signal.confidence >= this.MIN_CONFIDENCE;
   }
 

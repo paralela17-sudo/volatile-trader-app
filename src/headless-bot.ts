@@ -54,44 +54,13 @@ async function startHeadlessBot() {
         }
     });
 
-    healthServer.listen(HEALTH_PORT, () => {
-        console.log(`🛡️ Guardian Bridge ativo na porta ${HEALTH_PORT}`);
+    healthServer.listen(HEALTH_PORT, '127.0.0.1', () => {
+        console.log(`🛡️ Guardian Bridge ativo em 127.0.0.1:${HEALTH_PORT}`);
     });
 
-    // 2.5. Sincronizador de Dados - Modo Injeção Direta (100% Offline)
-    const syncDashboardData = () => {
-        try {
-
-            const data = {
-                config: localDb.getConfig(),
-                trades: localDb.getTrades(100),
-                logs: localDb.getLogs(100),
-                lastUpdate: new Date().toISOString()
-            };
-
-            const rootDir = path.resolve(process.cwd(), '..', '..');
-            const htmlPath = path.join(rootDir, 'PAINEL_VOLATILE.html');
-
-            if (fs.existsSync(htmlPath)) {
-                let html = fs.readFileSync(htmlPath, 'utf8');
-                const marker = '/* BOT_DATA_START */';
-                const endMarker = '/* BOT_DATA_END */';
-                const newData = `window.BOT_DATA = ${JSON.stringify(data)};`;
-
-                // Regex para encontrar e substituir o bloco de dados entre os marcadores
-                const regex = new RegExp(`${marker.replace(/\*/g, '\\*')}[\\s\\S]*?${endMarker.replace(/\*/g, '\\*')}`);
-                const updatedHtml = html.replace(regex, `${marker}${newData}${endMarker}`);
-
-                fs.writeFileSync(htmlPath, updatedHtml);
-            }
-        } catch (error) {
-            console.error('❌ Erro ao sincronizar dados (Injeção Direta):', error);
-        }
-    };
-
-    // Sincronizar imediatamente e depois a cada 30 segundos
-    syncDashboardData();
-    setInterval(syncDashboardData, 30000);
+    // 2.5. Sincronizador de Dados - (Desativado: PAINEL_VOLATILE.html foi removido em favor do Dashboard Vercel)
+    // const syncDashboardData = () => { ... }
+    // setInterval(syncDashboardData, 30000);
 
     // 3. Heartbeat Loop (Cloud Monitor)
     setInterval(() => {

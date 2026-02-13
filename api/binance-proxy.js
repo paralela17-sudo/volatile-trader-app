@@ -25,15 +25,12 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Missing path parameter' });
         }
 
-        // Construir URL da Binance
-        const baseUrl = 'https://api.binance.com';
+        // Construir URL da Binance (Utilizando .me para evitar geoblocks regionais no Vercel/VPS)
+        const baseUrl = 'https://api.binance.me';
         const queryStr = Object.entries(params)
             .map(([key, val]) => `${key}=${val}`)
             .join('&');
 
-        // Se a query string já estiver na URL de origem, não duplicar.
-        // O req.query do Vercel já parseia tudo.
-        // Mas para garantir a ordem da assinatura, em POST, a query string costuma ir na URL.
         const targetUrl = `${baseUrl}${path}${queryStr ? '?' + queryStr : ''}`;
 
         console.log(`[Proxy] ${req.method} Forwarding to: ${targetUrl}`);

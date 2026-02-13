@@ -28,11 +28,11 @@ class MeanReversionStrategy {
   private readonly BB_PERIOD = 20;
   private readonly BB_STD_DEV = 2.0;
   private readonly RSI_PERIOD = 14;
-  private readonly RSI_OVERSOLD = 40; // Relaxado de 35 para 40 (mais oportunidades)
-  private readonly RSI_EXTREME_OVERSOLD = 30; // Relaxado de 28 para 30
+  private readonly RSI_OVERSOLD = 45; // Aumentado para 45 (mais sinais)
+  private readonly RSI_EXTREME_OVERSOLD = 35; // Aumentado para 35
   private readonly RSI_OVERBOUGHT = 70;
   private readonly RSI_EXTREME_OVERBOUGHT = 75;
-  
+
   // Thresholds de confiança
   private readonly HIGH_CONFIDENCE = 0.9;
   private readonly MEDIUM_CONFIDENCE = 0.7;
@@ -63,7 +63,7 @@ class MeanReversionStrategy {
     }
 
     // CONDIÇÃO 1: Preço abaixo da Lower Band + RSI Oversold
-    const isPriceNearLowerBand = currentPrice <= bb.lower * 1.01; // 1% de margem (relaxado para mais oportunidades)
+    const isPriceNearLowerBand = currentPrice <= bb.lower * 1.015; // 1.5% de margem (relaxado)
     const isRSIOversold = rsi.value < this.RSI_OVERSOLD;
 
     if (isPriceNearLowerBand && isRSIOversold) {
@@ -178,7 +178,7 @@ class MeanReversionStrategy {
     return {
       action: 'hold',
       confidence: 0,
-      reason: buyPrice 
+      reason: buyPrice
         ? `Mantendo posição: PnL ${(((currentPrice - buyPrice) / buyPrice) * 100).toFixed(2)}% | RSI ${rsi.value.toFixed(1)}`
         : `Aguardando: Preço $${currentPrice.toFixed(2)} | Upper Band $${bb.upper.toFixed(2)} | RSI ${rsi.value.toFixed(1)}`,
       indicators: { bollingerBands: bb, rsi, currentPrice }

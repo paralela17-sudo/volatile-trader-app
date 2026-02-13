@@ -10,6 +10,7 @@ import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut,
 import { StatsCard } from "./StatsCard";
 import { TradeHistory } from "./TradeHistory";
 import { botConfigService } from "@/services/botService";
+import { supabaseSync } from "@/services/supabaseSyncService";
 import { MultiPairMonitor } from "./MultiPairMonitor";
 import { LastRoundPerformance } from "./LastRoundPerformance";
 import { TradeAdjustments } from "./TradeAdjustments";
@@ -115,8 +116,13 @@ export const Dashboard = () => {
 
   // Load configuration from database
   useEffect(() => {
-    loadBotConfiguration();
-    loadAccountStats();
+    const initSync = async () => {
+      await supabaseSync.initialize();
+      console.log("☁️ Supabase Sync initialized in Browser");
+      loadBotConfiguration();
+      loadAccountStats();
+    };
+    initSync();
 
     // Auto-refresh stats every 30 seconds
     const statsInterval = setInterval(() => {
@@ -130,14 +136,14 @@ export const Dashboard = () => {
     try {
       // Bypassing Supabase for local mode
       const stats = await statsService.getAccountStats(
-        "local-user",
+        userId,
         settings.testMode,
         settings.testBalance
       );
       setAccountStats(stats);
 
       // Buscar estatísticas de operações
-      const opStats = await operationsStatsService.getTodayOperationsStats("local-user");
+      const opStats = await operationsStatsService.getTodayOperationsStats(userId);
       setOperationStats(opStats);
 
       // Atualiza o Profit Diário
@@ -219,8 +225,6 @@ export const Dashboard = () => {
 
   const saveBotState = async (isRunning: boolean, isPoweredOff: boolean) => {
     try {
-      const userId = "default-local-user"; // Autenticação removida permanentemente
-
       if (configId) {
         await supabase
           .from("bot_configurations")
@@ -252,7 +256,6 @@ export const Dashboard = () => {
         testBalance: settings.testBalance,
       });
 
-      const userId = "default-local-user";
       const optimalPair = await pairSelectionService.selectOptimalPair();
 
       // USAR O SERVIÇO CENTRALIZADO (Isso garante sincronização com Supabase e VPS)
@@ -298,8 +301,6 @@ export const Dashboard = () => {
 
   const startAutomatedTrading = async () => {
     try {
-      const userId = "default-local-user"; // Autenticação removida permanentemente
-
       const { data: config } = await supabase
         .from("bot_configurations")
         .select("*")
@@ -350,7 +351,7 @@ export const Dashboard = () => {
     setResetting(true);
 
     try {
-      const userId = "default-local-user"; // Autenticação removida permanentemente
+      const userId = DEFAULT_USER_ID; // Autenticação removida permanentemente
 
       // Parar bot se estiver rodando
       if (botRunning) {
@@ -419,6 +420,26 @@ export const Dashboard = () => {
       toast.error("Erro ao resetar bot");
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleForceCloudSync = async () => {
+    try {
+      setLoading(true);
+      const cloud = await supabaseSync.getCloudConfig();
+      if (cloud) {
+        localDb.saveConfig(cloud);
+        await loadBotConfiguration();
+        await loadAccountStats();
+        toast.success("☁️ Sincronizado com o Supabase Cloud!");
+      } else {
+        toast.error("Nenhuma configuração encontrada no Cloud.");
+      }
+    } catch (error) {
+      console.error("Erro na sincronização Cloud:", error);
+      toast.error("Falha ao sincronizar com a nuvem.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -501,6 +522,16 @@ export const Dashboard = () => {
                   <AdminPanel />
                 </DialogContent>
               </Dialog>
+
+              <Button
+                variant="outline"
+                onClick={handleForceCloudSync}
+                className="gap-2 border-primary/30 hover:border-primary"
+                title="Forçar sincronização com Supabase"
+              >
+                <RotateCcw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                Sync Cloud
+              </Button>
 
               <Button
                 variant="ghost"

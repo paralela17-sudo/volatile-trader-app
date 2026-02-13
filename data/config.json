@@ -1,0 +1,17 @@
+{
+  "id": "d3d50c98-c0c3-4f50-ad7c-6110fb36ec3f",
+  "user_id": "00000000-0000-0000-0000-000000000000",
+  "api_key_encrypted": "zVTKN7Ruq2KvuHtXhhG2M1mTf0I84m0FFbrZ42SSfb1792UjNI5bbL6gf4Mnn6rh",
+  "api_secret_encrypted": "SIBc1zO3IJtO762Hk5udxUGkTvyQTR6AglSb7GClIsMBdVvvKkOzJxdIYTKz4HOp",
+  "test_mode": true,
+  "test_balance": 1000,
+  "trading_pair": "LINEAUSDT",
+  "quantity": 100,
+  "take_profit_percent": 5,
+  "stop_loss_percent": 2.5,
+  "daily_profit_goal": 50,
+  "is_running": true,
+  "is_powered_on": true,
+  "created_at": "2026-02-12T22:59:54.387341+00:00",
+  "updated_at": "2026-02-13T15:47:14.07269+00:00"
+}

@@ -44,8 +44,8 @@ export const TradeHistory = () => {
       const { data, error } = await supabase
         .from('trades')
         .select('*')
-        .order('closed_at', { ascending: false })
-        .limit(10);
+        .order('created_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
       // Map Supabase data to the Trade interface

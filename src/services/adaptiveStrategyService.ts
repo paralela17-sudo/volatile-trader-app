@@ -12,20 +12,21 @@ export interface AdaptiveRiskParams {
   takeProfitPercent: number;
   maxAllocationPerPairPercent: number;
   safetyReservePercent: number;
-  
+
   // Entry criteria (more selective = higher values)
   momentumBuyThreshold: number;
   minVolumeRatio: number;
   minQuoteVolume24hUsdt: number;
   priceVelocityThreshold: number;
-  
+  minConfidence?: number; // Novo campo
+
   // Cooldowns and protection
   pairCooldownSeconds: number;
   profitProtectThreshold: number;
-  
+
   // Volatility filters
   minVolatilityPercent: number;
-  
+
   // Metadata
   mode: 'normal' | 'cautious' | 'defensive';
   reason: string;
@@ -110,7 +111,7 @@ class AdaptiveStrategyService {
    */
   getAdjustmentSummary(params: AdaptiveRiskParams): string {
     const adjustments: string[] = [];
-    
+
     if (params.mode === 'cautious') {
       adjustments.push('🟡 Stop Loss: -20%');
       adjustments.push('🟡 Alocação: -20%');
@@ -123,7 +124,7 @@ class AdaptiveStrategyService {
       adjustments.push('🔴 Volume mínimo: +100%');
       adjustments.push('🔴 Cooldown: +100%');
     }
-    
+
     return adjustments.join(' | ');
   }
 }

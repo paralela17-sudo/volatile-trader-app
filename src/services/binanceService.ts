@@ -23,6 +23,8 @@ export interface Candle {
 }
 
 const BINANCE_BASE_URLS = [
+  'https://api.binance.me',
+  'https://api1.binance.me',
   'https://api.binance.com',
   'https://api1.binance.com',
   'https://api2.binance.com',

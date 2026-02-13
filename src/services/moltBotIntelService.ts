@@ -4,20 +4,25 @@ import { RISK_SETTINGS } from './riskService';
 
 interface MoltBotIntel {
     networkAnalysis: {
-        recommendedPriorityFee: string;
-        stableRPC: string;
+        recommendedLatencyMax: number;
+        stableMirror: string;
         cexTriggerThreshold: number;
     };
     strategyUpdates: {
-        topRoutes: string[];
-        poolLiquidityAlerts: string[];
+        topPairs: string[];
+        marketSentiment: string;
+        volatilityAlerts: string[];
         competitorBehaviors: string;
     };
     optimizedParameters: {
-        slippageMax: number;
-        gasMultiplier: number;
+        takeProfitPercent: number;
+        stopLossPercent: number;
+        orderSizeMultiplier: number;
+        maxPositions: number;
+        minConfidence?: number; // Novo campo para ajuste dinâmico de assertividade
     };
     date: string;
+    provider: string;
 }
 
 const isBrowser = typeof window !== 'undefined';
@@ -27,11 +32,8 @@ class MoltBotIntelService {
 
     constructor() {
         if (!isBrowser) {
-            // Caminho relativo ao MoltBot na raiz do projeto (Apenas Node/VPS)
-            this.intelPath = path.resolve(
-                process.cwd(),
-                '../.emergent/defi-arbitrage-intelligence-agent/data/intelligence/latest_intel.json'
-            );
+            // Caminho absoluto centralizado na VPS
+            this.intelPath = 'C:\\THE_FLASH_BOT\\data\\intelligence\\latest_intel.json';
         }
     }
 
@@ -62,17 +64,16 @@ class MoltBotIntelService {
         const intel = this.getLatestIntel();
         if (!intel) return currentParams;
 
-        console.log(`🧠 [MoltBot] Aplicando Inteligência Gemini de ${new Date(intel.date).toLocaleString()}`);
-
-        // Exemplo de ajuste: Usar o threshold da IA se for mais conservador
-        const aiThreshold = intel.networkAnalysis.cexTriggerThreshold * 100; // Converter para %
+        console.log(`🧠 [MoltBot] Aplicando Inteligência ${intel.provider} de ${new Date(intel.date).toLocaleString()}`);
 
         return {
             ...currentParams,
-            // Se a IA sugere um gatilho maior, nós nos tornamos mais seletivos
-            momentumBuyThreshold: Math.max(currentParams.momentumBuyThreshold, aiThreshold),
-            // Ajuste de SL/TP baseado na volatilidade sugerida (exemplo conceitual)
-            slippageMax: intel.optimizedParameters.slippageMax
+            // Ajustes dinâmicos baseados na IA
+            takeProfitPercent: intel.optimizedParameters.takeProfitPercent || currentParams.takeProfitPercent,
+            stopLossPercent: intel.optimizedParameters.stopLossPercent || currentParams.stopLossPercent,
+            maxPositions: intel.optimizedParameters.maxPositions || currentParams.maxPositions,
+            momentumBuyThreshold: intel.networkAnalysis.cexTriggerThreshold * 100 || currentParams.momentumBuyThreshold,
+            minConfidence: intel.optimizedParameters.minConfidence || 0.6 // Default 60% se não vier da IA
         };
     }
 }

@@ -3,48 +3,48 @@
  * Estratégia: Momentum Trading (5-15 min por operação)
  */
 export const RISK_SETTINGS = {
-  // Mean Reversion Strategy - Parâmetros Otimizados
-  STOP_LOSS_PERCENT: 2.5, // 2.5% stop loss (mais conservador)
-  TAKE_PROFIT_PERCENT: 5.0, // 5.0% take profit (ratio 1:2 realista)
+  // Mean Reversion Strategy - Parâmetros Otimizados (Turbo Scalping)
+  STOP_LOSS_PERCENT: 1.0, // Reduzido para 1% (proteção rápida)
+  TAKE_PROFIT_PERCENT: 1.5, // Reduzido para 1.5% (lucros rápidos e frequentes)
 
   // Session/position management
-  MAX_HOLD_MINUTES: 25, // Tempo máximo de posição aberta (aumentado para deixar momentum desenvolver)
+  MAX_HOLD_MINUTES: 15, // Tempo máximo reduzido (giro rápido de capital)
 
   // Capital Management (percent values)
-  CAPITAL_PER_ROUND_PERCENT: 10, // Máximo 10% do capital total por rodada
-  MAX_ALLOCATION_PER_PAIR_PERCENT: 5, // Máximo 5% do capital total por par
-  SAFETY_RESERVE_PERCENT: 5, // Reserva de segurança aplicada sobre o capital da rodada
-  MAX_POSITIONS: 5, // Máximo de posições simultâneas
+  CAPITAL_PER_ROUND_PERCENT: 25, // Aumentado para 25% (mais agressividade na rodada)
+  MAX_ALLOCATION_PER_PAIR_PERCENT: 10, // Aumentado para 10% por par (menos "migalhas", mais convicção)
+  SAFETY_RESERVE_PERCENT: 5, // Reserva mantida
+  MAX_POSITIONS: 10, // Aumentado para 10 posições simultâneas (mais diversidade)
 
-  // Momentum Parameters (percent units) - Entrada mais cedo
-  MOMENTUM_BUY_THRESHOLD: 0.3, // Comprar quando subir 0.3%+ (entrada mais cedo)
-  MIN_VOLUME_RATIO: 1.15, // Volume 15% acima da média (menos restritivo)
-  PRICE_VELOCITY_THRESHOLD: 0.2, // Velocidade mínima (% por tick, mais sensível)
+  // Momentum Parameters (percent units) - Entrada "Gatilho Rápido"
+  MOMENTUM_BUY_THRESHOLD: 0.15, // Reduzido de 0.3 para 0.15 (qualquer movimento de reversão ativa)
+  MIN_VOLUME_RATIO: 1.05, // Volume apenas 5% acima da média já serve
+  PRICE_VELOCITY_THRESHOLD: 0.1, // Velocidade mínima reduzida
 
   // Cooldown & Protection
-  PAIR_COOLDOWN_SECONDS: 45, // FASE 1: Reduzido de 90s para 45s (mais oportunidades)
-  PROFIT_PROTECT_THRESHOLD: 1.5, // Proteger lucro quando atingir 1.5%+ (menos agressivo)
+  PAIR_COOLDOWN_SECONDS: 30, // Reduzido para 30s (reentrada rápida)
+  PROFIT_PROTECT_THRESHOLD: 0.8, // Proteger lucro a partir de 0.8%
 
   // Reinvestment
-  AUTO_REINVEST: true, // Reinvestir capital liberado automaticamente
+  AUTO_REINVEST: true,
 
   // ===== NOVOS FILTROS INTELIGENTES (Quality Over Quantity) =====
 
-  // Filtro de Liquidez (evita slippage e falsos sinais)
-  MIN_QUOTE_VOLUME_24H_USDT: 5_000_000, // FASE 1: Reduzido de 10M para 5M (mais pares disponíveis)
+  // Filtro de Liquidez
+  MIN_QUOTE_VOLUME_24H_USDT: 2_000_000, // Reduzido para 2M (aceita mid-caps voláteis)
 
-  // Filtro de Volatilidade Intraday (evita mercados "chop")
-  MIN_VOLATILITY_PERCENT: 0.25, // Mínimo 0.25% de volatilidade realizada
-  VOLATILITY_WINDOW_TICKS: 40, // Janela de 40 ticks para calcular volatilidade
+  // Filtro de Volatilidade Intraday
+  MIN_VOLATILITY_PERCENT: 0.15, // Reduzido para 0.15% (aceita mercados menos caóticos)
+  VOLATILITY_WINDOW_TICKS: 20, // Janela mais curta (20 ticks)
 
-  // Circuit Breakers (proteção contra drawdowns)
-  LOSS_STREAK_LIMIT: 3, // Pausar após 3 perdas consecutivas
-  DAILY_MAX_DRAWDOWN_PERCENT: 3.0, // Pausar se perda diária ≥ 3%
-  CIRCUIT_BREAKER_PAUSE_MINUTES: 60, // Tempo de pausa após circuit breaker
+  // Circuit Breakers
+  LOSS_STREAK_LIMIT: 4, // Relaxado para 4 perdas
+  DAILY_MAX_DRAWDOWN_PERCENT: 5.0, // Relaxado para 5%
+  CIRCUIT_BREAKER_PAUSE_MINUTES: 30, // Pausa menor (30 min)
 
-  // Cooldown Dinâmico por Perda (aprende com erros)
-  LOSS_COOLDOWN_BASE_MINUTES: 10, // Base: 10 min após cada stop loss
-  LOSS_COOLDOWN_MULTIPLIER: 1.0, // Multiplica por número de perdas recentes
+  // Cooldown Dinâmico
+  LOSS_COOLDOWN_BASE_MINUTES: 5, // Apenas 5 min após loss
+  LOSS_COOLDOWN_MULTIPLIER: 1.0,
 };
 
 export function computeDailyProfitPercent(initialCapital: number, todaysProfit: number): number {

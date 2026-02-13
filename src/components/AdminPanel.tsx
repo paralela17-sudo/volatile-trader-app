@@ -8,6 +8,7 @@ import { CheckCircle2, XCircle, AlertCircle, ExternalLink, Key, Database, Settin
 // Supabase removed for local VPS execution
 import { botConfigService } from "@/services/botService";
 import { statusService } from "@/services/statusService";
+import { DEFAULT_USER_ID } from "@/constants";
 
 export const AdminPanel = () => {
   const [apiKeysConfigured, setApiKeysConfigured] = useState(false);
@@ -23,7 +24,7 @@ export const AdminPanel = () => {
   const checkApiKeysStatus = async () => {
     try {
       // In local mode, we check config.json via botConfigService
-      const config = await botConfigService.getConfig("local-user");
+      const config = await botConfigService.getConfig(DEFAULT_USER_ID);
       if (config &&
         (config.api_key_encrypted || process.env.BINANCE_API_KEY) &&
         (config.api_secret_encrypted || process.env.BINANCE_API_SECRET)) {
@@ -40,7 +41,7 @@ export const AdminPanel = () => {
     try {
       setLoadingConnection(true);
       // Mode simulation connectivity test
-      const result = await statusService.checkBinanceConnectivity("local-user");
+      const result = await statusService.checkBinanceConnectivity(DEFAULT_USER_ID);
       setBinanceConnected(result.ok);
     } catch (error) {
       console.error("Erro ao testar conexão com a Binance:", error);

@@ -47,9 +47,9 @@ class TradingService {
   private lastProfitableSells: Map<string, { price: number; time: number }> = new Map();
 
   // Momentum Trading Strategy Parameters (SSOT via RISK_SETTINGS)
-  private readonly PRICE_CHECK_INTERVAL = 3000; // 3 segundos (mais rápido)
-  private readonly POSITION_CHECK_INTERVAL = 2000; // 2 segundos (mais rápido)
-  private readonly REINVEST_CHECK_INTERVAL = 10000; // 10 segundos
+  private readonly PRICE_CHECK_INTERVAL = 1000; // 1 segundo (High Frequency)
+  private readonly POSITION_CHECK_INTERVAL = 1000; // 1 segundo (High Frequency)
+  private readonly REINVEST_CHECK_INTERVAL = 5000; // 5 segundos
   private readonly MAX_POSITIONS = RISK_SETTINGS.MAX_POSITIONS;
 
   async start(config: TradingConfig): Promise<void> {
@@ -108,6 +108,11 @@ class TradingService {
       TP: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
       Threshold: RISK_SETTINGS.MOMENTUM_BUY_THRESHOLD
     });
+
+    // Atualizar confiança mínima no momentumStrategyService se fornecido
+    if (params.minConfidence !== undefined) {
+      momentumStrategyService.setMinConfidence(params.minConfidence);
+    }
 
     // Mirror to Supabase if config is available
     if (this.config) {
