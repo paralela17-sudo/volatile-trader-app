@@ -22,9 +22,9 @@ interface Operation {
   status: 'active' | 'completed' | 'waiting';
 }
 
-const ProgressSegment = ({ color, progress, status }: { 
-  color: string; 
-  progress: number; 
+const ProgressSegment = ({ color, progress, status }: {
+  color: string;
+  progress: number;
   status: 'active' | 'completed' | 'waiting';
 }) => {
   const getGradient = () => {
@@ -45,12 +45,12 @@ const ProgressSegment = ({ color, progress, status }: {
     <motion.div
       className={`h-3 rounded-full bg-gradient-to-r ${getGradient()} ${status === 'active' ? `shadow-lg ${getGlow()}` : ''}`}
       initial={false}
-      animate={{ 
+      animate={{
         width: `${progress}%`,
         opacity: status === 'waiting' ? 0.5 : 1
       }}
-      transition={{ 
-        duration: 1.5, 
+      transition={{
+        duration: 1.5,
         ease: 'easeOut',
         opacity: { duration: 0.3 }
       }}
@@ -70,73 +70,41 @@ export const LiveTradingOperationsCard = ({
   lastOperationSymbol,
 }: LiveTradingOperationsCardProps) => {
   const [operations, setOperations] = useState<Operation[]>([
-    { 
-      label: 'Análise de Mercado', 
-      progress: 35, 
-      color: 'bg-blue-500', 
+    {
+      label: 'Análise de Mercado',
+      progress: 35,
+      color: 'bg-blue-500',
       nextAction: 'Identificar oportunidades',
       status: 'active'
     },
-    { 
-      label: 'Execução de Trades', 
-      progress: 60, 
-      color: 'bg-green-500', 
+    {
+      label: 'Execução de Trades',
+      progress: 60,
+      color: 'bg-green-500',
       nextAction: 'Monitorar posições abertas',
       status: 'active'
     },
-    { 
-      label: 'Gestão de Risco', 
-      progress: 20, 
-      color: 'bg-red-500', 
+    {
+      label: 'Gestão de Risco',
+      progress: 20,
+      color: 'bg-red-500',
       nextAction: 'Verificar stop loss',
       status: 'active'
     },
   ]);
 
-  // Simulação de atualização em tempo real
+  // Simulação de atualização removida para garantir fidelidade aos dados reais
   useEffect(() => {
-    const interval = setInterval(() => {
-      setOperations(prev =>
-        prev.map(op => {
-          // Simula progresso variável para cada operação
-          const increment = Math.random() * 12;
-          const newProgress = Math.min(op.progress + increment, 100);
-          
-          // Se completar, reinicia em modo "waiting"
-          if (newProgress >= 100) {
-            return {
-              ...op,
-              progress: 0,
-              status: 'waiting' as const,
-            };
-          }
-          
-          // Ativa operações que estavam waiting
-          if (op.status === 'waiting' && newProgress > 5) {
-            return {
-              ...op,
-              progress: newProgress,
-              status: 'active' as const,
-            };
-          }
-
-          return {
-            ...op,
-            progress: newProgress,
-          };
-        })
-      );
-    }, 2500); // Atualiza a cada 2.5 segundos
-
-    return () => clearInterval(interval);
-  }, []);
+    // Definir progresso estático ou baseado em estado real
+    setOperations(prev => prev.map(op => ({ ...op, progress: 0, status: 'waiting' })));
+  }, [totalOperationsToday]);
 
   const formatTime = (time: string | null) => {
     if (!time) return "Nenhuma operação hoje";
     try {
-      return formatDistanceToNow(new Date(time), { 
-        addSuffix: true, 
-        locale: ptBR 
+      return formatDistanceToNow(new Date(time), {
+        addSuffix: true,
+        locale: ptBR
       });
     } catch {
       return "Data inválida";
@@ -161,7 +129,7 @@ export const LiveTradingOperationsCard = ({
             <div key={index} className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground font-medium">{op.label}</span>
-                <motion.span 
+                <motion.span
                   className="text-primary font-semibold"
                   animate={{ opacity: [1, 0.5, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
@@ -170,8 +138,8 @@ export const LiveTradingOperationsCard = ({
                 </motion.span>
               </div>
               <div className="w-full bg-secondary/30 rounded-full overflow-hidden h-3">
-                <ProgressSegment 
-                  color={op.color} 
+                <ProgressSegment
+                  color={op.color}
                   progress={op.progress}
                   status={op.status}
                 />
@@ -196,11 +164,10 @@ export const LiveTradingOperationsCard = ({
             {lastOperationSide && (
               <Badge
                 variant={lastOperationSide === "BUY" ? "default" : "secondary"}
-                className={`text-xs ${
-                  lastOperationSide === "BUY" 
-                    ? "bg-green-500/20 text-green-600 border-green-500/30" 
+                className={`text-xs ${lastOperationSide === "BUY"
+                    ? "bg-green-500/20 text-green-600 border-green-500/30"
                     : "bg-orange-500/20 text-orange-600 border-orange-500/30"
-                }`}
+                  }`}
               >
                 {lastOperationSide === "BUY" ? "COMPRA" : "VENDA"}
               </Badge>
@@ -225,9 +192,8 @@ export const LiveTradingOperationsCard = ({
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Resultado Última Op.</p>
             {hasProfit ? (
-              <div className={`flex items-center gap-1.5 text-lg font-bold ${
-                isProfitable ? 'text-success' : 'text-danger'
-              }`}>
+              <div className={`flex items-center gap-1.5 text-lg font-bold ${isProfitable ? 'text-success' : 'text-danger'
+                }`}>
                 {isProfitable ? (
                   <TrendingUp className="w-4 h-4" />
                 ) : (

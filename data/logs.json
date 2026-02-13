@@ -8286,5 +8286,121 @@
       "platform": "win32",
       "uptime": 1503
     }
+  },
+  {
+    "id": "bv6cw4xr6",
+    "created_at": "2026-02-13T16:16:24.610Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 0.6,
+        "TAKE_PROFIT_PERCENT": 1.2,
+        "MAX_HOLD_MINUTES": 15,
+        "CAPITAL_PER_ROUND_PERCENT": 25,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 5,
+        "MAX_POSITIONS": 10,
+        "MOMENTUM_BUY_THRESHOLD": 0.2,
+        "MIN_VOLUME_RATIO": 1.05,
+        "PRICE_VELOCITY_THRESHOLD": 0.1,
+        "PAIR_COOLDOWN_SECONDS": 30,
+        "PROFIT_PROTECT_THRESHOLD": 0.8,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.15,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 5,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.2,
+        "stopLossPercent": 0.6,
+        "maxPositions": 4,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "xaehst8rr",
+    "created_at": "2026-02-13T16:16:24.645Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-13T16:16:24.640Z",
+      "platform": "win32",
+      "uptime": 1803
+    }
+  },
+  {
+    "id": "qdbwv736m",
+    "created_at": "2026-02-13T16:21:24.640Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-13T16:21:24.638Z",
+      "platform": "win32",
+      "uptime": 2103
+    }
+  },
+  {
+    "id": "vzsn5j2k9",
+    "created_at": "2026-02-13T16:26:24.603Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 0.6,
+        "TAKE_PROFIT_PERCENT": 1.2,
+        "MAX_HOLD_MINUTES": 15,
+        "CAPITAL_PER_ROUND_PERCENT": 25,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 5,
+        "MAX_POSITIONS": 10,
+        "MOMENTUM_BUY_THRESHOLD": 0.2,
+        "MIN_VOLUME_RATIO": 1.05,
+        "PRICE_VELOCITY_THRESHOLD": 0.1,
+        "PAIR_COOLDOWN_SECONDS": 30,
+        "PROFIT_PROTECT_THRESHOLD": 0.8,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.15,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 5,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "dkxi4lwrp",
+    "created_at": "2026-02-13T16:26:24.640Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-13T16:26:24.637Z",
+      "platform": "win32",
+      "uptime": 2403
+    }
+  },
+  {
+    "id": "53mmjn993",
+    "created_at": "2026-02-13T16:31:24.644Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-13T16:31:24.637Z",
+      "platform": "win32",
+      "uptime": 2703
+    }
   }
 ]

@@ -25,18 +25,9 @@ export const CoinMonitor = ({ isRunning }: CoinMonitorProps) => {
   ]);
 
   useEffect(() => {
+    // Monitoramento de moedas estático até integração real com broker service
     if (!isRunning) return;
-
-    const interval = setInterval(() => {
-      setCoins(prev => prev.map(coin => ({
-        ...coin,
-        price: coin.price * (1 + (Math.random() - 0.5) * 0.002),
-        change: coin.change + (Math.random() - 0.5) * 0.5,
-        trending: Math.abs(coin.change) > 3,
-      })));
-    }, 2000);
-
-    return () => clearInterval(interval);
+    console.log("CoinMonitor ativo (Exibindo pares fixos configurados)");
   }, [isRunning]);
 
   return (
@@ -52,11 +43,10 @@ export const CoinMonitor = ({ isRunning }: CoinMonitorProps) => {
         {coins.map((coin) => (
           <div
             key={coin.symbol}
-            className={`p-4 rounded-lg border transition-all duration-300 ${
-              coin.trending
+            className={`p-4 rounded-lg border transition-all duration-300 ${coin.trending
                 ? 'border-primary bg-primary/5 shadow-glow-success'
                 : 'border-border bg-secondary/20'
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -68,14 +58,13 @@ export const CoinMonitor = ({ isRunning }: CoinMonitorProps) => {
                   </Badge>
                 )}
               </div>
-              
+
               <div className="text-right space-y-1">
                 <div className="font-mono font-bold text-lg">
                   ${coin.price.toFixed(2)}
                 </div>
-                <div className={`flex items-center justify-end gap-1 text-sm font-medium ${
-                  coin.change >= 0 ? 'text-success' : 'text-danger'
-                }`}>
+                <div className={`flex items-center justify-end gap-1 text-sm font-medium ${coin.change >= 0 ? 'text-success' : 'text-danger'
+                  }`}>
                   {coin.change >= 0 ? (
                     <TrendingUp className="w-4 h-4" />
                   ) : (
