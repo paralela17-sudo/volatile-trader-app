@@ -103,16 +103,8 @@ export const Dashboard = () => {
     dailyProfitGoal: 50,
   });
 
-  const stats = {
-    totalTrades: 127,
-    profitableTrades: 89,
-    totalProfit: 48700,
-    initialCapital: 10000.00,
-    activePositions: 3,
-    conversionRate: 82.42,
-  };
+  // Estatísticas dinâmicas (Removido objeto stats hardcoded legado)
 
-  const profitPercentage = ((stats.profitableTrades / stats.totalTrades) * 100).toFixed(1);
 
   // Load configuration from database
   useEffect(() => {
