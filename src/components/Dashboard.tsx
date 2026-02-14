@@ -316,7 +316,8 @@ export const Dashboard = () => {
         setSettings({ ...settings, apiKey: "", apiSecret: "" });
         toast.success("Configurações salvas e sincronizadas com sucesso!");
 
-        // Recarregar dados
+        // Recarregar dados - incluindo configuração para atualizar status das chaves
+        loadBotConfiguration();
         loadAccountStats();
       } else {
         toast.error("Erro ao salvar configurações no serviço");

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { botConfigService } from "@/services/botService";
 import { pairSelectionService } from "@/services/pairSelectionService";
 import { RISK_SETTINGS } from "@/services/riskService";
+import { DEFAULT_USER_ID } from "@/constants";
 
 export const BotSettings = () => {
   const [settings, setSettings] = useState({
@@ -43,7 +44,7 @@ export const BotSettings = () => {
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const config = await botConfigService.getConfig("local-user");
+      const config = await botConfigService.getConfig(DEFAULT_USER_ID);
       if (config) {
         setSettings({
           apiKey: "",
@@ -69,7 +70,7 @@ export const BotSettings = () => {
   };
 
   const handleSave = async () => {
-    const userId = "default-local-user";
+    const userId = DEFAULT_USER_ID;
 
     if (!settings.apiKey && !apiKeysConfigured) {
       toast.error("Por favor, preencha a API Key");
@@ -118,7 +119,7 @@ export const BotSettings = () => {
   const handleUpdateTradingPair = async () => {
     try {
       setLoadingPair(true);
-      const newPair = await pairSelectionService.updateBotTradingPair("local-user");
+      const newPair = await pairSelectionService.updateBotTradingPair(DEFAULT_USER_ID);
       setTradingPair(newPair);
       toast.success(`Par de negociação atualizado para ${newPair}`);
     } catch (error) {

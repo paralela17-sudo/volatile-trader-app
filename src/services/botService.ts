@@ -76,8 +76,15 @@ export const botConfigService = {
     if (userId) {
       const cloud = await supabaseSync.getCloudConfig();
       if (cloud) {
-        localDb.saveConfig(cloud);
-        return cloud;
+        // [FIX] Só substituir as chaves se o cloud realmente tiver chaves salvas
+        // Se o cloud não tiver chaves, manter as locais (se houver)
+        const mergedConfig = {
+          ...cloud,
+          api_key_encrypted: cloud.api_key_encrypted || local?.api_key_encrypted,
+          api_secret_encrypted: cloud.api_secret_encrypted || local?.api_secret_encrypted,
+        };
+        localDb.saveConfig(mergedConfig);
+        return mergedConfig;
       }
     }
 
@@ -95,13 +102,24 @@ export const botConfigService = {
   },
 
   async saveApiCredentials(_userId: string, apiKey: string, apiSecret: string): Promise<boolean> {
-    console.log('💾 Salvando credenciais API...');
+    console.log('💾 Salvando credenciais API...', { apiKey: apiKey ? 'presente' : 'vazio', apiSecret: apiSecret ? 'presente' : 'vazio' });
     const current = localDb.getConfig();
+    
+    console.log('📋 Config atual antes de salvar:', { 
+      hasApiKey: !!current.api_key_encrypted, 
+      hasApiSecret: !!current.api_secret_encrypted 
+    });
+    
     const newConfig = {
       ...current,
-      api_key_encrypted: apiKey,
-      api_secret_encrypted: apiSecret
+      api_key_encrypted: apiKey || current.api_key_encrypted,
+      api_secret_encrypted: apiSecret || current.api_secret_encrypted
     };
+
+    console.log('📋 Config nova a ser salva:', { 
+      hasApiKey: !!newConfig.api_key_encrypted, 
+      hasApiSecret: !!newConfig.api_secret_encrypted 
+    });
 
     localDb.saveConfig(newConfig);
     console.log('✅ Credenciais salvas no LocalDB');

@@ -73,17 +73,22 @@ class SupabaseSyncService {
 
             // [CRITICAL FIX] Preservar chaves API ao sincronizar
             // Não limpar mais o BOT_DATA para evitar perda de credenciais
+            let keysPreserved = { api_key_encrypted: '', api_secret_encrypted: '' };
+            
             if (typeof localStorage !== 'undefined') {
                 const existingConfig = localStorage.getItem('BOT_DATA');
-                let configToPreserve = null;
                 
                 if (existingConfig) {
                     try {
                         const parsed = JSON.parse(existingConfig);
-                        configToPreserve = {
-                            api_key_encrypted: parsed.api_key_encrypted,
-                            api_secret_encrypted: parsed.api_secret_encrypted
+                        keysPreserved = {
+                            api_key_encrypted: parsed.api_key_encrypted || '',
+                            api_secret_encrypted: parsed.api_secret_encrypted || ''
                         };
+                        console.log('🔑 Chaves detectadas no LocalStorage:', { 
+                            hasApiKey: !!keysPreserved.api_key_encrypted, 
+                            hasApiSecret: !!keysPreserved.api_secret_encrypted 
+                        });
                     } catch (e) {
                         console.warn('⚠️ Erro ao parsear config existente');
                     }
@@ -192,7 +197,14 @@ class SupabaseSyncService {
                         }
                     }
 
-                    localDb.saveConfig(data as any);
+                    // [FIX] Preservar chaves locais ao sincronizar do cloud
+                    const localConfig = localDb.getConfig();
+                    const mergedConfig = {
+                        ...data,
+                        api_key_encrypted: data.api_key_encrypted || localConfig.api_key_encrypted,
+                        api_secret_encrypted: data.api_secret_encrypted || localConfig.api_secret_encrypted,
+                    };
+                    localDb.saveConfig(mergedConfig as any);
                 }
                 return data as any;
             }
@@ -229,8 +241,14 @@ class SupabaseSyncService {
                 this.configId = configs[0].id;
                 console.log('📋 Loaded existing config:', this.configId);
 
-                // Sync config to local
-                localDb.saveConfig(configs[0] as any);
+                // [FIX] Preservar chaves locais ao carregar do cloud
+                const localConfig = localDb.getConfig();
+                const mergedConfig = {
+                    ...configs[0],
+                    api_key_encrypted: configs[0].api_key_encrypted || localConfig.api_key_encrypted,
+                    api_secret_encrypted: configs[0].api_secret_encrypted || localConfig.api_secret_encrypted,
+                };
+                localDb.saveConfig(mergedConfig as any);
             } else {
                 // Create new config
                 const localConfig = localDb.getConfig();
@@ -344,8 +362,17 @@ class SupabaseSyncService {
     }
 
     async syncConfig(config: Partial<BotConfig>) {
+        // [FIX] Preservar chaves existentes ao sincronizar
+        const currentConfig = localDb.getConfig();
+        const mergedConfig = {
+            ...currentConfig,
+            ...config,
+            api_key_encrypted: config.api_key_encrypted || currentConfig.api_key_encrypted,
+            api_secret_encrypted: config.api_secret_encrypted || currentConfig.api_secret_encrypted,
+        };
+        
         // Always save locally first
-        localDb.saveConfig(config as any);
+        localDb.saveConfig(mergedConfig as any);
 
         if (!this.syncEnabled || !this.userId || !this.configId) {
             return;
@@ -364,8 +391,8 @@ class SupabaseSyncService {
                     daily_profit_goal: config.daily_profit_goal,
                     is_running: config.is_running,
                     is_powered_on: config.is_powered_on,
-                    api_key_encrypted: config.api_key_encrypted,
-                    api_secret_encrypted: config.api_secret_encrypted,
+                    api_key_encrypted: mergedConfig.api_key_encrypted,
+                    api_secret_encrypted: mergedConfig.api_secret_encrypted,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', this.configId);
@@ -395,7 +422,15 @@ class SupabaseSyncService {
 
             if (error) throw error;
 
-            return data as any;
+            // [FIX] Preservar chaves locais ao buscar do cloud
+            const localConfig = localDb.getConfig();
+            const mergedConfig = {
+                ...data,
+                api_key_encrypted: data.api_key_encrypted || localConfig.api_key_encrypted,
+                api_secret_encrypted: data.api_secret_encrypted || localConfig.api_secret_encrypted,
+            };
+            
+            return mergedConfig as any;
         } catch (error) {
             console.error('❌ Failed to fetch cloud config:', error);
             return null;
