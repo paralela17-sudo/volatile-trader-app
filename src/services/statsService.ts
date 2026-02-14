@@ -13,6 +13,7 @@ export interface AccountStats {
   currentBalance: number;
   winRate24h: number;
   monthlyProfit: number;
+  activeTrades: Trade[];
 }
 
 export const statsService = {
@@ -47,16 +48,31 @@ export const statsService = {
       }
 
       // Calcular capital alocado em posições abertas
-      const openPositions = allTrades.filter((t: any) =>
-        t.side === 'BUY' && (t.profit_loss === null || typeof t.profit_loss === 'undefined')
-      );
+      // Posição aberta = Operação de COMPRA que ainda não foi fechada (sem profit_loss realizado)
+      const openPositions = allTrades.filter((t: any) => {
+        const isBuy = t.side === 'BUY';
+        const isNotFinished = t.profit_loss === null || typeof t.profit_loss === 'undefined';
+        const isNotFailed = t.status !== 'FAILED';
+
+        return isBuy && isNotFinished && isNotFailed;
+      });
+
+      console.log(`🔍 [Stats] Trades carregados: ${allTrades.length} | Posições abertas detectadas: ${openPositions.length}`);
+      if (openPositions.length > 0) {
+        console.log('📋 [Stats] IDs das posições abertas:', openPositions.map(p => p.id));
+      }
+
       const allocatedCapital = openPositions.reduce((sum: number, t: any) => {
-        return sum + (Number(t.price) * Number(t.quantity));
+        const price = Number(t.price) || 0;
+        const qty = Number(t.quantity) || 0;
+        return sum + (price * qty);
       }, 0);
 
       // Calcular lucro/perda total realizado
       const executedTrades = allTrades.filter((t: any) =>
-        t.status === 'EXECUTED' && t.profit_loss !== null
+        (t.status === 'EXECUTED' || (t.side === 'SELL' && t.status !== 'FAILED')) &&
+        t.profit_loss !== null &&
+        typeof t.profit_loss !== 'undefined'
       );
       const totalProfit = executedTrades.reduce((sum: number, t: any) =>
         sum + (t.profit_loss || 0), 0
@@ -161,6 +177,7 @@ export const statsService = {
         currentBalance,
         winRate24h,
         monthlyProfit,
+        activeTrades: Array.isArray(openPositions) ? openPositions.filter(t => t && t.id) : []
       };
     } catch (error) {
       console.error('Exception in getAccountStats:', error);
@@ -184,6 +201,7 @@ export const statsService = {
       currentBalance: testMode ? testBalance : 0,
       winRate24h: 0,
       monthlyProfit: 0,
+      activeTrades: []
     };
   }
 };

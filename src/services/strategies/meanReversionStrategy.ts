@@ -28,8 +28,8 @@ class MeanReversionStrategy {
   private readonly BB_PERIOD = 20;
   private readonly BB_STD_DEV = 2.0;
   private readonly RSI_PERIOD = 14;
-  private readonly RSI_OVERSOLD = 45; // Aumentado para 45 (mais sinais)
-  private readonly RSI_EXTREME_OVERSOLD = 35; // Aumentado para 35
+  private readonly RSI_OVERSOLD = 50; // Aumentado para 50 (captura micro-reversões)
+  private readonly RSI_EXTREME_OVERSOLD = 40; // Aumentado para 40
   private readonly RSI_OVERBOUGHT = 70;
   private readonly RSI_EXTREME_OVERBOUGHT = 75;
 

@@ -17,6 +17,7 @@ export interface BotConfig {
   trading_pair: string;
   api_key_encrypted?: string;
   api_secret_encrypted?: string;
+  reset_circuit_breaker?: boolean;
 }
 
 export interface Trade {
@@ -121,7 +122,7 @@ export const tradeService = {
     return localDb.getTrades(limit);
   },
 
-  async executeTrade(symbol: string, side: 'BUY' | 'SELL', quantity: number, testMode = true): Promise<any> {
+  async executeTrade(symbol: string, side: 'BUY' | 'SELL', quantity: number, testMode = true, profitLoss?: number): Promise<any> {
     // Normalize and validate input
     const bodyCandidate = {
       symbol: normalizeSymbol(symbol),
@@ -163,6 +164,7 @@ export const tradeService = {
         price: currentPrice,
         status: finalSide === 'BUY' ? 'PENDING' : 'EXECUTED',
         created_at: new Date().toISOString(),
+        profit_loss: profitLoss ?? (finalSide === 'SELL' ? 0 : undefined), // Incluir profit_loss se for venda
       };
 
       // Simular delay de rede para realismo (200-500ms)
@@ -230,7 +232,8 @@ export const tradeService = {
       status: finalSide === 'BUY' ? 'PENDING' : 'EXECUTED',
       binance_order_id: data.orderId?.toString(),
       executed_at: finalSide === 'SELL' ? new Date().toISOString() : undefined,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      profit_loss: profitLoss ?? (finalSide === 'SELL' ? 0 : undefined),
     };
 
     await supabaseSync.syncTrade(realTrade);

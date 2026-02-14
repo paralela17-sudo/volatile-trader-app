@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut, Settings, RotateCcw } from "lucide-react";
+import { Play, Activity, ArrowUpRight, ArrowDownRight, Save, Key, Power, LogOut, Settings, RotateCcw, TrendingUp, TrendingDown } from "lucide-react";
 import { StatsCard } from "./StatsCard";
 import { TradeHistory } from "./TradeHistory";
 import { botConfigService } from "@/services/botService";
@@ -77,6 +77,7 @@ export const Dashboard = () => {
     currentBalance: 0,
     winRate24h: 0,
     monthlyProfit: 0,
+    activeTrades: [],
   });
   const [operationStats, setOperationStats] = useState<OperationStats>({
     lastOperationTime: null,
@@ -183,6 +184,62 @@ export const Dashboard = () => {
       setLoading(false);
     }
   };
+
+  // [FIXED] Limpar a KEY CORRETA do LocalStorage ('BOT_DATA' é a chave real)
+  useEffect(() => {
+    try {
+      // SEMPRE limpar ao carregar para garantir dados frescos
+      console.log('🧹 Limpando LocalStorage (BOT_DATA)...');
+
+      // Remover a key CORRETA onde os dados estão armazenados
+      localStorage.removeItem('BOT_DATA');
+
+      // Limpar keys antigas também (por segurança)
+      localStorage.removeItem('bot_trades');
+      localStorage.removeItem('bot_logs');
+      localStorage.removeItem('last_data_cleanup');
+
+      console.log('✅ LocalStorage completamente limpo');
+    } catch (err) {
+      console.warn('⚠️ Falha ao limpar LocalStorage:', err);
+    }
+  }, []);
+
+  // [NEW] Auto-sync com DELAY para evitar crash
+  useEffect(() => {
+    let mounted = true;
+    const timer = setTimeout(async () => {
+      if (!mounted) return;
+
+      try {
+        console.log('🔄 [Auto-Sync] Aguardando 2s antes de sincronizar...');
+        const { supabaseSync } = await Promise.race([
+          import("@/services/supabaseSyncService"),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Import timeout')), 3000)
+          )
+        ]);
+
+        if (!mounted) return;
+
+        await Promise.race([
+          supabaseSync.initClientSync(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Sync timeout')), 8000)
+          )
+        ]);
+
+        console.log('✅ [Auto-Sync] Sincronização automática OK');
+      } catch (err) {
+        console.warn('⚠️ [Auto-Sync] Falhou mas não quebrou:', err);
+      }
+    }, 2000); // Espera 2 segundos antes de tentar
+
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+    };
+  }, []);
 
   // Checar metas diárias e controlar o bot
   useEffect(() => {
@@ -415,21 +472,31 @@ export const Dashboard = () => {
     }
   };
 
-  const handleForceCloudSync = async () => {
+  const handleForceSync = async () => {
     try {
       setLoading(true);
+      console.log("🔄 [Manual Sync] Iniciando sincronização completa...");
+
+      // 1. Sincronizar com Cloud (se disponível)
       const cloud = await supabaseSync.getCloudConfig();
       if (cloud) {
         localDb.saveConfig(cloud);
         await loadBotConfiguration();
-        await loadAccountStats();
-        toast.success("☁️ Sincronizado com o Supabase Cloud!");
-      } else {
-        toast.error("Nenhuma configuração encontrada no Cloud.");
+        console.log("✅ Configuração Cloud sincronizada");
       }
+
+      // 2. Tentar reconciliação forçada no TradingService (se o bot estiver rodando)
+      if (botRunning) {
+        await tradingService.reconcile();
+      }
+
+      // 3. Atualizar estatísticas locais
+      await loadAccountStats();
+
+      toast.success("✅ Dashboard 100% Sincronizado!");
     } catch (error) {
-      console.error("Erro na sincronização Cloud:", error);
-      toast.error("Falha ao sincronizar com a nuvem.");
+      console.error("Erro na sincronização:", error);
+      toast.error("Falha ao sincronizar dados.");
     } finally {
       setLoading(false);
     }
@@ -517,12 +584,12 @@ export const Dashboard = () => {
 
               <Button
                 variant="outline"
-                onClick={handleForceCloudSync}
+                onClick={handleForceSync}
                 className="gap-2 border-primary/30 hover:border-primary"
-                title="Forçar sincronização com Supabase"
+                title="Sincronizar configurações e estatísticas"
               >
                 <RotateCcw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                Sync Cloud
+                Sincronizar
               </Button>
 
               <Button
@@ -584,11 +651,26 @@ export const Dashboard = () => {
             <div className="w-full bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex items-center justify-between animate-pulse">
               <div className="flex items-center gap-3 text-amber-600 font-semibold">
                 <span className="text-xl">⚠️</span>
-                <span>MODO TESTE ATIVO - Simulação em Tempo Real (Saldo Virtual)</span>
+                <span>MODO TESTE ATIVO - Paper Trading com Dados Reais da Binance</span>
               </div>
               <Badge variant="outline" className="border-amber-500/50 text-amber-600 bg-amber-500/5">
                 Sem Risco Financeiro
               </Badge>
+            </div>
+          )}
+
+          {/* Paper Trading Info (quando bot está desligado em modo teste) */}
+          {tradingMode === "test" && !botRunning && (
+            <div className="w-full bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 space-y-2">
+              <div className="flex items-center gap-2 text-blue-600 font-semibold">
+                <span className="text-xl">📊</span>
+                <span>Paper Trading Configurado - Pronto Para Começar!</span>
+              </div>
+              <p className="text-sm text-blue-600/80 ml-7">
+                O bot está configurado para analisar <strong>dados REAIS</strong> da Binance e executar <strong>trades SIMULADAS</strong>.
+                Quando você clicar em "LIGAR BOT", ele começará a monitorar o mercado e mostrar lucros/perdas realistas sem gastar dinheiro real.
+                <strong> Perfeito para testar estratégias antes de operar com dinheiro de verdade!</strong>
+              </p>
             </div>
           )}
 
@@ -621,7 +703,7 @@ export const Dashboard = () => {
                 </p>
                 <div className="flex items-end gap-2">
                   <p className={`text-3xl font-bold tracking-tight ${tradingMode === "test" ? "text-amber-600" : "text-primary"}`}>
-                    ${accountStats.initialCapital.toFixed(2)}
+                    ${(Number(accountStats.initialCapital) || 0).toFixed(2)}
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">Configurado para o dia</p>
@@ -635,12 +717,12 @@ export const Dashboard = () => {
                 <div className="flex items-end gap-2">
                   <p className={`text-3xl font-bold tracking-tight ${accountStats.dailyProfit >= 0 ? 'text-success' : 'text-destructive'
                     }`}>
-                    ${accountStats.dailyProfit.toFixed(2)}
+                    ${(Number(accountStats.dailyProfit) || 0).toFixed(2)}
                   </p>
                 </div>
                 <p className={`text-xs ${accountStats.dailyProfitPercent >= 0 ? 'text-success' : 'text-destructive'
                   }`}>
-                  {accountStats.dailyProfitPercent >= 0 ? '+' : ''}{accountStats.dailyProfitPercent.toFixed(2)}% hoje
+                  {accountStats.dailyProfitPercent >= 0 ? '+' : ''}{(Number(accountStats.dailyProfitPercent) || 0).toFixed(2)}% hoje
                 </p>
               </div>
             </Card>
@@ -651,23 +733,28 @@ export const Dashboard = () => {
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Saldo Atual</p>
                 <div className="flex items-end gap-2">
                   <p className="text-3xl font-bold text-primary tracking-tight">
-                    ${accountStats.currentBalance.toFixed(2)}
+                    ${(Number(accountStats.currentBalance) || 0).toFixed(2)}
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">Saldo atualizado</p>
               </div>
             </Card>
 
-            {/* Posições Ativas */}
+            {/* Alocação Real e Monitoramento */}
             <Card className="p-5 bg-gradient-card border-border hover:border-primary/50 transition-all duration-300">
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Posições Ativas</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Alocação Real (Em Trade)</p>
+                  <Badge variant="outline" className={`${accountStats.activePositions > 0 ? 'border-primary text-primary animate-pulse' : 'opacity-50'}`}>
+                    {accountStats.activePositions} Ativo(s)
+                  </Badge>
+                </div>
                 <div className="flex items-end gap-2">
                   <p className="text-3xl font-bold text-primary tracking-tight">
-                    {accountStats.activePositions}
+                    ${(accountStats.activeTrades.reduce((sum, t) => sum + (Number(t.price) * Number(t.quantity)), 0)).toFixed(2)}
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground">Trades abertos</p>
+                <p className="text-xs text-muted-foreground">Capital em mercado agora</p>
               </div>
             </Card>
 
@@ -677,7 +764,7 @@ export const Dashboard = () => {
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Taxa de Vitória</p>
                 <div className="flex items-end gap-2">
                   <p className="text-3xl font-bold text-primary tracking-tight">
-                    {accountStats.winRate24h.toFixed(1)}%
+                    {(Number(accountStats.winRate24h) || 0).toFixed(1)}%
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">Últimas 24h</p>
@@ -691,13 +778,95 @@ export const Dashboard = () => {
                 <div className="flex items-end gap-2">
                   <p className={`text-3xl font-bold tracking-tight ${accountStats.monthlyProfit >= 0 ? 'text-success' : 'text-destructive'
                     }`}>
-                    ${accountStats.monthlyProfit.toFixed(2)}
+                    ${(Number(accountStats.monthlyProfit) || 0).toFixed(2)}
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">Lucro mensal</p>
               </div>
             </Card>
           </div>
+
+          {/* [RE-ENABLED] Seção de Operações em Andamento - COM PROTEÇÃO MÁXIMA */}
+          {(() => {
+            try {
+              const trades = accountStats?.activeTrades;
+              if (!trades || !Array.isArray(trades) || trades.length === 0) return null;
+
+              return (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-primary" />
+                      Operações em Andamento
+                    </h3>
+                    <Badge variant="outline" className="animate-pulse border-primary/50 text-primary">
+                      {trades.length} Ativo(s)
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {trades.map((trade) => {
+                      try {
+                        if (!trade?.id) return null;
+                        const symbol = trade.symbol || 'N/A';
+                        const price = trade.price ? Number(trade.price) : 0;
+                        const quantity = trade.quantity || 0;
+                        const profitLoss = trade.profit_loss !== undefined && trade.profit_loss !== null ? Number(trade.profit_loss) : null;
+                        const createdAt = trade.created_at ? new Date(trade.created_at).toLocaleTimeString() : '--:--';
+                        const type = trade.type || 'MARKET';
+                        const side = trade.side || 'BUY';
+                        const isBuy = side === 'BUY';
+
+                        return (
+                          <Card key={trade.id} className="p-4 bg-gradient-card border-primary/20 hover:border-primary/50 transition-all">
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Badge className={isBuy ? 'bg-primary text-primary-foreground' : 'bg-success text-success-foreground'}>
+                                    {isBuy ? 'COMPRA' : 'VENDA'}
+                                  </Badge>
+                                  <span className="font-bold text-lg">{symbol}</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">{createdAt}</span>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="space-y-1">
+                                  <p className="text-xs text-muted-foreground uppercase">Preço Entrada</p>
+                                  <p className="font-mono font-bold">
+                                    ${price.toFixed(symbol.includes('USDT') ? 4 : 2)}
+                                  </p>
+                                </div>
+                                <div className="space-y-1 text-right">
+                                  <p className="text-xs text-muted-foreground uppercase">PnL Atual</p>
+                                  <div className={`flex items-center justify-end gap-1 font-bold ${(profitLoss || 0) >= 0 ? 'text-success' : 'text-destructive'
+                                    }`}>
+                                    {(profitLoss || 0) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                    {profitLoss !== null ? `${profitLoss >= 0 ? '+' : ''}${profitLoss.toFixed(2)}%` : 'Calculando...'}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="pt-2 border-t border-border/50 flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">Qtd: {quantity}</span>
+                                <Badge variant="outline" className="text-[10px] opacity-70">{type}</Badge>
+                              </div>
+                            </div>
+                          </Card>
+                        );
+                      } catch (tradeErr) {
+                        console.warn('⚠️ Erro ao renderizar trade:', tradeErr);
+                        return null;
+                      }
+                    })}
+                  </div>
+                </div>
+              );
+            } catch (sectionErr) {
+              console.warn('⚠️ Erro na seção de trades ativos:', sectionErr);
+              return null;
+            }
+          })()}
 
           {/* Profit Section */}
           <Card className="p-6 bg-gradient-card border-border">
@@ -707,7 +876,7 @@ export const Dashboard = () => {
                   <p className="text-sm text-muted-foreground font-medium uppercase tracking-wide">Profit</p>
                   <div className="flex items-end gap-3">
                     <p className="text-3xl font-bold text-primary tracking-tight">
-                      ${accountStats.totalProfit.toFixed(2)}
+                      ${(Number(accountStats.totalProfit) || 0).toFixed(2)}
                     </p>
                     {accountStats.totalProfit > 0 && <ArrowUpRight className="w-5 h-5 text-success mb-1" />}
                     {accountStats.totalProfit < 0 && <ArrowDownRight className="w-5 h-5 text-destructive mb-1" />}
@@ -773,6 +942,7 @@ export const Dashboard = () => {
               totalCapital={settings.testMode ? settings.testBalance : accountStats.initialCapital}
               userId={configId || ""}
               testMode={settings.testMode}
+              quantityPerTrade={settings.quantity}
             />
           )}
 

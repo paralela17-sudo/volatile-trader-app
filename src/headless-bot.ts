@@ -102,6 +102,12 @@ async function startHeadlessBot() {
                     maxPositions: 5
                 });
             }
+
+            // [NEW] Check for remote Circuit Breaker reset
+            if (supabaseSync.checkAndClearResetRequest()) {
+                console.log('⚡ [Remote] Resetting Circuit Breaker as requested from dashboard...');
+                await tradingService.clearCircuitBreaker();
+            }
         }
     }, 30000); // Check every 30 seconds
 
@@ -115,26 +121,32 @@ async function startHeadlessBot() {
         }
     }, 600000); // Check every 10 min
 
-    // 4. Iniciar Trading Service
+    // 4. Iniciar Trading Service (apenas se is_powered_on = true)
     try {
-        // Mocking do par de trading (No futuro buscar do pairSelectionService)
-        const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'];
-
-        console.log(`🚀 Iniciando monitoramento para: ${symbols.join(', ')}`);
-
-        // Tentar buscar config do Supabase primeiro
+        // Buscar config do Supabase primeiro
         const remote = await supabaseSync.fetchRemoteConfig();
 
-        await tradingService.start({
-            userId: '00000000-0000-0000-0000-000000000000',
-            configId: remote?.id || 'default-config-id',
-            symbols: symbols,
-            totalCapital: remote?.test_balance || initialBalance,
-            takeProfitPercent: remote?.take_profit_percent || RISK_SETTINGS.TAKE_PROFIT_PERCENT,
-            stopLossPercent: remote?.stop_loss_percent || RISK_SETTINGS.STOP_LOSS_PERCENT,
-            testMode: remote?.test_mode !== undefined ? remote.test_mode : isTestMode,
-            maxPositions: RISK_SETTINGS.MAX_POSITIONS
-        });
+        // Verificar se está ligado antes de iniciar
+        if (remote?.is_powered_on !== true) {
+            console.log('⏸️ Bot inicia em modo PAUSADO. Aguardando comando do Dashboard...');
+            console.log('   Para ativar, vá no Dashboard e clique em ON.');
+        } else {
+            const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'];
+
+            console.log(`🚀 Iniciando monitoramento para: ${symbols.join(', ')}`);
+
+            await tradingService.start({
+                userId: '00000000-0000-0000-0000-000000000000',
+                configId: remote?.id || 'default-config-id',
+                symbols: symbols,
+                totalCapital: remote?.test_balance || initialBalance,
+                quantityPerTrade: remote?.quantity, // Quantidade por trade definida no Dashboard
+                takeProfitPercent: remote?.take_profit_percent || RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+                stopLossPercent: remote?.stop_loss_percent || RISK_SETTINGS.STOP_LOSS_PERCENT,
+                testMode: remote?.test_mode !== undefined ? remote.test_mode : isTestMode,
+                maxPositions: RISK_SETTINGS.MAX_POSITIONS
+            });
+        }
 
     } catch (error) {
         console.error('❌ Erro crítico ao iniciar trading:', error);

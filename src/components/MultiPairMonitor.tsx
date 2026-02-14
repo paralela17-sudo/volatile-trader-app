@@ -11,9 +11,10 @@ interface MultiPairMonitorProps {
   totalCapital: number;
   userId: string;
   testMode: boolean;
+  quantityPerTrade?: number;
 }
 
-export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: MultiPairMonitorProps) => {
+export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode, quantityPerTrade }: MultiPairMonitorProps) => {
   const [pairs, setPairs] = useState<PairMonitor[]>([]);
   const [allocations, setAllocations] = useState<Map<string, CapitalAllocation>>(new Map());
 
@@ -28,10 +29,11 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
       if (watchedPairs.length > 0) {
         const symbols = watchedPairs.map(p => p.symbol);
         const newAllocations = await capitalDistributionService.distributeCapital(
-          userId, 
-          totalCapital, 
-          symbols, 
-          testMode
+          userId,
+          totalCapital,
+          symbols,
+          testMode,
+          quantityPerTrade
         );
         setAllocations(newAllocations);
       } else {
@@ -43,7 +45,7 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
     const interval = setInterval(updatePairs, 10000); // Atualizar a cada 10s
 
     return () => clearInterval(interval);
-  }, [isActive, totalCapital, userId, testMode]);
+  }, [isActive, totalCapital, userId, testMode, quantityPerTrade]);
 
   if (!isActive) {
     return (
@@ -81,7 +83,7 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
             {pairs.length} Pares Ativos
           </Badge>
         </div>
-        
+
         <div className="grid grid-cols-3 gap-4 mb-4">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Capital Total</p>
@@ -90,8 +92,8 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
             </p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Alocado</p>
-            <p className="text-2xl font-bold text-green-500">
+            <p className="text-xs text-muted-foreground">Reservado (Target)</p>
+            <p className="text-2xl font-bold text-yellow-500">
               ${totalAllocated.toFixed(2)}
             </p>
           </div>
@@ -103,12 +105,12 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
           </div>
         </div>
 
-        <Progress 
-          value={(totalAllocated / totalCapital) * 100} 
+        <Progress
+          value={(totalAllocated / totalCapital) * 100}
           className="h-2"
         />
         <p className="text-xs text-muted-foreground mt-2 text-right">
-          {((totalAllocated / totalCapital) * 100).toFixed(1)}% do capital em uso
+          {((totalAllocated / totalCapital) * 100).toFixed(1)}% do capital reservado para monitoramento
         </p>
       </Card>
 
@@ -121,11 +123,10 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
             const isOpportunity = pair.priceChangePercent <= -0.3 && pair.volatility >= 0.08;
 
             return (
-              <Card 
-                key={pair.symbol} 
-                className={`p-4 border-border hover:border-primary/50 transition-all ${
-                  isOpportunity ? 'ring-2 ring-primary/50 shadow-glow-primary' : ''
-                }`}
+              <Card
+                key={pair.symbol}
+                className={`p-4 border-border hover:border-primary/50 transition-all ${isOpportunity ? 'ring-2 ring-primary/50 shadow-glow-primary' : ''
+                  }`}
               >
                 <div className="space-y-3">
                   {/* Header */}
@@ -163,9 +164,8 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
                         ) : (
                           <TrendingDown className="w-3 h-3 text-red-500" />
                         )}
-                        <span className={`text-sm font-semibold ${
-                          pair.priceChangePercent >= 0 ? 'text-green-500' : 'text-red-500'
-                        }`}>
+                        <span className={`text-sm font-semibold ${pair.priceChangePercent >= 0 ? 'text-green-500' : 'text-red-500'
+                          }`}>
                           {pair.priceChangePercent >= 0 ? '+' : ''}
                           {pair.priceChangePercent.toFixed(2)}%
                         </span>
@@ -179,14 +179,14 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1">
                           <DollarSign className="w-3 h-3 text-primary" />
-                          <span className="text-xs text-muted-foreground">Alocado:</span>
+                          <span className="text-xs text-muted-foreground">Alocação Alvo:</span>
                         </div>
                         <span className="text-sm font-semibold text-primary">
                           ${allocation.allocatedAmount.toFixed(2)}
                         </span>
                       </div>
-                      <Progress 
-                        value={allocation.allocatedPercent} 
+                      <Progress
+                        value={allocation.allocatedPercent}
                         className="h-1 mt-2"
                       />
                       <p className="text-xs text-muted-foreground text-right mt-1">
@@ -206,7 +206,7 @@ export const MultiPairMonitor = ({ isActive, totalCapital, userId, testMode }: M
                           const min = Math.min(...pair.lastPrices.slice(-10));
                           const max = Math.max(...pair.lastPrices.slice(-10));
                           const height = ((price - min) / (max - min)) * 100;
-                          
+
                           return (
                             <div
                               key={i}

@@ -12,9 +12,12 @@ const isNode = typeof process !== 'undefined' && process.versions && process.ver
 import { DEFAULT_USER_ID } from "@/constants";
 
 class SupabaseSyncService {
+    // Propriedades privadas da classe
     private userId: string | null = DEFAULT_USER_ID;
     private configId: string | null = null;
     private syncEnabled: boolean = false;
+    // [NEW] Flag para indicar se o reset do CB foi solicitado via nuvem
+    private resetCbRequested: boolean = false;
 
     async initialize() {
         try {
@@ -34,6 +37,11 @@ class SupabaseSyncService {
                 console.log('📡 Supabase sync: Using default local-user (Auth Disabled)');
                 this.userId = DEFAULT_USER_ID;
                 this.syncEnabled = true;
+
+                // No Browser (Client), vamos forçar um sync inicial do que está no cloud para o LocalStorage
+                if (!isNode) {
+                    this.initClientSync();
+                }
             }
 
             console.log('✅ Supabase sync enabled for user:', this.userId);
@@ -46,6 +54,76 @@ class SupabaseSyncService {
             console.warn('⚠️ Supabase sync initialization failed, using local-only mode:', error);
             this.syncEnabled = false;
             return false;
+        }
+    }
+
+    /**
+     * [NEW] Sincronização inicial para o Navegador (Browser)
+     * Puxa os dados do Supabase para o LocalStorage local
+     * DEFENSIVO: Nunca quebra o render, sempre retorna silenciosamente
+     */
+    async initClientSync(): Promise<void> {
+        // Apenas no navegador
+        if (isNode || !this.userId) {
+            return;
+        }
+
+        try {
+            console.log('🔄 [Client] Iniciando sincronização do cloud...');
+
+            // [CRITICAL FIX] Limpar LocalStorage ANTES de sincronizar
+            // Isso impede que trades antigas sejam re-adicionadas
+            if (typeof localStorage !== 'undefined') {
+                console.log('🧹 [Client] Limpando BOT_DATA antes de sincronizar...');
+                localStorage.removeItem('BOT_DATA');
+                console.log('✅ [Client] BOT_DATA limpo');
+            }
+
+            // 1. Puxar trades com timeout de 5 segundos
+            const tradesPromise = supabase
+                .from('trades')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(100);
+
+            const { data: trades, error: tradesErr } = await Promise.race([
+                tradesPromise,
+                new Promise<any>((_, reject) =>
+                    setTimeout(() => reject(new Error('Timeout')), 5000)
+                )
+            ]).catch(() => ({ data: null, error: 'timeout' }));
+
+            if (!tradesErr && trades && Array.isArray(trades)) {
+                let syncedCount = 0;
+                trades.reverse().forEach((t: any) => {
+                    try {
+                        if (t && t.id && t.symbol) {
+                            localDb.addTrade({
+                                id: t.id,
+                                symbol: t.symbol,
+                                side: (t.side || 'BUY') as any,
+                                type: (t.type || 'MARKET') as any,
+                                quantity: Number(t.quantity) || 0,
+                                price: Number(t.price) || 0,
+                                status: (t.status || 'PENDING') as any,
+                                profit_loss: t.profit_loss,
+                                binance_order_id: t.binance_order_id,
+                                executed_at: t.executed_at,
+                                created_at: t.created_at || new Date().toISOString()
+                            });
+                            syncedCount++;
+                        }
+                    } catch (tradeErr) {
+                        // Silently skip invalid trades
+                    }
+                });
+                console.log(`✅ [Client] ${syncedCount} trades sincronizadas.`);
+            } else {
+                console.warn('⚠️ [Client] Nenhuma trade encontrada no cloud.');
+            }
+        } catch (error) {
+            // NUNCA quebrar o render
+            console.warn('⚠️ [Client] Sync falhou (modo offline):', error);
         }
     }
 
@@ -80,8 +158,23 @@ class SupabaseSyncService {
             if (data) {
                 // Sync to local if changed
                 const local = localDb.getConfig();
-                if (data.is_powered_on !== local.is_powered_on || data.is_running !== local.is_running) {
+                if (data.is_powered_on !== local.is_powered_on ||
+                    data.is_running !== local.is_running ||
+                    (data as any).reset_circuit_breaker === true) {
+
                     console.log('🔄 Remote config update detected:', data.is_powered_on ? 'ON' : 'OFF');
+
+                    // [NEW] Lógica de reset remoto do CB
+                    if ((data as any).reset_circuit_breaker === true) {
+                        console.log('⚠️ [Remote] Reset de Circuit Breaker solicitado via Dashboard.');
+                        this.resetCbRequested = true;
+
+                        // Limpar a flag no Supabase para não repetir o reset infinitamente
+                        if (isNode) {
+                            await supabase.from('bot_configurations').update({ reset_circuit_breaker: false }).eq('id', this.configId);
+                        }
+                    }
+
                     localDb.saveConfig(data as any);
                 }
                 return data as any;
@@ -91,6 +184,15 @@ class SupabaseSyncService {
             // Silently fail to avoid log spamming on poll
             return null;
         }
+    }
+
+    /**
+     * [NEW] Verifica se o reset do CB foi solicitado e limpa a flag local
+     */
+    checkAndClearResetRequest(): boolean {
+        const requested = this.resetCbRequested;
+        this.resetCbRequested = false;
+        return requested;
     }
 
     private async loadOrCreateConfig() {
@@ -139,6 +241,26 @@ class SupabaseSyncService {
             }
         } catch (error) {
             console.error('❌ Failed to load/create config:', error);
+        }
+    }
+
+    /**
+     * [NEW] Comando remoto para resetar o Circuit Breaker via Dahsboard
+     */
+    async requestCircuitBreakerReset() {
+        if (!this.syncEnabled || !this.configId) return false;
+        try {
+            const { error } = await supabase
+                .from('bot_configurations')
+                .update({ reset_circuit_breaker: true })
+                .eq('id', this.configId);
+
+            if (error) throw error;
+            console.log('⚡ [Client] Solicitação de reset de CB enviada para o servidor.');
+            return true;
+        } catch (error) {
+            console.error('❌ Erro ao solicitar reset de CB:', error);
+            return false;
         }
     }
 

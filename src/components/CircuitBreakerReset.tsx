@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
-import { tradingService } from "@/services/tradingService";
+import { supabaseSync } from "@/services/supabaseSyncService";
 
 interface CircuitBreakerResetProps {
   onReset?: () => void;
@@ -15,17 +15,17 @@ export const CircuitBreakerReset = ({ onReset }: CircuitBreakerResetProps) => {
   const handleClear = async () => {
     try {
       setLoading(true);
-      // Local mode bypass
-      const success = await tradingService.clearCircuitBreaker();
+      // [FIX] Agora enviamos um sinal via Supabase para o Robô no VPS
+      const success = await supabaseSync.requestCircuitBreakerReset();
 
       if (success) {
-        toast.success("Circuit Breaker Limpo", {
-          description: "O sistema voltará a operar normalmente.",
+        toast.success("Solicitação Enviada", {
+          description: "O robô receberá o comando de reset em instantes.",
         });
         onReset?.();
       } else {
         toast.error("Erro", {
-          description: "Não foi possível limpar o circuit breaker agora.",
+          description: "Não foi possível enviar o comando de reset.",
         });
       }
     } catch (error) {

@@ -22,7 +22,7 @@ export const RISK_SETTINGS = {
   PRICE_VELOCITY_THRESHOLD: 0.1, // Velocidade mínima reduzida
 
   // Cooldown & Protection
-  PAIR_COOLDOWN_SECONDS: 30, // Reduzido para 30s (reentrada rápida)
+  PAIR_COOLDOWN_SECONDS: 300, // Aumentado para 5 min (evita spam)
   PROFIT_PROTECT_THRESHOLD: 0.8, // Proteger lucro a partir de 0.8%
 
   // Reinvestment
@@ -34,7 +34,7 @@ export const RISK_SETTINGS = {
   MIN_QUOTE_VOLUME_24H_USDT: 2_000_000, // Reduzido para 2M (aceita mid-caps voláteis)
 
   // Filtro de Volatilidade Intraday
-  MIN_VOLATILITY_PERCENT: 0.15, // Reduzido para 0.15% (aceita mercados menos caóticos)
+  MIN_VOLATILITY_PERCENT: 0.03, // Reduzido drasticamente para 0.03% (mercado calmo)
   VOLATILITY_WINDOW_TICKS: 20, // Janela mais curta (20 ticks)
 
   // Circuit Breakers

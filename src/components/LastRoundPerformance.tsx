@@ -69,7 +69,7 @@ export const LastRoundPerformance = () => {
             </CardTitle>
             {metrics?.winRate !== undefined && (
               <Badge variant={metrics.winRate >= 50 ? "default" : "destructive"}>
-                Win Rate: {metrics.winRate.toFixed(1)}%
+                Win Rate: {(Number(metrics.winRate) || 0).toFixed(1)}%
               </Badge>
             )}
           </div>
@@ -84,7 +84,7 @@ export const LastRoundPerformance = () => {
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground uppercase font-semibold">Total PnL</p>
               <p className={`text-xl font-bold ${(metrics?.totalPnL || 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
-                ${metrics?.totalPnL.toFixed(2) || "0.00"}
+                ${(Number(metrics?.totalPnL) || 0).toFixed(2)}
               </p>
             </div>
             <div className="space-y-1">
@@ -94,13 +94,13 @@ export const LastRoundPerformance = () => {
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground uppercase font-semibold">Máx Ganho</p>
               <p className="text-lg font-bold text-green-500">
-                {metrics?.maxGain ? `+$${metrics.maxGain.toFixed(2)}` : "-"}
+                {metrics?.maxGain ? `+$${Number(metrics.maxGain).toFixed(2)}` : "-"}
               </p>
             </div>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground uppercase font-semibold">Máx Perda</p>
               <p className="text-lg font-bold text-red-500">
-                {metrics?.maxLoss ? `$${metrics.maxLoss.toFixed(2)}` : "-"}
+                {metrics?.maxLoss ? `$${Number(metrics.maxLoss).toFixed(2)}` : "-"}
               </p>
             </div>
           </div>
@@ -118,8 +118,8 @@ export const LastRoundPerformance = () => {
           {analysis?.recommendations && analysis.recommendations.length > 0 ? (
             analysis.recommendations.slice(0, 2).map((rec, i) => (
               <div key={i} className={`p-2 rounded text-xs border ${rec.type === 'danger' ? 'bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400' :
-                  rec.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400' :
-                    'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400'
+                rec.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400' :
+                  'bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400'
                 }`}>
                 {rec.message}
               </div>

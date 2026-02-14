@@ -64,12 +64,23 @@ export const binanceService = {
 
     // Proxy Fallback (Safe Bridge)
     try {
-      // The proxy expects ?path=/api/v3/...&param1=val1
-      const [apiPath, query] = path.split('?');
-      const proxyUrl = `${VERCEL_PROXY}?path=${apiPath}${query ? '&' + query : ''}`;
+      // Ensure path doesn't start with / if it's already in the proxy path
+      const cleanPath = path.startsWith('/') ? path : `/${path}`;
 
-      console.log(`📡 Fetching through Proxy: ${proxyUrl}`);
-      const response = await fetch(proxyUrl);
+      // Use URLSearchParams for reliable encoding
+      const [apiPath, query] = cleanPath.split('?');
+      const proxyUrl = new URL(VERCEL_PROXY);
+      proxyUrl.searchParams.append('path', apiPath);
+
+      if (query) {
+        const queryParams = new URLSearchParams(query);
+        queryParams.forEach((value, key) => {
+          proxyUrl.searchParams.append(key, value);
+        });
+      }
+
+      console.log(`📡 Fetching through Proxy: ${proxyUrl.toString()}`);
+      const response = await fetch(proxyUrl.toString());
       if (response.ok) return await response.json();
       console.error(`❌ Vercel Proxy failed: ${response.status}`);
     } catch (error) {
@@ -82,13 +93,19 @@ export const binanceService = {
   async getPrice(symbol: string): Promise<PriceData | null> {
     try {
       const data = await this.fetchWithRetry(`/api/v3/ticker/price?symbol=${symbol}`);
+
+      if (!data || !data.price) {
+        console.error(`❌ ${symbol}: Preço não retornado`);
+        return null;
+      }
+
       return {
         symbol: data.symbol,
         price: parseFloat(data.price),
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('Exception in getPrice:', error);
+      console.error(`Exception in getPrice for ${symbol}:`, error);
       return null;
     }
   },
@@ -97,6 +114,11 @@ export const binanceService = {
     try {
       // Usar API pública da Binance para dados de 24h
       const data = await this.fetchWithRetry(`/api/v3/ticker/24hr?symbol=${symbol}`);
+
+      if (!data || !data.lastPrice) {
+        console.error(`❌ ${symbol}: Dados de mercado não retornados`);
+        return null;
+      }
 
       return {
         symbol: data.symbol,
@@ -108,7 +130,7 @@ export const binanceService = {
         low: parseFloat(data.lowPrice)
       };
     } catch (error) {
-      console.error('Exception in getMarketData:', error);
+      console.error(`Exception in getMarketData for ${symbol}:`, error);
       return null;
     }
   },
@@ -119,15 +141,23 @@ export const binanceService = {
         `/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
       );
 
-      return data.map((candle: any) => ({
+      if (!data || data.length === 0) {
+        console.error(`❌ ${symbol}: Nenhum dado de candles retornado`);
+        return [];
+      }
+
+      const candles = data.map((candle: any) => ({
         timestamp: candle[0],
         open: parseFloat(candle[1]),
         high: parseFloat(candle[2]),
         low: parseFloat(candle[3]),
         close: parseFloat(candle[4])
       }));
+
+      console.log(`📊 ${symbol}: ${candles.length} candles obtidos (último: $${candles[candles.length-1].close.toFixed(2)})`);
+      return candles;
     } catch (error) {
-      console.error('Exception in getCandles:', error);
+      console.error(`Exception in getCandles for ${symbol}:`, error);
       return [];
     }
   },

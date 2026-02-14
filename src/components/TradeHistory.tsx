@@ -107,16 +107,17 @@ export const TradeHistory = () => {
                       ${trade.price.toFixed(2)}
                     </div>
 
-                    {trade.profit !== undefined && (
-                      <div className={`flex items-center gap-1 text-sm font-medium ${trade.profit >= 0 ? 'text-success' : 'text-danger'
-                        }`}>
+                    {trade.profit !== undefined && trade.profit !== null ? (
+                      <>
                         {trade.profit >= 0 ? (
                           <TrendingUp className="w-3 h-3" />
                         ) : (
                           <TrendingDown className="w-3 h-3" />
                         )}
-                        {trade.profit >= 0 ? '+' : ''}{trade.profit.toFixed(2)}%
-                      </div>
+                        {trade.profit >= 0 ? '+' : ''}{Number(trade.profit).toFixed(2)}%
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground italic text-[10px]">Em andamento</span>
                     )}
                   </div>
                 </div>
