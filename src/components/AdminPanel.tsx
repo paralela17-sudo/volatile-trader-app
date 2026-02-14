@@ -4,7 +4,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle2, XCircle, AlertCircle, ExternalLink, Key, Database, Settings, Lock } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, ExternalLink, Key, Database, Settings, Lock, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 // Supabase removed for local VPS execution
 import { botConfigService } from "@/services/botService";
 import { statusService } from "@/services/statusService";
@@ -15,6 +16,14 @@ export const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [binanceConnected, setBinanceConnected] = useState(false);
   const [loadingConnection, setLoadingConnection] = useState(true);
+
+  const clearLocalData = () => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+      toast.success("✅ Cache limpo! Atualize a página (F5).");
+      setTimeout(() => window.location.reload(), 1500);
+    }
+  };
 
   useEffect(() => {
     checkApiKeysStatus();
@@ -123,11 +132,17 @@ export const AdminPanel = () => {
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Painel Administrativo</h2>
-        <p className="text-muted-foreground">
-          Configure e monitore a integração do bot com a Binance
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Painel Administrativo</h2>
+          <p className="text-muted-foreground">
+            Configure e monitore a integração do bot com a Binance
+          </p>
+        </div>
+        <Button variant="destructive" size="sm" onClick={clearLocalData} className="gap-2">
+          <Trash2 className="w-4 h-4" />
+          Limpar Cache
+        </Button>
       </div>
 
       <Alert>
