@@ -44,16 +44,16 @@ export interface RoundAnalysis {
 
 class LastRoundAnalysisService {
   /**
-   * Busca os trades da última rodada (últimas 24h ou até 100 trades)
+   * Busca os trades da última rodada (última 1 hora para fresh start)
    */
   async fetchLastRoundTrades(): Promise<TradeDetail[]> {
     try {
-      // Busca trades das últimas 24 horas do banco local
-      const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+      // Busca trades da última 1 hora apenas (para fresh start)
+      const oneHourAgo = Date.now() - 60 * 60 * 1000;
       const trades = localDb.getTrades(200);
 
       const lastRoundTrades = trades.filter((t: any) =>
-        new Date(t.executed_at || t.created_at).getTime() >= twentyFourHoursAgo
+        new Date(t.executed_at || t.created_at).getTime() >= oneHourAgo
       );
 
       return lastRoundTrades as unknown as TradeDetail[];
