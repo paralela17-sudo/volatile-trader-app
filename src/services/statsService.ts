@@ -39,7 +39,15 @@ export const statsService = {
   async getAccountStats(_userId: string, testMode: boolean, testBalance: number): Promise<AccountStats> {
     try {
       // Buscar todas as trades locais
-      const trades = localDb.getTrades(2000);
+      let trades = localDb.getTrades(2000);
+      
+      // [FIX] Ignorar trades com mais de 24 horas para fresh start
+      const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+      trades = (trades || []).filter((t: any) => {
+        const tradeTime = new Date(t.created_at).getTime();
+        return tradeTime > oneDayAgo;
+      });
+      
       const allTrades = trades || [];
 
       // Capital base (saldo inicial)
