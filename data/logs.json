@@ -1,678 +1,5 @@
 [
   {
-    "id": "8ds7wqptz",
-    "created_at": "2026-02-13T05:03:54.468Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.8,
-        "TAKE_PROFIT_PERCENT": 1.5,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.5,
-        "stopLossPercent": 0.8,
-        "maxPositions": 5,
-        "momentumBuyThreshold": 0.2
-      }
-    }
-  },
-  {
-    "id": "rmfm3iis7",
-    "created_at": "2026-02-13T05:03:54.495Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:03:54.494Z",
-      "platform": "win32",
-      "uptime": 10801
-    }
-  },
-  {
-    "id": "qcyogx8x6",
-    "created_at": "2026-02-13T05:05:08.910Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:05:08.909Z",
-      "platform": "win32",
-      "uptime": 9301
-    }
-  },
-  {
-    "id": "s14qbj4fm",
-    "created_at": "2026-02-13T05:08:54.503Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:08:54.502Z",
-      "platform": "win32",
-      "uptime": 11101
-    }
-  },
-  {
-    "id": "lanpf701j",
-    "created_at": "2026-02-13T05:10:08.739Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.8,
-        "TAKE_PROFIT_PERCENT": 1.5,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.5,
-        "stopLossPercent": 0.8,
-        "maxPositions": 5,
-        "momentumBuyThreshold": 0.2
-      }
-    }
-  },
-  {
-    "id": "mgbha6tds",
-    "created_at": "2026-02-13T05:10:08.911Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:10:08.911Z",
-      "platform": "win32",
-      "uptime": 9601
-    }
-  },
-  {
-    "id": "ixi4h6nw1",
-    "created_at": "2026-02-13T05:13:54.469Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.8,
-        "TAKE_PROFIT_PERCENT": 1.5,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.5,
-        "stopLossPercent": 0.8,
-        "maxPositions": 5,
-        "momentumBuyThreshold": 0.2
-      }
-    }
-  },
-  {
-    "id": "8k8a8vhb9",
-    "created_at": "2026-02-13T05:13:54.499Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:13:54.497Z",
-      "platform": "win32",
-      "uptime": 11401
-    }
-  },
-  {
-    "id": "p2hr58tag",
-    "created_at": "2026-02-13T05:15:08.915Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:15:08.914Z",
-      "platform": "win32",
-      "uptime": 9901
-    }
-  },
-  {
-    "id": "bhy5gq7kc",
-    "created_at": "2026-02-13T05:18:54.503Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:18:54.502Z",
-      "platform": "win32",
-      "uptime": 11701
-    }
-  },
-  {
-    "id": "nk3uer9bn",
-    "created_at": "2026-02-13T05:20:08.734Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.8,
-        "TAKE_PROFIT_PERCENT": 1.5,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.5,
-        "stopLossPercent": 0.8,
-        "maxPositions": 5,
-        "momentumBuyThreshold": 0.2
-      }
-    }
-  },
-  {
-    "id": "xi1ji51x0",
-    "created_at": "2026-02-13T05:20:08.918Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:20:08.917Z",
-      "platform": "win32",
-      "uptime": 10201
-    }
-  },
-  {
-    "id": "w7uj37pmp",
-    "created_at": "2026-02-13T05:23:54.481Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.8,
-        "TAKE_PROFIT_PERCENT": 1.5,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.5,
-        "stopLossPercent": 0.8,
-        "maxPositions": 5,
-        "momentumBuyThreshold": 0.2
-      }
-    }
-  },
-  {
-    "id": "b2ry3j2le",
-    "created_at": "2026-02-13T05:23:54.502Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:23:54.502Z",
-      "platform": "win32",
-      "uptime": 12001
-    }
-  },
-  {
-    "id": "40ixiv9f2",
-    "created_at": "2026-02-13T05:25:08.913Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:25:08.912Z",
-      "platform": "win32",
-      "uptime": 10501
-    }
-  },
-  {
-    "id": "np4jn3e98",
-    "created_at": "2026-02-13T05:28:54.516Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:28:54.515Z",
-      "platform": "win32",
-      "uptime": 12301
-    }
-  },
-  {
-    "id": "rpki0otau",
-    "created_at": "2026-02-13T05:30:08.742Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.8,
-        "TAKE_PROFIT_PERCENT": 1.5,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.5,
-        "stopLossPercent": 0.8,
-        "maxPositions": 5,
-        "momentumBuyThreshold": 0.2
-      }
-    }
-  },
-  {
-    "id": "rc6dmdhu9",
-    "created_at": "2026-02-13T05:30:08.933Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:30:08.930Z",
-      "platform": "win32",
-      "uptime": 10801
-    }
-  },
-  {
-    "id": "ar33cib0c",
-    "created_at": "2026-02-13T05:33:54.495Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.8,
-        "TAKE_PROFIT_PERCENT": 1.5,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.5,
-        "stopLossPercent": 0.8,
-        "maxPositions": 5,
-        "momentumBuyThreshold": 0.2
-      }
-    }
-  },
-  {
-    "id": "rukzbx3fh",
-    "created_at": "2026-02-13T05:33:54.512Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:33:54.511Z",
-      "platform": "win32",
-      "uptime": 12601
-    }
-  },
-  {
-    "id": "1n2lr9yhg",
-    "created_at": "2026-02-13T05:35:08.934Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:35:08.932Z",
-      "platform": "win32",
-      "uptime": 11101
-    }
-  },
-  {
-    "id": "12duthmij",
-    "created_at": "2026-02-13T05:38:54.523Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:38:54.522Z",
-      "platform": "win32",
-      "uptime": 12901
-    }
-  },
-  {
-    "id": "p5deayftk",
-    "created_at": "2026-02-13T05:40:08.743Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.8,
-        "TAKE_PROFIT_PERCENT": 1.5,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.2,
-        "stopLossPercent": 0.6,
-        "maxPositions": 4,
-        "momentumBuyThreshold": 0.2
-      }
-    }
-  },
-  {
-    "id": "k6hcd14g9",
-    "created_at": "2026-02-13T05:40:08.944Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:40:08.943Z",
-      "platform": "win32",
-      "uptime": 11401
-    }
-  },
-  {
-    "id": "iaj01hvfh",
-    "created_at": "2026-02-13T05:43:54.494Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.8,
-        "TAKE_PROFIT_PERCENT": 1.5,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.2,
-        "stopLossPercent": 0.6,
-        "maxPositions": 4,
-        "momentumBuyThreshold": 0.2
-      }
-    }
-  },
-  {
-    "id": "9i8umibt7",
-    "created_at": "2026-02-13T05:43:54.525Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:43:54.524Z",
-      "platform": "win32",
-      "uptime": 13201
-    }
-  },
-  {
-    "id": "rx305lwtz",
-    "created_at": "2026-02-13T05:45:08.953Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:45:08.952Z",
-      "platform": "win32",
-      "uptime": 11701
-    }
-  },
-  {
-    "id": "m6ekst1gj",
-    "created_at": "2026-02-13T05:48:54.531Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:48:54.530Z",
-      "platform": "win32",
-      "uptime": 13501
-    }
-  },
-  {
-    "id": "i4m0hy0r9",
-    "created_at": "2026-02-13T05:50:08.737Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.6,
-        "TAKE_PROFIT_PERCENT": 1.2,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.2,
-        "stopLossPercent": 0.6,
-        "maxPositions": 4,
-        "momentumBuyThreshold": 0.15
-      }
-    }
-  },
-  {
-    "id": "vfugddo5l",
-    "created_at": "2026-02-13T05:50:08.954Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:50:08.953Z",
-      "platform": "win32",
-      "uptime": 12001
-    }
-  },
-  {
-    "id": "pkr1iv4b5",
-    "created_at": "2026-02-13T05:53:54.491Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.6,
-        "TAKE_PROFIT_PERCENT": 1.2,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.2,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.2,
-        "stopLossPercent": 0.6,
-        "maxPositions": 4,
-        "momentumBuyThreshold": 0.15
-      }
-    }
-  },
-  {
-    "id": "4xfxdqf20",
-    "created_at": "2026-02-13T05:53:54.538Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:53:54.537Z",
-      "platform": "win32",
-      "uptime": 13801
-    }
-  },
-  {
-    "id": "uyj6ui1e3",
-    "created_at": "2026-02-13T05:55:08.966Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:55:08.964Z",
-      "platform": "win32",
-      "uptime": 12301
-    }
-  },
-  {
-    "id": "1cjb9s660",
-    "created_at": "2026-02-13T05:58:54.559Z",
-    "level": "INFO",
-    "message": "Bot Heartbeat: System is healthy and monitoring.",
-    "details": {
-      "timestamp": "2026-02-13T05:58:54.558Z",
-      "platform": "win32",
-      "uptime": 14101
-    }
-  },
-  {
-    "id": "a50glwwfc",
-    "created_at": "2026-02-13T06:00:08.762Z",
-    "level": "INFO",
-    "message": "AI/Remote updated trading parameters",
-    "details": {
-      "params": {
-        "STOP_LOSS_PERCENT": 0.6,
-        "TAKE_PROFIT_PERCENT": 1.2,
-        "MAX_HOLD_MINUTES": 25,
-        "CAPITAL_PER_ROUND_PERCENT": 10,
-        "MAX_ALLOCATION_PER_PAIR_PERCENT": 5,
-        "SAFETY_RESERVE_PERCENT": 5,
-        "MAX_POSITIONS": 5,
-        "MOMENTUM_BUY_THRESHOLD": 0.15,
-        "MIN_VOLUME_RATIO": 1.15,
-        "PRICE_VELOCITY_THRESHOLD": 0.2,
-        "PAIR_COOLDOWN_SECONDS": 45,
-        "PROFIT_PROTECT_THRESHOLD": 1.5,
-        "AUTO_REINVEST": true,
-        "MIN_QUOTE_VOLUME_24H_USDT": 5000000,
-        "MIN_VOLATILITY_PERCENT": 0.25,
-        "VOLATILITY_WINDOW_TICKS": 40,
-        "LOSS_STREAK_LIMIT": 3,
-        "DAILY_MAX_DRAWDOWN_PERCENT": 3,
-        "CIRCUIT_BREAKER_PAUSE_MINUTES": 60,
-        "LOSS_COOLDOWN_BASE_MINUTES": 10,
-        "LOSS_COOLDOWN_MULTIPLIER": 1,
-        "takeProfitPercent": 1.2,
-        "stopLossPercent": 0.6,
-        "maxPositions": 4,
-        "momentumBuyThreshold": 0.2
-      }
-    }
-  },
-  {
     "id": "m5h8pdy2e",
     "created_at": "2026-02-13T06:00:08.966Z",
     "level": "INFO",
@@ -9365,6 +8692,666 @@
       "timestamp": "2026-02-14T19:43:52.281Z",
       "platform": "win32",
       "uptime": 302
+    }
+  },
+  {
+    "id": "9dvlncm90",
+    "created_at": "2026-02-14T19:48:52.256Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 1,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.03,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.03,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.02,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "x94hczxpt",
+    "created_at": "2026-02-14T19:48:52.288Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T19:48:52.284Z",
+      "platform": "win32",
+      "uptime": 602
+    }
+  },
+  {
+    "id": "5v504t8q2",
+    "created_at": "2026-02-14T19:53:52.283Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T19:53:52.282Z",
+      "platform": "win32",
+      "uptime": 902
+    }
+  },
+  {
+    "id": "1uz5231nj",
+    "created_at": "2026-02-14T19:58:52.264Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 0.8,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.2,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.03,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.02,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "luuxxajkz",
+    "created_at": "2026-02-14T19:58:52.280Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T19:58:52.279Z",
+      "platform": "win32",
+      "uptime": 1202
+    }
+  },
+  {
+    "id": "mqvlpewmd",
+    "created_at": "2026-02-14T20:05:01.666Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T20:05:01.664Z",
+      "platform": "win32",
+      "uptime": 301
+    }
+  },
+  {
+    "id": "uahsp8epx",
+    "created_at": "2026-02-14T20:12:30.115Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T20:12:30.105Z",
+      "platform": "win32",
+      "uptime": 300
+    }
+  },
+  {
+    "id": "i8a464wy1",
+    "created_at": "2026-02-14T21:06:38.169Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:06:38.163Z",
+      "platform": "win32",
+      "uptime": 301
+    }
+  },
+  {
+    "id": "2kwmxdnrg",
+    "created_at": "2026-02-14T21:11:38.165Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 1,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.01,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.01,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.005,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "hbd2rpi34",
+    "created_at": "2026-02-14T21:11:38.171Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:11:38.169Z",
+      "platform": "win32",
+      "uptime": 601
+    }
+  },
+  {
+    "id": "uqys82vje",
+    "created_at": "2026-02-14T21:16:38.168Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:16:38.166Z",
+      "platform": "win32",
+      "uptime": 901
+    }
+  },
+  {
+    "id": "4lhhzvq8u",
+    "created_at": "2026-02-14T21:21:38.161Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 0.8,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.2,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.01,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.005,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "v3uqr3u2o",
+    "created_at": "2026-02-14T21:21:38.169Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:21:38.167Z",
+      "platform": "win32",
+      "uptime": 1201
+    }
+  },
+  {
+    "id": "ktcy1j912",
+    "created_at": "2026-02-14T21:26:38.169Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:26:38.166Z",
+      "platform": "win32",
+      "uptime": 1501
+    }
+  },
+  {
+    "id": "sx6t8mc82",
+    "created_at": "2026-02-14T21:31:38.155Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 0.8,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.2,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.01,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.005,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "5xs2dlxaz",
+    "created_at": "2026-02-14T21:31:38.165Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:31:38.163Z",
+      "platform": "win32",
+      "uptime": 1801
+    }
+  },
+  {
+    "id": "804ty5c5m",
+    "created_at": "2026-02-14T21:36:38.163Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:36:38.160Z",
+      "platform": "win32",
+      "uptime": 2101
+    }
+  },
+  {
+    "id": "qtzuqwr8t",
+    "created_at": "2026-02-14T21:43:30.575Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:43:30.573Z",
+      "platform": "win32",
+      "uptime": 300
+    }
+  },
+  {
+    "id": "ww0k7m9d2",
+    "created_at": "2026-02-14T21:48:30.573Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 1,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.01,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.01,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.005,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "iloe92olo",
+    "created_at": "2026-02-14T21:48:30.582Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:48:30.578Z",
+      "platform": "win32",
+      "uptime": 600
+    }
+  },
+  {
+    "id": "h3gx9knsy",
+    "created_at": "2026-02-14T21:53:30.586Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:53:30.575Z",
+      "platform": "win32",
+      "uptime": 900
+    }
+  },
+  {
+    "id": "a593fxano",
+    "created_at": "2026-02-14T21:58:30.568Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 0.8,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.2,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.01,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.005,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "c4zxnjddw",
+    "created_at": "2026-02-14T21:58:30.576Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T21:58:30.573Z",
+      "platform": "win32",
+      "uptime": 1200
+    }
+  },
+  {
+    "id": "skk1u5klp",
+    "created_at": "2026-02-14T22:03:30.573Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T22:03:30.571Z",
+      "platform": "win32",
+      "uptime": 1500
+    }
+  },
+  {
+    "id": "auvp4gj0m",
+    "created_at": "2026-02-14T22:08:30.570Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 0.8,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.2,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.01,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.005,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "but28nvfi",
+    "created_at": "2026-02-14T22:08:30.594Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T22:08:30.588Z",
+      "platform": "win32",
+      "uptime": 1800
+    }
+  },
+  {
+    "id": "ek7j5fah8",
+    "created_at": "2026-02-14T22:13:30.588Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T22:13:30.586Z",
+      "platform": "win32",
+      "uptime": 2100
+    }
+  },
+  {
+    "id": "mjc0nxsg7",
+    "created_at": "2026-02-14T22:18:30.550Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 0.8,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.2,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.01,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.005,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "q0da0l55j",
+    "created_at": "2026-02-14T22:18:30.579Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T22:18:30.577Z",
+      "platform": "win32",
+      "uptime": 2400
+    }
+  },
+  {
+    "id": "jgu4ciieo",
+    "created_at": "2026-02-14T22:23:30.595Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T22:23:30.586Z",
+      "platform": "win32",
+      "uptime": 2700
+    }
+  },
+  {
+    "id": "mfmk9kzs0",
+    "created_at": "2026-02-14T22:28:32.101Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 0.8,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.2,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.01,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.005,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "nz94zpwy0",
+    "created_at": "2026-02-14T22:28:32.145Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T22:28:32.141Z",
+      "platform": "win32",
+      "uptime": 3002
+    }
+  },
+  {
+    "id": "dzzay7tl4",
+    "created_at": "2026-02-14T22:33:32.152Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T22:33:32.142Z",
+      "platform": "win32",
+      "uptime": 3302
+    }
+  },
+  {
+    "id": "ii9sd7d96",
+    "created_at": "2026-02-14T22:38:44.150Z",
+    "level": "INFO",
+    "message": "AI/Remote updated trading parameters",
+    "details": {
+      "params": {
+        "STOP_LOSS_PERCENT": 0.8,
+        "TAKE_PROFIT_PERCENT": 1.5,
+        "MAX_HOLD_MINUTES": 10,
+        "CAPITAL_PER_ROUND_PERCENT": 20,
+        "MAX_ALLOCATION_PER_PAIR_PERCENT": 10,
+        "SAFETY_RESERVE_PERCENT": 10,
+        "MAX_POSITIONS": 5,
+        "MOMENTUM_BUY_THRESHOLD": 0.2,
+        "MIN_VOLUME_RATIO": 1.02,
+        "PRICE_VELOCITY_THRESHOLD": 0.01,
+        "PAIR_COOLDOWN_SECONDS": 60,
+        "PROFIT_PROTECT_THRESHOLD": 1,
+        "AUTO_REINVEST": true,
+        "MIN_QUOTE_VOLUME_24H_USDT": 2000000,
+        "MIN_VOLATILITY_PERCENT": 0.005,
+        "VOLATILITY_WINDOW_TICKS": 20,
+        "LOSS_STREAK_LIMIT": 4,
+        "DAILY_MAX_DRAWDOWN_PERCENT": 5,
+        "CIRCUIT_BREAKER_PAUSE_MINUTES": 30,
+        "LOSS_COOLDOWN_BASE_MINUTES": 3,
+        "LOSS_COOLDOWN_MULTIPLIER": 1,
+        "takeProfitPercent": 1.5,
+        "stopLossPercent": 0.8,
+        "maxPositions": 5,
+        "momentumBuyThreshold": 0.2,
+        "minConfidence": 0.6
+      }
+    }
+  },
+  {
+    "id": "x7gygookk",
+    "created_at": "2026-02-14T22:38:44.486Z",
+    "level": "INFO",
+    "message": "Bot Heartbeat: System is healthy and monitoring.",
+    "details": {
+      "timestamp": "2026-02-14T22:38:44.476Z",
+      "platform": "win32",
+      "uptime": 3614
     }
   }
 ]
