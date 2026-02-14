@@ -209,6 +209,29 @@ export const localDb = {
         }
     },
 
+    // Reset completo de todos os trades e posições
+    resetAllTrades: () => {
+        if (isBrowser) {
+            const data = getBrowserData();
+            data.trades = [];
+            saveBrowserData(data);
+            console.log('🔄 [LocalDB] Todos os trades foram resetados');
+            return true;
+        }
+        
+        const DATA_DIR = path.resolve(process.cwd(), 'data');
+        const filePath = path.join(DATA_DIR, 'trades.json');
+        
+        try {
+            fs.writeFileSync(filePath, JSON.stringify([], null, 2));
+            console.log('🔄 [LocalDB] Todos os trades foram resetados');
+            return true;
+        } catch (e) {
+            console.error('❌ Erro ao resetar trades:', e);
+            return false;
+        }
+    },
+
     // Logs do Bot
     addLog: (level: string, message: string, details?: any) => {
         if (isBrowser) {

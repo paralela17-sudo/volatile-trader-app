@@ -715,6 +715,37 @@ export const Dashboard = () => {
             </div>
           </Card>
 
+          {/* Reset Completo de Trades */}
+          <Card className="p-4 bg-amber-500/10 border-amber-500/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-amber-500">Reset Completo</h3>
+                <p className="text-xs text-muted-foreground">
+                  Remove TODAS as posições e zera o histórico de trades
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-amber-500 text-amber-500 hover:bg-amber-500/20"
+                onClick={async () => {
+                  if (!confirm("Tem certeza que deseja APAGAR TODAS as posições? Esta ação não pode ser desfeita.")) return;
+                  try {
+                    const { localDb } = await import("@/services/localDbService");
+                    localDb.resetAllTrades();
+                    toast.success("Todas as posições foram removidas");
+                    loadAccountStats();
+                  } catch (error) {
+                    console.error("Erro ao resetar trades:", error);
+                    toast.error("Erro ao resetar posições");
+                  }
+                }}
+              >
+                Reset Total
+              </Button>
+            </div>
+          </Card>
+
           {/* Top Metrics Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Saldo Inicial */}
