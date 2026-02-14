@@ -71,12 +71,29 @@ class SupabaseSyncService {
         try {
             console.log('🔄 [Client] Iniciando sincronização do cloud...');
 
-            // [CRITICAL FIX] Limpar LocalStorage ANTES de sincronizar
-            // Isso impede que trades antigas sejam re-adicionadas
+            // [CRITICAL FIX] Preservar chaves API ao sincronizar
+            // Não limpar mais o BOT_DATA para evitar perda de credenciais
             if (typeof localStorage !== 'undefined') {
-                console.log('🧹 [Client] Limpando BOT_DATA antes de sincronizar...');
-                localStorage.removeItem('BOT_DATA');
-                console.log('✅ [Client] BOT_DATA limpo');
+                const existingConfig = localStorage.getItem('BOT_DATA');
+                let configToPreserve = null;
+                
+                if (existingConfig) {
+                    try {
+                        const parsed = JSON.parse(existingConfig);
+                        configToPreserve = {
+                            api_key_encrypted: parsed.api_key_encrypted,
+                            api_secret_encrypted: parsed.api_secret_encrypted
+                        };
+                    } catch (e) {
+                        console.warn('⚠️ Erro ao parsear config existente');
+                    }
+                }
+
+                // Limpar apenas trades e logs, não a config inteira
+                localStorage.removeItem('bot_trades');
+                localStorage.removeItem('bot_logs');
+                
+                console.log('✅ [Client] Limpeza seletiva concluída (credenciais preservadas)');
             }
 
             // 1. Puxar trades com timeout de 5 segundos

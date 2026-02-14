@@ -187,22 +187,8 @@ export const Dashboard = () => {
 
   // [FIXED] Limpar a KEY CORRETA do LocalStorage ('BOT_DATA' é a chave real)
   useEffect(() => {
-    try {
-      // SEMPRE limpar ao carregar para garantir dados frescos
-      console.log('🧹 Limpando LocalStorage (BOT_DATA)...');
-
-      // Remover a key CORRETA onde os dados estão armazenados
-      localStorage.removeItem('BOT_DATA');
-
-      // Limpar keys antigas também (por segurança)
-      localStorage.removeItem('bot_trades');
-      localStorage.removeItem('bot_logs');
-      localStorage.removeItem('last_data_cleanup');
-
-      console.log('✅ LocalStorage completamente limpo');
-    } catch (err) {
-      console.warn('⚠️ Falha ao limpar LocalStorage:', err);
-    }
+    // Não limpar mais o LocalStorage para preservar chaves API e configurações
+    // O código anterior apagava os dados ao carregar, causando perda das chaves
   }, []);
 
   // [NEW] Auto-sync com DELAY para evitar crash

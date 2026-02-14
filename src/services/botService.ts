@@ -95,6 +95,7 @@ export const botConfigService = {
   },
 
   async saveApiCredentials(_userId: string, apiKey: string, apiSecret: string): Promise<boolean> {
+    console.log('💾 Salvando credenciais API...');
     const current = localDb.getConfig();
     const newConfig = {
       ...current,
@@ -103,9 +104,11 @@ export const botConfigService = {
     };
 
     localDb.saveConfig(newConfig);
+    console.log('✅ Credenciais salvas no LocalDB');
 
     // Sync to Supabase for VPS/Cloud
     await supabaseSync.syncConfig(newConfig);
+    console.log('✅ Credenciais sincronizadas com Supabase');
     return true;
   },
 
