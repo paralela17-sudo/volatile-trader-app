@@ -209,22 +209,36 @@ export const localDb = {
         }
     },
 
-    // Reset completo de todos os trades e posições
+    // Reset completo de todos os trades, posições e profit diário
     resetAllTrades: () => {
         if (isBrowser) {
             const data = getBrowserData();
             data.trades = [];
+            // Resetar profit diário também
+            data.dailyProfit = 0;
+            data.dailyProfitPercent = 0;
+            data.profitHistory = [];
             saveBrowserData(data);
-            console.log('🔄 [LocalDB] Todos os trades foram resetados');
+            console.log('🔄 [LocalDB] Todos os trades e profits foram resetados');
             return true;
         }
         
         const DATA_DIR = path.resolve(process.cwd(), 'data');
-        const filePath = path.join(DATA_DIR, 'trades.json');
+        const tradesFilePath = path.join(DATA_DIR, 'trades.json');
         
         try {
-            fs.writeFileSync(filePath, JSON.stringify([], null, 2));
-            console.log('🔄 [LocalDB] Todos os trades foram resetados');
+            fs.writeFileSync(tradesFilePath, JSON.stringify([], null, 2));
+            
+            // Resetar profit diário no config
+            const configPath = path.join(DATA_DIR, 'config.json');
+            if (fs.existsSync(configPath)) {
+                const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+                config.daily_profit = 0;
+                config.daily_profit_percent = 0;
+                fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+            }
+            
+            console.log('🔄 [LocalDB] Todos os trades e profits foram resetados');
             return true;
         } catch (e) {
             console.error('❌ Erro ao resetar trades:', e);
