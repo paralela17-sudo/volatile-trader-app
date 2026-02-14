@@ -23,9 +23,9 @@ export const RISK_SETTINGS = {
   MAX_POSITIONS: 5, // 5 posições = 1 por par monitorado
 
   // Momentum Parameters - FILTRO SENSÍVEL PARA DETECTAR MAIS OPORTUNIDADES
-  MOMENTUM_BUY_THRESHOLD: 0.03, // 0.03% - detecta micro-movimentos (antes: 0.15%)
+  MOMENTUM_BUY_THRESHOLD: 0.01, // 0.01% - detecta micro-movimentos mínimos
   MIN_VOLUME_RATIO: 1.02, // Volume apenas 2% acima da média
-  PRICE_VELOCITY_THRESHOLD: 0.03, // 0.03% - velocidade mínima (antes: 0.1%)
+  PRICE_VELOCITY_THRESHOLD: 0.01, // 0.01% - velocidade mínima extremamente sensível
 
   // Cooldown & Protection
   PAIR_COOLDOWN_SECONDS: 60, // 60s - mais ativo (antes: 300s)
@@ -40,7 +40,7 @@ export const RISK_SETTINGS = {
   MIN_QUOTE_VOLUME_24H_USDT: 2_000_000, // 2M - aceita mid-caps voláteis
 
   // Filtro de Volatilidade Intraday
-  MIN_VOLATILITY_PERCENT: 0.02, // 0.02% - ainda mais sensível
+  MIN_VOLATILITY_PERCENT: 0.005, // 0.005% - extremamente sensível para detectar qualquer movimento
   VOLATILITY_WINDOW_TICKS: 20,
 
   // Circuit Breakers
