@@ -59,12 +59,12 @@ export const localDb = {
     saveConfig: (config: any) => {
         if (isBrowser) {
             const data = getBrowserData();
-            // [FIX] Não sobrescrever chaves API com valores vazios
+            // [FIX] Não sobrescrever chaves API com valores vazios ou nulos
             const mergedConfig = { ...data.config, ...config };
-            if (config.api_key_encrypted === '' && data.config.api_key_encrypted) {
+            if ((config.api_key_encrypted === '' || config.api_key_encrypted === null) && data.config.api_key_encrypted) {
                 mergedConfig.api_key_encrypted = data.config.api_key_encrypted;
             }
-            if (config.api_secret_encrypted === '' && data.config.api_secret_encrypted) {
+            if ((config.api_secret_encrypted === '' || config.api_secret_encrypted === null) && data.config.api_secret_encrypted) {
                 mergedConfig.api_secret_encrypted = data.config.api_secret_encrypted;
             }
             data.config = mergedConfig;

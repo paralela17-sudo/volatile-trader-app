@@ -122,11 +122,7 @@ export const botConfigService = {
     });
 
     localDb.saveConfig(newConfig);
-    console.log('✅ Credenciais salvas no LocalDB');
-
-    // Sync to Supabase for VPS/Cloud
-    await supabaseSync.syncConfig(newConfig);
-    console.log('✅ Credenciais sincronizadas com Supabase');
+    console.log('✅ Credenciais salvas localmente (NÃO enviados para Supabase por segurança)');
     return true;
   },
 
