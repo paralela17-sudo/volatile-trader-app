@@ -41,11 +41,11 @@ export const statsService = {
       // Buscar todas as trades locais
       let trades = localDb.getTrades(2000);
       
-      // [FIX] Ignorar trades com mais de 24 horas para fresh start
-      const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+      // [FIX] Ignorar trades com mais de 1 hora para fresh start
+      const oneHourAgo = Date.now() - (60 * 60 * 1000);
       trades = (trades || []).filter((t: any) => {
         const tradeTime = new Date(t.created_at).getTime();
-        return tradeTime > oneDayAgo;
+        return tradeTime > oneHourAgo;
       });
       
       const allTrades = trades || [];
