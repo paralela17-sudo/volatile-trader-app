@@ -148,6 +148,20 @@ class TradingService {
     // Parar serviço de múltiplos pares
     multiPairService.stop();
 
+    // Fechar todas as posições abertas antes de parar
+    console.log("🔴 Fechando todas as posições abertas...");
+    for (const [tradeId, position] of this.openPositions) {
+      try {
+        const currentPrice = await binanceService.getPrice(position.symbol);
+        if (currentPrice?.price) {
+          await this.executeSell(position, currentPrice.price, "EMERGENCY_STOP");
+        }
+      } catch (e) {
+        console.error(`❌ Erro ao fechar posição ${position.symbol}:`, e);
+      }
+    }
+    this.openPositions.clear();
+
     console.log("Stopped Momentum Trading");
   }
 
