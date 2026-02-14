@@ -11,10 +11,10 @@ export const RISK_SETTINGS = {
   MAX_HOLD_MINUTES: 15, // Tempo máximo reduzido (giro rápido de capital)
 
   // Capital Management (percent values)
-  CAPITAL_PER_ROUND_PERCENT: 25, // Aumentado para 25% (mais agressividade na rodada)
-  MAX_ALLOCATION_PER_PAIR_PERCENT: 10, // Aumentado para 10% por par (menos "migalhas", mais convicção)
-  SAFETY_RESERVE_PERCENT: 5, // Reserva mantida
-  MAX_POSITIONS: 10, // Aumentado para 10 posições simultâneas (mais diversidade)
+  CAPITAL_PER_ROUND_PERCENT: 10, // Reduzido para 10% por rodada (mais conservador)
+  MAX_ALLOCATION_PER_PAIR_PERCENT: 5, // Reduzido para 5% por par (mais seguro)
+  SAFETY_RESERVE_PERCENT: 10, // Reserva maior para segurança
+  MAX_POSITIONS: 3, // Reduzido para 3 posições simultâneas (mais controle)
 
   // Momentum Parameters (percent units) - Entrada "Gatilho Rápido"
   MOMENTUM_BUY_THRESHOLD: 0.15, // Reduzido de 0.3 para 0.15 (qualquer movimento de reversão ativa)

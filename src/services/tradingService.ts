@@ -358,6 +358,11 @@ class TradingService {
           const rebuyZone = avgLows * 1.003; // +0.3% de tolerância
 
           if (currentPrice <= rebuyZone) {
+            // [FIX] Verificar se NÃO já tem posição aberta para este símbolo
+            if (this.openPositions.has(symbol)) {
+              console.log(`⏭️ ${symbol} RECOMPRA: Posição já existe, ignorando`);
+              continue;
+            }
             console.log(`🔄 ${symbol} RECOMPRA RÁPIDA: Preço voltou para $${currentPrice.toFixed(2)} (zona: $${rebuyZone.toFixed(2)})`);
             const allocation = this.capitalAllocations.get(symbol);
             if (allocation && this.openPositions.size < maxPositions) {
@@ -443,7 +448,8 @@ class TradingService {
         console.log(`🧪 Candles usados p/ sinal ${symbol}: fresh=${candles.length}, monitor=${pairMonitor.lastCandles?.length ?? 0}`);
 
         // Verificar sinal de compra com alocação adaptativa
-        if (signal.shouldBuy && this.openPositions.size < maxPositions) {
+        // [FIX] Verificar se já existe posição aberta para este símbolo
+        if (signal.shouldBuy && this.openPositions.size < maxPositions && !this.openPositions.has(symbol)) {
           const allocation = this.capitalAllocations.get(symbol);
           if (allocation) {
             // Ajustar quantidade baseado em alocação adaptativa
