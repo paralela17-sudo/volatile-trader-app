@@ -71,6 +71,7 @@ export const Dashboard = () => {
     totalTrades: 0,
     activePositions: 0,
     totalProfit: 0,
+    unrealizedPnL: 0,
     profitHistory: [],
     dailyProfit: 0,
     dailyProfitPercent: 0,
@@ -685,6 +686,35 @@ export const Dashboard = () => {
             }}
           />
 
+          {/* Limpeza de Emergência - Posições Duplicadas */}
+          <Card className="p-4 bg-destructive/10 border-destructive/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-destructive">Limpeza de Emergência</h3>
+                <p className="text-xs text-muted-foreground">
+                  Remove posições duplicadas do banco de dados local
+                </p>
+              </div>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={async () => {
+                  try {
+                    const { localDb } = await import("@/services/localDbService");
+                    const cleaned = localDb.cleanDuplicatePositions();
+                    toast.success(`${cleaned} posições duplicadas removidas`);
+                    loadAccountStats();
+                  } catch (error) {
+                    console.error("Erro ao limpar posições:", error);
+                    toast.error("Erro ao limpar posições duplicadas");
+                  }
+                }}
+              >
+                Limpar Duplicadas
+              </Button>
+            </div>
+          </Card>
+
           {/* Top Metrics Row */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Saldo Inicial */}
@@ -828,13 +858,32 @@ export const Dashboard = () => {
                                   <p className="font-mono font-bold">
                                     ${price.toFixed(symbol.includes('USDT') ? 4 : 2)}
                                   </p>
+                                  {(trade as any).currentPrice && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Atual: ${Number((trade as any).currentPrice).toFixed(symbol.includes('USDT') ? 4 : 2)}
+                                    </p>
+                                  )}
                                 </div>
                                 <div className="space-y-1 text-right">
                                   <p className="text-xs text-muted-foreground uppercase">PnL Atual</p>
-                                  <div className={`flex items-center justify-end gap-1 font-bold ${(profitLoss || 0) >= 0 ? 'text-success' : 'text-destructive'
-                                    }`}>
-                                    {(profitLoss || 0) >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                                    {profitLoss !== null ? `${profitLoss >= 0 ? '+' : ''}${profitLoss.toFixed(2)}%` : 'Calculando...'}
+                                  <div className={`flex items-center justify-end gap-1 font-bold ${
+                                    (trade as any).unrealizedPnLPercent !== undefined 
+                                      ? ((trade as any).unrealizedPnLPercent >= 0 ? 'text-success' : 'text-destructive')
+                                      : ((profitLoss || 0) >= 0 ? 'text-success' : 'text-destructive')
+                                  }`}>
+                                    {(trade as any).unrealizedPnLPercent !== undefined ? (
+                                      <>
+                                        {(trade as any).unrealizedPnLPercent >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                        {`${(trade as any).unrealizedPnLPercent >= 0 ? '+' : ''}${(trade as any).unrealizedPnLPercent.toFixed(2)}%`}
+                                      </>
+                                    ) : profitLoss !== null ? (
+                                      <>
+                                        {profitLoss >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                        {`${profitLoss >= 0 ? '+' : ''}${profitLoss.toFixed(2)}%`}
+                                      </>
+                                    ) : (
+                                      'Calculando...'
+                                    )}
                                   </div>
                                 </div>
                               </div>

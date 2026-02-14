@@ -1,5 +1,6 @@
 import { localDb } from "./localDbService";
 import { Trade } from "./botService";
+import { binanceService } from "./binanceService";
 
 export interface AccountStats {
   initialCapital: number;
@@ -7,13 +8,14 @@ export interface AccountStats {
   totalTrades: number;
   activePositions: number;
   totalProfit: number;
+  unrealizedPnL: number;
   profitHistory: { date: string; profit: number }[];
   dailyProfit: number;
   dailyProfitPercent: number;
   currentBalance: number;
   winRate24h: number;
   monthlyProfit: number;
-  activeTrades: Trade[];
+  activeTrades: (Trade & { currentPrice?: number; unrealizedPnL?: number; unrealizedPnLPercent?: number })[];
 }
 
 export const statsService = {
@@ -49,12 +51,24 @@ export const statsService = {
 
       // Calcular capital alocado em posições abertas
       // Posição aberta = Operação de COMPRA que ainda não foi fechada (sem profit_loss realizado)
-      const openPositions = allTrades.filter((t: any) => {
+      // Também considera posições que foram compradas mas ainda não vendidas
+      const openBuyTrades = allTrades.filter((t: any) => {
         const isBuy = t.side === 'BUY';
-        const isNotFinished = t.profit_loss === null || typeof t.profit_loss === 'undefined';
         const isNotFailed = t.status !== 'FAILED';
+        return isBuy && isNotFailed;
+      });
 
-        return isBuy && isNotFinished && isNotFailed;
+      // Encontrar posições que ainda não foram vendidas (pares BUY sem corresponding SELL)
+      const soldSymbolIds = new Set<string>();
+      allTrades.forEach((t: any) => {
+        if (t.side === 'SELL' && t.status === 'EXECUTED') {
+          soldSymbolIds.add(`${t.symbol}-${t.id}`);
+        }
+      });
+
+      // Filtrar apenas posições que ainda não foram vendidas
+      const openPositions = openBuyTrades.filter((t: any) => {
+        return !soldSymbolIds.has(`${t.symbol}-${t.id}`);
       });
 
       console.log(`🔍 [Stats] Trades carregados: ${allTrades.length} | Posições abertas detectadas: ${openPositions.length}`);
@@ -62,10 +76,45 @@ export const statsService = {
         console.log('📋 [Stats] IDs das posições abertas:', openPositions.map(p => p.id));
       }
 
-      const allocatedCapital = openPositions.reduce((sum: number, t: any) => {
-        const price = Number(t.price) || 0;
-        const qty = Number(t.quantity) || 0;
-        return sum + (price * qty);
+      // Calcular P&L em tempo real para posições abertas
+      const openPositionsWithPnL = await Promise.all(
+        openPositions.map(async (t: any) => {
+          const buyPrice = Number(t.price) || 0;
+          const quantity = Number(t.quantity) || 0;
+          
+          // Buscar preço atual do mercado
+          let currentPrice = buyPrice;
+          let unrealizedPnL = 0;
+          let unrealizedPnLPercent = 0;
+          
+          try {
+            const priceData = await binanceService.getPrice(t.symbol);
+            if (priceData && priceData.price) {
+              currentPrice = priceData.price;
+              unrealizedPnL = (currentPrice - buyPrice) * quantity;
+              unrealizedPnLPercent = buyPrice > 0 ? ((currentPrice - buyPrice) / buyPrice) * 100 : 0;
+            }
+          } catch (e) {
+            console.warn(`⚠️ Erro ao buscar preço atual para ${t.symbol}:`, e);
+          }
+
+          return {
+            ...t,
+            currentPrice,
+            unrealizedPnL,
+            unrealizedPnLPercent,
+            allocatedAmount: buyPrice * quantity
+          };
+        })
+      );
+
+      const allocatedCapital = openPositionsWithPnL.reduce((sum: number, t: any) => {
+        return sum + (t.allocatedAmount || 0);
+      }, 0);
+
+      // Calcular P&L não realizado total
+      const totalUnrealizedPnL = openPositionsWithPnL.reduce((sum: number, t: any) => {
+        return sum + (t.unrealizedPnL || 0);
       }, 0);
 
       // Calcular lucro/perda total realizado
@@ -110,9 +159,15 @@ export const statsService = {
         ? (dailyProfit / initialCapital) * 100
         : 0;
 
-      // Saldo atual (capital inicial + lucro total acumulado)
+      // Saldo atual (capital inicial + lucro total realizado + P&L não realizado das posições abertas)
       // Em modo teste, o lucro total vem das trades simuladas anteriores
-      const currentBalance = initialCapital + totalProfit;
+      const currentBalance = initialCapital + totalProfit + totalUnrealizedPnL;
+
+      // Lucro diário incluindo P&L não realizado
+      const dailyProfitWithUnrealized = dailyProfit + totalUnrealizedPnL;
+      const dailyProfitPercent = initialCapital > 0
+        ? (dailyProfitWithUnrealized / initialCapital) * 100
+        : 0;
 
       // Win Rate últimas 24h
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -153,7 +208,9 @@ export const statsService = {
       console.log('📊 Stats calculadas:', {
         baseCapital,
         totalProfit,
+        totalUnrealizedPnL,
         dailyProfit,
+        dailyProfitWithUnrealized,
         dailyProfitPercent,
         currentBalance,
         winRate24h,
@@ -171,13 +228,14 @@ export const statsService = {
         totalTrades,
         activePositions,
         totalProfit,
+        unrealizedPnL: totalUnrealizedPnL,
         profitHistory,
-        dailyProfit,
+        dailyProfit: dailyProfitWithUnrealized,
         dailyProfitPercent,
         currentBalance,
         winRate24h,
         monthlyProfit,
-        activeTrades: Array.isArray(openPositions) ? openPositions.filter(t => t && t.id) : []
+        activeTrades: Array.isArray(openPositionsWithPnL) ? openPositionsWithPnL.filter(t => t && t.id) : []
       };
     } catch (error) {
       console.error('Exception in getAccountStats:', error);
@@ -195,6 +253,7 @@ export const statsService = {
       totalTrades: 0,
       activePositions: 0,
       totalProfit: 0,
+      unrealizedPnL: 0,
       profitHistory: [],
       dailyProfit: 0,
       dailyProfitPercent: 0,

@@ -448,10 +448,23 @@ class TradingService {
         console.log(`🧪 Candles usados p/ sinal ${symbol}: fresh=${candles.length}, monitor=${pairMonitor.lastCandles?.length ?? 0}`);
 
         // Verificar sinal de compra com alocação adaptativa
-        // [FIX] Verificar se já existe posição aberta para este símbolo
-        if (signal.shouldBuy && this.openPositions.size < maxPositions && !this.openPositions.has(symbol)) {
+        // [FIX] Verificar se já existe posição aberta para este símbolo (usando símbolo, não tradeId)
+        const hasOpenPositionForSymbol = Array.from(this.openPositions.values())
+          .some(pos => pos.symbol === symbol);
+        
+        // Calcular capital já alocado em posições abertas
+        const allocatedCapital = Array.from(this.openPositions.values())
+          .reduce((sum, pos) => sum + (pos.buyPrice * pos.quantity), 0);
+        
+        const availableCapital = this.config.totalCapital - allocatedCapital;
+        const tradeCost = allocation ? allocation.quantity * currentPrice : 0;
+
+        if (signal.shouldBuy && 
+            this.openPositions.size < maxPositions && 
+            !hasOpenPositionForSymbol &&
+            availableCapital >= tradeCost) {
           const allocation = this.capitalAllocations.get(symbol);
-          if (allocation) {
+          if (allocation && tradeCost > 0) {
             // Ajustar quantidade baseado em alocação adaptativa
             const adaptiveAllocationPercent = this.currentAdaptiveParams?.maxAllocationPerPairPercent || RISK_SETTINGS.MAX_ALLOCATION_PER_PAIR_PERCENT;
             const originalAllocationPercent = RISK_SETTINGS.MAX_ALLOCATION_PER_PAIR_PERCENT;
@@ -459,8 +472,13 @@ class TradingService {
             const adjustedQuantity = allocation.quantity * allocationFactor;
 
             console.log(`🎯 Sinal de compra: ${signal.reason} | Alocação: ${adaptiveAllocationPercent}% (${this.currentAdaptiveParams?.mode || 'normal'})`);
+            console.log(`💰 Capital: disponível $${availableCapital.toFixed(2)} | custo trade: $${tradeCost.toFixed(2)}`);
             await this.executeBuy(symbol, currentPrice, adjustedQuantity);
           }
+        } else if (hasOpenPositionForSymbol) {
+          console.log(`⏭️ ${symbol}: Posição já existe para este símbolo, ignorando sinal`);
+        } else if (availableCapital < tradeCost) {
+          console.log(`⚠️ ${symbol}: Capital insuficiente (disponível: $${availableCapital.toFixed(2)}, necessário: $${tradeCost.toFixed(2)})`);
         }
       } catch (error) {
         console.error(`Error analyzing ${symbol}:`, error);

@@ -129,6 +129,86 @@ export const localDb = {
         return true;
     },
 
+    // Limpar posições duplicadas (manter apenas a mais antiga para cada símbolo)
+    cleanDuplicatePositions: () => {
+        if (isBrowser) {
+            const data = getBrowserData();
+            const trades = data.trades || [];
+            
+            // Separar compras abertas
+            const buyTrades = trades.filter((t: any) => t.side === 'BUY' && t.status === 'PENDING');
+            
+            // Encontrar símbolos duplicados e manter apenas o mais antigo
+            const symbolMap = new Map<string, any>();
+            buyTrades.forEach((t: any) => {
+                if (!symbolMap.has(t.symbol)) {
+                    symbolMap.set(t.symbol, t);
+                } else {
+                    const existing = symbolMap.get(t.symbol);
+                    if (new Date(t.created_at) < new Date(existing.created_at)) {
+                        symbolMap.set(t.symbol, t);
+                    }
+                }
+            });
+            
+            // Manter apenas uma posição por símbolo
+            const keptSymbols = new Set(symbolMap.keys());
+            const cleanedTrades = trades.filter((t: any) => {
+                if (t.side === 'BUY' && t.status === 'PENDING') {
+                    return keptSymbols.has(t.symbol);
+                }
+                return true;
+            });
+            
+            data.trades = cleanedTrades;
+            saveBrowserData(data);
+            
+            console.log(`🧹 [LocalDB] Limpas posições duplicadas. Manter: ${keptSymbols.size} posições`);
+            return keptSymbols.size;
+        }
+        
+        const DATA_DIR = path.resolve(process.cwd(), 'data');
+        const filePath = path.join(DATA_DIR, 'trades.json');
+        
+        if (!fs.existsSync(filePath)) return 0;
+        
+        try {
+            let trades = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+            
+            // Separar compras abertas
+            const buyTrades = trades.filter((t: any) => t.side === 'BUY' && t.status === 'PENDING');
+            
+            // Encontrar símbolos duplicados e manter apenas o mais antigo
+            const symbolMap = new Map<string, any>();
+            buyTrades.forEach((t: any) => {
+                if (!symbolMap.has(t.symbol)) {
+                    symbolMap.set(t.symbol, t);
+                } else {
+                    const existing = symbolMap.get(t.symbol);
+                    if (new Date(t.created_at) < new Date(existing.created_at)) {
+                        symbolMap.set(t.symbol, t);
+                    }
+                }
+            });
+            
+            // Manter apenas uma posição por símbolo
+            const keptSymbols = new Set(symbolMap.keys());
+            trades = trades.filter((t: any) => {
+                if (t.side === 'BUY' && t.status === 'PENDING') {
+                    return keptSymbols.has(t.symbol);
+                }
+                return true;
+            });
+            
+            fs.writeFileSync(filePath, JSON.stringify(trades, null, 2));
+            console.log(`🧹 [LocalDB] Limpas posições duplicadas. Manter: ${keptSymbols.size} posições`);
+            return keptSymbols.size;
+        } catch (e) {
+            console.error('❌ Erro ao limpar posições duplicadas:', e);
+            return 0;
+        }
+    },
+
     // Logs do Bot
     addLog: (level: string, message: string, details?: any) => {
         if (isBrowser) {
