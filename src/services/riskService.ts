@@ -8,7 +8,7 @@ export const RISK_SETTINGS = {
   TAKE_PROFIT_PERCENT: 1.5, // Reduzido para 1.5% (lucros rápidos e frequentes)
 
   // Session/position management
-  MAX_HOLD_MINUTES: 15, // Tempo máximo reduzido (giro rápido de capital)
+  MAX_HOLD_MINUTES: 5, // Reduzido para 5 min para fechar posições mais rápido
 
   // Capital Management (percent values)
   CAPITAL_PER_ROUND_PERCENT: 10, // Reduzido para 10% por rodada (mais conservador)
