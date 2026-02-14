@@ -163,8 +163,8 @@ export const Dashboard = () => {
           quantity: Number(config.quantity) || 100,
           timeDifference: 5,
           changeInPrice: 3,
-          stopLoss: config.stop_loss_percent || RISK_SETTINGS.STOP_LOSS_PERCENT,
-          takeProfit: config.take_profit_percent || RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+          stopLoss: RISK_SETTINGS.STOP_LOSS_PERCENT,
+          takeProfit: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
           testBalance: config.test_balance || 1000,
           dailyProfitGoal: config.daily_profit_goal || 50,
         });
@@ -300,8 +300,8 @@ export const Dashboard = () => {
         test_balance: settings.testBalance,
         trading_pair: optimalPair,
         quantity: settings.quantity,
-        take_profit_percent: settings.takeProfit,
-        stop_loss_percent: settings.stopLoss,
+        take_profit_percent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+        stop_loss_percent: RISK_SETTINGS.STOP_LOSS_PERCENT,
         daily_profit_goal: settings.dailyProfitGoal,
         is_powered_on: !botPoweredOff,
       });
@@ -363,10 +363,10 @@ export const Dashboard = () => {
         configId: config.id,
         symbols: symbols,
         totalCapital: config.test_mode ? Number(config.test_balance) : accountStats.initialCapital,
-        takeProfitPercent: Number(config.take_profit_percent),
-        stopLossPercent: Number(config.stop_loss_percent),
+        takeProfitPercent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+        stopLossPercent: RISK_SETTINGS.STOP_LOSS_PERCENT,
         testMode: config.test_mode,
-        maxPositions: 5,
+        maxPositions: RISK_SETTINGS.MAX_POSITIONS,
       });
 
       toast.success("Trading iniciado (Local Mode)");
