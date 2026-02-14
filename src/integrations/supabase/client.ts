@@ -21,8 +21,15 @@ const SUPABASE_SERVICE_ROLE_KEY = getEnvVar('VITE_SUPABASE_SERVICE_ROLE_KEY');
 // Use Service Role Key if available (admin mode), otherwise use Publishable Key
 const FINAL_KEY = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_PUBLISHABLE_KEY;
 
-// Safe initialization to avoid app crash if env vars are missing
+// DEBUG: Log what we're getting
+console.log('🔧 Supabase Config:', { 
+    hasUrl: !!SUPABASE_URL, 
+    hasKey: !!FINAL_KEY,
+    url: SUPABASE_URL ? 'definida' : 'undefined'
+});
+
+// Safe initialization - show warning if missing
 const safeSupabaseUrl = SUPABASE_URL || "https://placeholder.supabase.co";
-const safeSupabaseKey = FINAL_KEY || "placeholder";
+const safeSupabaseKey = FINAL_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldHFibXVqamNuYXhrcHljaGtyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDcyNzM5OCwiZXhwIjoyMDg2MzAzMzk4fQ.Lx0ZfC9XMWdSw6Rmc_RAq8eHw_ULRKEjg-I5Fp-Zhso";
 
 export const supabase = createClient<Database>(safeSupabaseUrl, safeSupabaseKey);
