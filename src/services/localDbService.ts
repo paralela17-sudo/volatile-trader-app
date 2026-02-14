@@ -8,7 +8,15 @@ const getBrowserData = () => {
     if (!isBrowser) return { config: {}, trades: [], logs: [] };
     try {
         const data = localStorage.getItem('BOT_DATA');
-        return data ? JSON.parse(data) : { config: {}, trades: [], logs: [] };
+        const parsed = data ? JSON.parse(data) : { config: {}, trades: [], logs: [] };
+        // Debug: log se há chaves salvas
+        if (parsed.config && (parsed.config.api_key_encrypted || parsed.config.api_secret_encrypted)) {
+            console.log('📋 [LocalDB] Dados carregados do LocalStorage:', { 
+                hasApiKey: !!parsed.config.api_key_encrypted, 
+                hasApiSecret: !!parsed.config.api_secret_encrypted 
+            });
+        }
+        return parsed;
     } catch (e) {
         return { config: {}, trades: [], logs: [] };
     }
@@ -51,7 +59,15 @@ export const localDb = {
     saveConfig: (config: any) => {
         if (isBrowser) {
             const data = getBrowserData();
-            data.config = { ...data.config, ...config };
+            // [FIX] Não sobrescrever chaves API com valores vazios
+            const mergedConfig = { ...data.config, ...config };
+            if (config.api_key_encrypted === '' && data.config.api_key_encrypted) {
+                mergedConfig.api_key_encrypted = data.config.api_key_encrypted;
+            }
+            if (config.api_secret_encrypted === '' && data.config.api_secret_encrypted) {
+                mergedConfig.api_secret_encrypted = data.config.api_secret_encrypted;
+            }
+            data.config = mergedConfig;
             saveBrowserData(data);
             return true;
         }

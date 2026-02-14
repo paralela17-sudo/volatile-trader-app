@@ -93,7 +93,8 @@ export const BotSettings = () => {
 
       console.log("[BotSettings] Resultado updateConfig:", success);
 
-      if (success && settings.apiKey && settings.apiSecret) {
+      // Salvar credenciais - permite salvar individualmente
+      if (success && (settings.apiKey || settings.apiSecret)) {
         console.log("[BotSettings] Salvando credenciais API...");
         const apiSuccess = await botConfigService.saveApiCredentials(userId, settings.apiKey, settings.apiSecret);
         console.log("[BotSettings] Resultado saveApiCredentials:", apiSuccess);

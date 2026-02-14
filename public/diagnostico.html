@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Completo - Volatile Trader</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        .section { margin: 20px 0; border: 1px solid #0f0; padding: 15px; }
+        button { padding: 10px 20px; margin: 5px; font-size: 16px; cursor: pointer; }
+        .danger { background: #f00; color: #fff; }
+        .success { background: #0f0; color: #000; }
+        pre { background: #000; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 DIAGNÓSTICO COMPLETO DO SISTEMA</h1>
+    
+    <div class="section">
+        <h2>1. LIMPEZA FORÇADA</h2>
+        <button class="danger" onclick="forceCleanup()">🗑️ LIMPAR TUDO (LocalStorage + Cache)</button>
+        <pre id="cleanup-result"></pre>
+    </div>
+
+    <div class="section">
+        <h2>2. DADOS NO LOCALSTORAGE</h2>
+        <button onclick="checkLocalStorage()">📊 Verificar LocalStorage</button>
+        <pre id="localstorage-result"></pre>
+    </div>
+
+    <div class="section">
+        <h2>3. DADOS NO SUPABASE</h2>
+        <button onclick="checkSupabase()">☁️ Verificar Supabase</button>
+        <pre id="supabase-result"></pre>
+    </div>
+
+    <div class="section">
+        <h2>4. RECONSTRUIR DO ZERO</h2>
+        <button class="success" onclick="rebuildFromScratch()">🔄 Reconstruir Sistema</button>
+        <pre id="rebuild-result"></pre>
+    </div>
+
+    <script>
+        function forceCleanup() {
+            const result = document.getElementById('cleanup-result');
+            result.textContent = 'Limpando...\n';
+            
+            // Lista TODAS as keys do localStorage
+            const keys = Object.keys(localStorage);
+            result.textContent += `Encontradas ${keys.length} chaves:\n`;
+            keys.forEach(key => {
+                result.textContent += `  - ${key}\n`;
+            });
+            
+            // Deletar TUDO
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            result.textContent += '\n✅ LocalStorage LIMPO\n';
+            result.textContent += '✅ SessionStorage LIMPO\n';
+            
+            // Tentar limpar cache
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    result.textContent += `\nLimpando ${names.length} caches...\n`;
+                    return Promise.all(names.map(name => caches.delete(name)));
+                }).then(() => {
+                    result.textContent += '✅ Caches LIMPOS\n\n';
+                    result.textContent += '🔄 Recarregue a página (Ctrl+Shift+R) para aplicar.\n';
+                });
+            }
+        }
+
+        function checkLocalStorage() {
+            const result = document.getElementById('localstorage-result');
+            result.textContent = '';
+            
+            const keys = Object.keys(localStorage);
+            if (keys.length === 0) {
+                result.textContent = '✅ LocalStorage está vazio (CORRETO)\n';
+                return;
+            }
+            
+            result.textContent = `⚠️ Encontradas ${keys.length} chaves:\n\n`;
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                result.textContent += `KEY: ${key}\n`;
+                try {
+                    const parsed = JSON.parse(value);
+                    result.textContent += `VALUE (${typeof parsed}): ${JSON.stringify(parsed, null, 2).substring(0, 200)}...\n\n`;
+                } catch {
+                    result.textContent += `VALUE: ${value.substring(0, 200)}...\n\n`;
+                }
+            });
+        }
+
+        async function checkSupabase() {
+            const result = document.getElementById('supabase-result');
+            result.textContent = 'Conectando ao Supabase...\n';
+            
+            try {
+                // Você precisará ajustar a URL e a chave
+                const SUPABASE_URL = prompt('Cole a VITE_SUPABASE_URL:');
+                const SUPABASE_ANON_KEY = prompt('Cole a VITE_SUPABASE_ANON_KEY:');
+                
+                if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+                    result.textContent = '❌ URLs não fornecidas\n';
+                    return;
+                }
+                
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/trades?select=*&limit=5`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                    }
+                });
+                
+                const trades = await response.json();
+                result.textContent = `Trades no Supabase: ${trades.length}\n\n`;
+                
+                if (trades.length === 0) {
+                    result.textContent += '✅ Nenhuma trade (CORRETO - banco limpo)\n';
+                } else {
+                    result.textContent += '⚠️ PROBLEMA: Ainda há trades no banco:\n\n';
+                    trades.forEach((t, i) => {
+                        result.textContent += `${i + 1}. ${t.symbol} | ${t.side} | P/L: ${t.profit_loss}\n`;
+                    });
+                }
+            } catch (error) {
+                result.textContent += `❌ Erro: ${error.message}\n`;
+            }
+        }
+
+        function rebuildFromScratch() {
+            const result = document.getElementById('rebuild-result');
+            result.textContent = 'Reconstruindo sistema...\n\n';
+            
+            // 1. Limpar tudo
+            localStorage.clear();
+            sessionStorage.clear();
+            result.textContent += '✅ Armazenamento local limpo\n';
+            
+            // 2. Definir configuração inicial
+            const cleanConfig = {
+                test_mode: true,
+                test_balance: 1000,
+                is_powered_on: false,
+                is_running: false
+            };
+            
+            localStorage.setItem('bot_config', JSON.stringify(cleanConfig));
+            result.textContent += '✅ Configuração limpa definida\n';
+            
+            // 3. Arrays vazios
+            localStorage.setItem('bot_trades', JSON.stringify([]));
+            localStorage.setItem('bot_logs', JSON.stringify([]));
+            result.textContent += '✅ Arrays vazios criados\n\n';
+            
+            result.textContent += '🎯 Sistema reconstruído do ZERO!\n';
+            result.textContent += '🔄 Abra o Dashboard agora para ver o estado limpo.\n';
+        }
+
+        // Auto-executar
+        checkLocalStorage();
+    </script>
+</body>
+</html>

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Diagnóstico Completo - Volatile Trader</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            background: #000;
+            color: #0f0;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #ff0;
+            border-bottom: 2px solid #0f0;
+        }
+
+        .section {
+            margin: 30px 0;
+            border: 2px solid #0f0;
+            padding: 20px;
+            background: #111;
+        }
+
+        button {
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .danger {
+            background: #f00;
+            color: #fff;
+            border: 2px solid #f00;
+        }
+
+        .success {
+            background: #0f0;
+            color: #000;
+            border: 2px solid #0f0;
+        }
+
+        .info {
+            background: #00f;
+            color: #fff;
+            border: 2px solid #00f;
+        }
+
+        pre {
+            background: #000;
+            padding: 15px;
+            overflow-x: auto;
+            border-left: 4px solid #0f0;
+        }
+
+        .error {
+            color: #f00;
+        }
+
+        .good {
+            color: #0f0;
+        }
+
+        .warn {
+            color: #ff0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔍 DIAGNÓSTICO COMPLETO DO VOLATILE TRADER</h1>
+    <p>Este diagnóstico vai identificar EXATAMENTE de onde vêm os dados inconsistentes.</p>
+
+    <div class="section">
+        <h2>1. VERIFICAR LOCALSTORAGE</h2>
+        <button class="info" onclick="checkLocalStorage()">📊 Verificar LocalStorage</button>
+        <button class=" danger" onclick="clearAllLocalStorage()">🗑️ LIMPAR TUDO</button>
+        <pre id="localStorage-result">Clique em "Verificar LocalStorage" para começar...</pre>
+    </div>
+
+    <div class="section">
+        <h2>2. SIMULAR CÁLCULO DE STATS</h2>
+        <button class="info" onclick="simulateStatsCalculation()">🧮 Simular stats Service</button>
+        <pre id="stats-result">Clique para simular o cálculo de estatísticas...</pre>
+    </div>
+
+    <div class="section">
+        <h2>3. VERIFICAR CACHE DO NAVEGADOR</h2>
+        <button class="info" onclick="checkBrowserCache()">💾 Verificar Cache</button>
+        <button class="danger" onclick="clearBrowserCache()">🗑️ Limpar Cache</button>
+        <pre id="cache-result">Clique para verificar o cache...</pre>
+    </div>
+
+    <div class="section">
+        <h2>4. SOLUÇÃO COMPLETA</h2>
+        <button class="success" onclick="fullCleanup()">✅ LIMPAR TUDO E RECONSTRUIR</button>
+        <pre id="cleanup-result">Esta opção vai limpar COMPLETAMENTE todos os dados e reconstruir do zero...</pre>
+    </div>
+
+    <script>
+        function checkLocalStorage() {
+            const result = document.getElementById('localStorage-result');
+            result.innerHTML = '';
+
+            const keys = Object.keys(localStorage);
+            result.innerHTML += `<span class="good">📦 Total de chaves: ${keys.length}</span>\n\n`;
+
+            if (keys.length === 0) {
+                result.innerHTML += '<span class="good">✅ LocalStorage está VAZIO (correto!)</span>\n';
+                return;
+            }
+
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                result.innerHTML += `<span class="warn">KEY: ${key}</span>\n`;
+
+                try {
+                    const parsed = JSON.parse(value);
+                    result.innerHTML += `TYPE: ${typeof parsed}\n`;
+
+                    // Verificar se contém trades
+                    if (typeof parsed === 'object' && parsed !== null) {
+                        if (parsed.trades && Array.isArray(parsed.trades)) {
+                            result.innerHTML += `<span class="error">⚠️ CONTÉM ${parsed.trades.length} TRADES!</span>\n`;
+                            parsed.trades.slice(0, 3).forEach((t, i) => {
+                                result.innerHTML += `   Trade ${i + 1}: ${t.symbol || 'N/A'} - ${t.side || 'N/A'} - P/L: ${t.profit_loss === null ? 'NULL (aberta)' : t.profit_loss}\n`;
+                            });
+                        }
+                        if (parsed.config) {
+                            result.innerHTML += `   Config: test_mode=${parsed.config.test_mode}, balance=${parsed.config.test_balance}\n`;
+                        }
+                    }
+                } catch {
+                    result.innerHTML += `VALUE: ${value.substring(0, 100)}...\n`;
+                }
+                result.innerHTML += '\n';
+            });
+        }
+
+        function clearAllLocalStorage() {
+            const result = document.getElementById('localStorage-result');
+            const beforeCount = Object.keys(localStorage).length;
+
+            localStorage.clear();
+            sessionStorage.clear();
+
+            const afterCount = Object.keys(localStorage).length;
+            result.innerHTML = `<span class="good">✅ LocalStorage LIMPO!</span>\n`;
+            result.innerHTML += `Antes: ${beforeCount} chaves\n`;
+            result.innerHTML += `Depois: ${afterCount} chaves\n\n`;
+            result.innerHTML += '<span class="warn">⚠️ RECARREGUE a página (Ctrl+Shift+R) para aplicar!</span>\n';
+        }
+
+        function simulateStatsCalculation() {
+            const result = document.getElementById('stats-result');
+            result.innerHTML = '';
+
+            // Tentar ler BOT_DATA
+            const botData = localStorage.getItem('BOT_DATA');
+            if (!botData) {
+                result.innerHTML += '<span class="good">✅ BOT_DATA está VAZIO - sem trades!</span>\n\n';
+                result.innerHTML += '<span class="good">Posições Ativas DEVEM SER: 0</span>\n';
+                result.innerHTML += '<span class="good">Capital Alocado DEVE SER: $0.00</span>\n';
+                return;
+            }
+
+            try {
+                const data = JSON.parse(botData);
+                const trades = data.trades || [];
+
+                result.innerHTML += `<span class="warn">📊 Total de trades no BOT_DATA: ${trades.length}</span>\n\n`;
+
+                // Simular cálculo de openPositions
+                const openPositions = trades.filter(t =>
+                    t.side === 'BUY' && (t.profit_loss === null || typeof t.profit_loss === 'undefined')
+                );
+
+                const allocatedCapital = openPositions.reduce((sum, t) => {
+                    return sum + (Number(t.price) * Number(t.quantity));
+                }, 0);
+
+                result.innerHTML += `<span class="${openPositions.length > 0 ? 'error' : 'good'}">`;
+                result.innerHTML += `Trades BUY sem P/L: ${openPositions.length}\n`;
+                result.innerHTML += `</span>`;
+
+                result.innerHTML += `<span class="${allocatedCapital > 0 ? 'error' : 'good'}">`;
+                result.innerHTML += `Capital Alocado: $${allocatedCapital.toFixed(2)}\n`;
+                result.innerHTML += `</span>`;
+
+                result.innerHTML += `\n<span class="warn">Posições Ativas DEVEM SER: ${openPositions.length}</span>\n`;
+
+                if (openPositions.length > 0) {
+                    result.innerHTML += `\n<span class="error">⚠️ PROBLEMA ENCONTRADO: Há trades abertas no LocalStorage!</span>\n\n`;
+                    openPositions.forEach((t, i) => {
+                        result.innerHTML += `${i + 1}. ${t.symbol} - $${t.price} x ${t.quantity} = $${(t.price * t.quantity).toFixed(2)}\n`;
+                    });
+                }
+            } catch (e) {
+                result.innerHTML += `<span class="error">❌ Erro ao parsear: ${e.message}</span>\n`;
+            }
+        }
+
+        function checkBrowserCache() {
+            const result = document.getElementById('cache-result');
+            result.innerHTML = 'Verificando caches...\n\n';
+
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    result.innerHTML += `<span class="warn">📦 ${names.length} caches encontrados:</span>\n`;
+                    names.forEach(name => {
+                        result.innerHTML += `  - ${name}\n`;
+                    });
+
+                    if (names.length > 0) {
+                        result.innerHTML += `\n<span class="error">⚠️ Caches podem conter dados antigos!</span>\n`;
+                    } else {
+                        result.innerHTML += `\n<span class="good">✅ Nenhum cache encontrado</span>\n`;
+                    }
+                });
+            } else {
+                result.innerHTML = '<span class="warn">Cache API não suportada</span>\n';
+            }
+        }
+
+        function clearBrowserCache() {
+            const result = document.getElementById('cache-result');
+            result.innerHTML = 'Limpando caches...\n\n';
+
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    return Promise.all(names.map(name => caches.delete(name)));
+                }).then(() => {
+                    result.innerHTML += '<span class="good">✅ Todos os caches deletados!</span>\n';
+                    result.innerHTML += '<span class="warn">⚠️ Recarregue a página (Ctrl+Shift+R)</span>\n';
+                });
+            } else {
+                result.innerHTML = '<span class="warn">Cache API não suportada</span>\n';
+            }
+        }
+
+        function fullCleanup() {
+            const result = document.getElementById('cleanup-result');
+            result.innerHTML = '🧹 Executando limpeza completa...\n\n';
+
+            //1. LocalStorage
+            const lsCount = Object.keys(localStorage).length;
+            localStorage.clear();
+            sessionStorage.clear();
+            result.innerHTML += `✅ LocalStorage: ${lsCount} chaves removidas\n`;
+
+            // 2. Cache
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    result.innerHTML += `✅ Caches: ${names.length} caches removidos\n`;
+                    return Promise.all(names.map(name => caches.delete(name)));
+                }).then(() => {
+                    result.innerHTML += '\n<span class="good">✅ LIMPEZA COMPLETA!</span>\n\n';
+                    result.innerHTML += '<span class="warn">🔄 RECARREGUE A PÁGINA AGORA:</span>\n';
+                    result.innerHTML += 'Windows: Ctrl + Shift + R\n';
+                    result.innerHTML += 'Mac: Cmd + Shift + R\n\n';
+                    result.innerHTML += '<span class="good">Após recarregar, o Dashboard deve mostrar:</span>\n';
+                    result.innerHTML += '  - Posições Ativas: 0\n';
+                    result.innerHTML += '  - Capital Alocado: 0%\n';
+                    result.innerHTML += '  - Todos os valores zerados\n';
+                });
+            } else {
+                result.innerHTML += '\n<span class="good">✅ LIMPEZA COMPLETA!</span>\n';
+                result.innerHTML += '<span class="warn">🔄 Recarregue a página (Ctrl+Shift+R)</span>\n';
+            }
+        }
+
+        // Auto-executar ao carregar
+        window.addEventListener('load', () => {
+            checkLocalStorage();
+            simulateStatsCalculation();
+        });
+    </script>
+</body>
+
+</html>
