@@ -126,11 +126,11 @@ async function startHeadlessBot() {
         // Buscar config do Supabase primeiro
         const remote = await supabaseSync.fetchRemoteConfig();
 
-        // Sempre iniciar em modo teste automaticamente
-        // O Dashboard pode pausar quando atingir metas de profit/stop loss
+        // Sempre usar RISK_SETTINGS para parâmetros de trading (não do Supabase)
         const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT'];
 
         console.log(`🚀 Iniciando monitoramento para: ${symbols.join(', ')}`);
+        console.log(`📊 TP: ${RISK_SETTINGS.TAKE_PROFIT_PERCENT}% | SL: ${RISK_SETTINGS.STOP_LOSS_PERCENT}% | Max Pos: ${RISK_SETTINGS.MAX_POSITIONS}`);
 
         await tradingService.start({
             userId: '00000000-0000-0000-0000-000000000000',
@@ -138,8 +138,8 @@ async function startHeadlessBot() {
             symbols: symbols,
             totalCapital: remote?.test_balance || initialBalance,
             quantityPerTrade: remote?.quantity,
-            takeProfitPercent: remote?.take_profit_percent || RISK_SETTINGS.TAKE_PROFIT_PERCENT,
-            stopLossPercent: remote?.stop_loss_percent || RISK_SETTINGS.STOP_LOSS_PERCENT,
+            takeProfitPercent: RISK_SETTINGS.TAKE_PROFIT_PERCENT,
+            stopLossPercent: RISK_SETTINGS.STOP_LOSS_PERCENT,
             testMode: remote?.test_mode !== undefined ? remote.test_mode : isTestMode,
             maxPositions: RISK_SETTINGS.MAX_POSITIONS
         });
