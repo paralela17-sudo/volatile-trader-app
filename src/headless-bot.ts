@@ -127,7 +127,10 @@ async function startHeadlessBot() {
         const remote = await supabaseSync.fetchRemoteConfig();
 
         // Verificar se está ligado antes de iniciar
-        if (remote?.is_powered_on !== true) {
+        // Se não conseguir buscar config do Supabase, iniciar normalmente em modo teste
+        const shouldStart = !remote || remote.is_powered_on !== false;
+        
+        if (!shouldStart) {
             console.log('⏸️ Bot inicia em modo PAUSADO. Aguardando comando do Dashboard...');
             console.log('   Para ativar, vá no Dashboard e clique em ON.');
         } else {
