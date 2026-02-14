@@ -41,10 +41,10 @@ import {
 
 const userId = DEFAULT_USER_ID;
 
-// Validation schema
+// Validation schema - chaves API são opcionais (podem estar salvas)
 const botConfigSchema = z.object({
-  apiKey: z.string().min(1, "API Key é obrigatória"),
-  apiSecret: z.string().min(1, "API Secret é obrigatória"),
+  apiKey: z.string().optional().default(""),
+  apiSecret: z.string().optional().default(""),
   testMode: z.boolean(),
   quantity: z.number().min(0.001, "Quantidade mínima é 0.001").max(100000, "Quantidade muito alta"),
   takeProfit: z.number().min(0.1, "Take Profit mínimo é 0.1%").max(100, "Take Profit máximo é 100%"),
