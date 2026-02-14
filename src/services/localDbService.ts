@@ -10,12 +10,12 @@ const getBrowserData = () => {
         const data = localStorage.getItem('BOT_DATA');
         const parsed = data ? JSON.parse(data) : { config: {}, trades: [], logs: [] };
         // Debug: log se há chaves salvas
-        if (parsed.config && (parsed.config.api_key_encrypted || parsed.config.api_secret_encrypted)) {
-            console.log('📋 [LocalDB] Dados carregados do LocalStorage:', { 
-                hasApiKey: !!parsed.config.api_key_encrypted, 
-                hasApiSecret: !!parsed.config.api_secret_encrypted 
-            });
-        }
+        console.log('📋 [LocalDB] Dados carregados do LocalStorage:', { 
+            hasApiKey: !!parsed.config?.api_key_encrypted, 
+            hasApiSecret: !!parsed.config?.api_secret_encrypted,
+            apiKeyLength: parsed.config?.api_key_encrypted?.length || 0,
+            apiSecretLength: parsed.config?.api_secret_encrypted?.length || 0
+        });
         return parsed;
     } catch (e) {
         return { config: {}, trades: [], logs: [] };

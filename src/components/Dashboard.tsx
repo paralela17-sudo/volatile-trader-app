@@ -308,8 +308,13 @@ export const Dashboard = () => {
       if (success) {
         // Salvar credenciais - permite salvar individualmente
         if (settings.apiKey || settings.apiSecret) {
-          console.log("[Dashboard] Salvando novas credenciais API...");
+          console.log("[Dashboard] Salvando credenciais:", { 
+            apiKey: settings.apiKey ? "presente" : "vazio", 
+            apiSecret: settings.apiSecret ? "presente" : "vazio" 
+          });
           await botConfigService.saveApiCredentials(userId, settings.apiKey, settings.apiSecret);
+        } else {
+          console.log("[Dashboard] Nenhuma credencialnova informada");
         }
 
         // Limpar campos de senha após salvar
