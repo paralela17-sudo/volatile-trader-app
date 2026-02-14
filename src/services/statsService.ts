@@ -155,9 +155,6 @@ export const statsService = {
       const dailyProfit = todayTrades.reduce((sum: number, t: any) =>
         sum + (t.profit_loss || 0), 0
       );
-      const dailyProfitPercent = initialCapital > 0
-        ? (dailyProfit / initialCapital) * 100
-        : 0;
 
       // Saldo atual (capital inicial + lucro total realizado + P&L não realizado das posições abertas)
       // Em modo teste, o lucro total vem das trades simuladas anteriores
