@@ -250,21 +250,22 @@ class SupabaseSyncService {
                 };
                 localDb.saveConfig(mergedConfig as any);
             } else {
-                // Create new config
-                const localConfig = localDb.getConfig();
+                // Create new config - SEM chaves API (segurança)
                 const { data: newConfig, error: createError } = await supabase
                     .from('bot_configurations')
                     .insert({
                         user_id: this.userId,
-                        test_mode: localConfig.test_mode ?? true,
-                        test_balance: localConfig.test_balance ?? 1000,
-                        trading_pair: localConfig.trading_pair ?? 'BTCUSDT',
-                        quantity: localConfig.quantity ?? 0.001,
+                        test_mode: true,
+                        test_balance: 1000,
+                        trading_pair: 'BTCUSDT',
+                        quantity: 0.001,
                         take_profit_percent: 6.0,
                         stop_loss_percent: 3.0,
-                        daily_profit_goal: localConfig.daily_profit_goal ?? 50,
+                        daily_profit_goal: 50,
                         is_running: false,
-                        is_powered_on: false
+                        is_powered_on: false,
+                        api_key_encrypted: null,
+                        api_secret_encrypted: null
                     })
                     .select()
                     .single();
@@ -362,7 +363,8 @@ class SupabaseSyncService {
     }
 
     async syncConfig(config: Partial<BotConfig>) {
-        // [FIX] Preservar chaves existentes ao sincronizar
+        // [SECURITY FIX] Preservar chaves existentes APENAS localmente
+        // As chaves NUNCA vão para o Supabase - ficam apenas no LocalStorage do navegador
         const currentConfig = localDb.getConfig();
         const mergedConfig = {
             ...currentConfig,
@@ -371,30 +373,34 @@ class SupabaseSyncService {
             api_secret_encrypted: config.api_secret_encrypted || currentConfig.api_secret_encrypted,
         };
         
-        // Always save locally first
+        // Always save locally first (LocalStorage only - secure!)
         localDb.saveConfig(mergedConfig as any);
 
         if (!this.syncEnabled || !this.userId || !this.configId) {
             return;
         }
 
+        // [SECURITY] Não sincronizar chaves API com Supabase - deixar como null/undefined
+        const configToSync = {
+            test_mode: config.test_mode,
+            test_balance: config.test_balance,
+            trading_pair: config.trading_pair,
+            quantity: config.quantity,
+            take_profit_percent: config.take_profit_percent,
+            stop_loss_percent: config.stop_loss_percent,
+            daily_profit_goal: config.daily_profit_goal,
+            is_running: config.is_running,
+            is_powered_on: config.is_powered_on,
+            // API keys: NÃO enviar para o Supabase - manter como null
+            api_key_encrypted: null,
+            api_secret_encrypted: null,
+            updated_at: new Date().toISOString()
+        };
+
         try {
             const { error } = await supabase
                 .from('bot_configurations')
-                .update({
-                    test_mode: config.test_mode,
-                    test_balance: config.test_balance,
-                    trading_pair: config.trading_pair,
-                    quantity: config.quantity,
-                    take_profit_percent: config.take_profit_percent,
-                    stop_loss_percent: config.stop_loss_percent,
-                    daily_profit_goal: config.daily_profit_goal,
-                    is_running: config.is_running,
-                    is_powered_on: config.is_powered_on,
-                    api_key_encrypted: mergedConfig.api_key_encrypted,
-                    api_secret_encrypted: mergedConfig.api_secret_encrypted,
-                    updated_at: new Date().toISOString()
-                })
+                .update(configToSync)
                 .eq('id', this.configId);
 
             if (error) {
