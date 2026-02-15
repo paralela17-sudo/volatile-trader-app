@@ -25,8 +25,10 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Missing path parameter' });
         }
 
-        // Construir URL da Binance (Utilizando .me para evitar geoblocks regionais no Vercel/VPS)
-        const baseUrl = 'https://api.binance.me';
+        // Construir URL da Binance (Detectar se é Spot ou Futures)
+        const isFutures = path.startsWith('/fapi');
+        const baseUrl = isFutures ? 'https://fapi.binance.me' : 'https://api.binance.me';
+
         const queryStr = Object.entries(params)
             .map(([key, val]) => `${key}=${val}`)
             .join('&');
