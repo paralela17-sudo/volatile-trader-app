@@ -26,8 +26,9 @@ export default async function handler(req, res) {
         }
 
         // Construir URL da Binance (Detectar se é Spot ou Futures)
+        // Usamos .com aqui porque a VERCEL não está em região bloqueada.
         const isFutures = path.startsWith('/fapi');
-        const baseUrl = isFutures ? 'https://fapi.binance.me' : 'https://api.binance.me';
+        const baseUrl = isFutures ? 'https://fapi.binance.com' : 'https://api.binance.com';
 
         const queryStr = Object.entries(params)
             .map(([key, val]) => `${key}=${val}`)
@@ -71,7 +72,8 @@ export default async function handler(req, res) {
         console.error('[Proxy Error]', error);
         return res.status(500).json({
             error: 'Proxy Internal Error',
-            message: error.message
+            message: error.message,
+            targetUrl: targetUrl || 'not_defined'
         });
     }
 }

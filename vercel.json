@@ -1,15 +1,8 @@
 {
-    "version": 2,
-    "framework": "vite",
-    "functions": {
-        "api/*.js": {
-            "maxDuration": 15
-        }
-    },
     "rewrites": [
         {
-            "source": "/((?!api/.*).*)",
-            "destination": "/index.html"
+            "source": "/api/(.*)",
+            "destination": "/api/$1"
         }
     ]
 }
